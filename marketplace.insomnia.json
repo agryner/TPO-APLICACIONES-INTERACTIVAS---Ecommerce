@@ -1,0 +1,577 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-08-25T14:13:36.000Z",
+  "__export_source": "claude-code:marketplace",
+  "resources": [
+    {
+      "_id": "wrk_marketplace",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Marketplace API",
+      "description": "Backend del marketplace agropecuario (UADE APIS2)",
+      "scope": "collection"
+    },
+    {
+      "_id": "fld_categorias",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "Categorias",
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_categorias_1",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Listar categorias",
+      "description": "Devuelve todas, planas. Cada una trae su cadena de categoriaPadre.",
+      "method": "GET",
+      "url": "http://localhost:4002/categorias",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_categorias_2",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Listar solo categorias raiz",
+      "description": "Las que no cuelgan de ninguna otra.",
+      "method": "GET",
+      "url": "http://localhost:4002/categorias",
+      "headers": [],
+      "parameters": [
+        {
+          "name": "soloRaices",
+          "value": "true"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_categorias_3",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Obtener categoria por id",
+      "description": "404 si no existe.",
+      "method": "GET",
+      "url": "http://localhost:4002/categorias/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_categorias_4",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Listar subcategorias",
+      "description": "Las hijas directas de esa categoria.",
+      "method": "GET",
+      "url": "http://localhost:4002/categorias/1/subcategorias",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_categorias_5",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Crear categoria raiz",
+      "description": "Sin idCategoriaPadre queda como categoria raiz.",
+      "method": "POST",
+      "url": "http://localhost:4002/categorias",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Semillas\",\n  \"descripcion\": \"Semillas de cultivos extensivos\"\n}"
+      },
+      "metaSortKey": 5
+    },
+    {
+      "_id": "req_categorias_6",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Crear subcategoria",
+      "description": "idCategoriaPadre la cuelga de otra categoria. El nombre solo tiene que ser unico entre hermanas.",
+      "method": "POST",
+      "url": "http://localhost:4002/categorias",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Hibridos de maiz\",\n  \"idCategoriaPadre\": 1\n}"
+      },
+      "metaSortKey": 6
+    },
+    {
+      "_id": "req_categorias_7",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Modificar o mover categoria",
+      "description": "Cambiar idCategoriaPadre mueve la categoria de rama. 400 si genera un ciclo.",
+      "method": "PUT",
+      "url": "http://localhost:4002/categorias/2",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Hibridos y variedades\",\n  \"idCategoriaPadre\": 1\n}"
+      },
+      "metaSortKey": 7
+    },
+    {
+      "_id": "req_categorias_8",
+      "_type": "request",
+      "parentId": "fld_categorias",
+      "name": "Eliminar categoria",
+      "description": "409 si tiene subcategorias. Hay que borrar de la hoja hacia la raiz.",
+      "method": "DELETE",
+      "url": "http://localhost:4002/categorias/2",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 8
+    },
+    {
+      "_id": "fld_usuarios",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "Usuarios",
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_usuarios_1",
+      "_type": "request",
+      "parentId": "fld_usuarios",
+      "name": "Listar usuarios",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/usuarios",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_usuarios_2",
+      "_type": "request",
+      "parentId": "fld_usuarios",
+      "name": "Obtener usuario por id",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/usuarios/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_usuarios_3",
+      "_type": "request",
+      "parentId": "fld_usuarios",
+      "name": "Crear usuario",
+      "description": "La contrasena se acepta pero nunca se devuelve. rol: ADMIN o CLIENTE.",
+      "method": "POST",
+      "url": "http://localhost:4002/usuarios",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Lucca\",\n  \"apellido\": \"Vontobel\",\n  \"nombreUsuario\": \"lucca\",\n  \"mail\": \"lucca@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Ruta 8 km 210, Pergamino\",\n  \"rol\": \"CLIENTE\"\n}"
+      },
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_usuarios_4",
+      "_type": "request",
+      "parentId": "fld_usuarios",
+      "name": "Modificar usuario",
+      "description": "Manda el objeto completo: los campos que omitas se guardan en null.",
+      "method": "PUT",
+      "url": "http://localhost:4002/usuarios/1",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Lucca\",\n  \"apellido\": \"Vontobel\",\n  \"nombreUsuario\": \"lucca\",\n  \"mail\": \"lucca@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Av. San Martin 1250, Junin\",\n  \"rol\": \"CLIENTE\"\n}"
+      },
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_usuarios_5",
+      "_type": "request",
+      "parentId": "fld_usuarios",
+      "name": "Eliminar usuario",
+      "description": "",
+      "method": "DELETE",
+      "url": "http://localhost:4002/usuarios/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 5
+    },
+    {
+      "_id": "fld_productos",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "Productos",
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_productos_1",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Listar productos",
+      "description": "Filtros opcionales: idCategoria, idVendedor o nombre. Se aplica el primero que mandes.",
+      "method": "GET",
+      "url": "http://localhost:4002/productos",
+      "headers": [],
+      "parameters": [
+        {
+          "name": "idCategoria",
+          "value": "2",
+          "disabled": true
+        },
+        {
+          "name": "idVendedor",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "nombre",
+          "value": "maiz",
+          "disabled": true
+        }
+      ],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_productos_2",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Obtener producto por id",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/productos/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_productos_3",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Crear producto",
+      "description": "404 si idCategoria o idVendedor no existen. descuento es el porcentaje (0-100).",
+      "method": "POST",
+      "url": "http://localhost:4002/productos",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 185000.0,\n  \"stock\": 40,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 10,\n  \"idCategoria\": 2,\n  \"idVendedor\": 1,\n  \"fotos\": [\n    \"https://img.example/maiz-1.png\",\n    \"https://img.example/maiz-2.png\"\n  ]\n}"
+      },
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_productos_4",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Modificar producto",
+      "description": "Mandar fotos reemplaza todas las existentes; omitirlo las deja como estan.",
+      "method": "PUT",
+      "url": "http://localhost:4002/productos/1",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 195000.0,\n  \"stock\": 25,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 15,\n  \"idCategoria\": 2,\n  \"idVendedor\": 1\n}"
+      },
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_productos_5",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Eliminar producto",
+      "description": "Falla si el producto ya fue comprado: lo referencia un order_detail.",
+      "method": "DELETE",
+      "url": "http://localhost:4002/productos/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 5
+    },
+    {
+      "_id": "fld_fotos",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "Fotos",
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_fotos_1",
+      "_type": "request",
+      "parentId": "fld_fotos",
+      "name": "Listar fotos de un producto",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/fotos",
+      "headers": [],
+      "parameters": [
+        {
+          "name": "idProducto",
+          "value": "1"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_fotos_2",
+      "_type": "request",
+      "parentId": "fld_fotos",
+      "name": "Obtener foto por id",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/fotos/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_fotos_3",
+      "_type": "request",
+      "parentId": "fld_fotos",
+      "name": "Agregar foto a un producto",
+      "description": "",
+      "method": "POST",
+      "url": "http://localhost:4002/fotos",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"url\": \"https://img.example/maiz-3.png\",\n  \"idProducto\": 1\n}"
+      },
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_fotos_4",
+      "_type": "request",
+      "parentId": "fld_fotos",
+      "name": "Eliminar foto",
+      "description": "",
+      "method": "DELETE",
+      "url": "http://localhost:4002/fotos/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 4
+    },
+    {
+      "_id": "fld_carrito",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "Carrito",
+      "metaSortKey": 5
+    },
+    {
+      "_id": "req_carrito_1",
+      "_type": "request",
+      "parentId": "fld_carrito",
+      "name": "Obtener carrito",
+      "description": "Hay un solo carrito por usuario. Si nunca tuvo, se le crea vacio. Si venció, vuelve vacio.",
+      "method": "GET",
+      "url": "http://localhost:4002/usuarios/1/carrito",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_carrito_2",
+      "_type": "request",
+      "parentId": "fld_carrito",
+      "name": "Agregar item al carrito",
+      "description": "Si el producto ya estaba, acumula la cantidad. 400 si no hay stock.",
+      "method": "POST",
+      "url": "http://localhost:4002/usuarios/1/carrito/items",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"idProducto\": 1,\n  \"cantidad\": 2\n}"
+      },
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_carrito_3",
+      "_type": "request",
+      "parentId": "fld_carrito",
+      "name": "Eliminar item del carrito",
+      "description": "404 si ese item no esta en el carrito.",
+      "method": "DELETE",
+      "url": "http://localhost:4002/usuarios/1/carrito/items/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_carrito_4",
+      "_type": "request",
+      "parentId": "fld_carrito",
+      "name": "Vaciar carrito",
+      "description": "El carrito no se borra, se queda sin items.",
+      "method": "DELETE",
+      "url": "http://localhost:4002/usuarios/1/carrito/items",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 4
+    },
+    {
+      "_id": "fld_ordenes",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "Ordenes",
+      "metaSortKey": 6
+    },
+    {
+      "_id": "req_ordenes_1",
+      "_type": "request",
+      "parentId": "fld_ordenes",
+      "name": "Listar ordenes",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/ordenes",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_ordenes_2",
+      "_type": "request",
+      "parentId": "fld_ordenes",
+      "name": "Listar ordenes de un usuario",
+      "description": "",
+      "method": "GET",
+      "url": "http://localhost:4002/ordenes",
+      "headers": [],
+      "parameters": [
+        {
+          "name": "idUsuario",
+          "value": "1"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_ordenes_3",
+      "_type": "request",
+      "parentId": "fld_ordenes",
+      "name": "Obtener orden por id",
+      "description": "Los items traen nombre, precio y descuento congelados al momento de la compra.",
+      "method": "GET",
+      "url": "http://localhost:4002/ordenes/1",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_ordenes_4",
+      "_type": "request",
+      "parentId": "fld_ordenes",
+      "name": "Crear orden desde el carrito",
+      "description": "Descuenta stock, congela precios en order_detail y vacia el carrito. 400 si el carrito esta vacio.",
+      "method": "POST",
+      "url": "http://localhost:4002/ordenes",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"idUsuario\": 1\n}"
+      },
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_ordenes_5",
+      "_type": "request",
+      "parentId": "fld_ordenes",
+      "name": "Cambiar estado de la orden",
+      "description": "La orden nace en PENDIENTE.",
+      "method": "PUT",
+      "url": "http://localhost:4002/ordenes/1/estado",
+      "headers": [],
+      "parameters": [
+        {
+          "name": "estado",
+          "value": "PAGADA"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 5
+    }
+  ]
+}
