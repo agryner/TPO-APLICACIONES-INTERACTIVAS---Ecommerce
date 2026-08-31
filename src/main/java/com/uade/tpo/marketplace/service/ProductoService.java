@@ -4,11 +4,16 @@ import java.util.List;
 import java.util.Optional;
 
 import com.uade.tpo.marketplace.entity.Producto;
-import com.uade.tpo.marketplace.entity.dto.ProductoRequest;
+import com.uade.tpo.marketplace.controllers.ProductoRequest;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
+/**
+ * Contrato de la logica de productos.
+ *
+ * Lo consume ProductosController y lo implementa ProductoServiceImpl.
+ */
 public interface ProductoService {
 
     List<Producto> getProductos(Long idCategoria, Long idVendedor, String nombre);

@@ -7,6 +7,12 @@ import org.springframework.stereotype.Repository;
 
 import com.uade.tpo.marketplace.entity.Categoria;
 
+/**
+ * Acceso a datos de Categoria.
+ *
+ * Spring Data genera la implementacion a partir de los nombres de los
+ * metodos. Lo usa CategoriaServiceImpl; los controllers nunca lo tocan.
+ */
 @Repository
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
 

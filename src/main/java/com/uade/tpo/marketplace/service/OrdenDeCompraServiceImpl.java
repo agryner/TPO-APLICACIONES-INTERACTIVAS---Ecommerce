@@ -12,7 +12,7 @@ import com.uade.tpo.marketplace.entity.ItemCarrito;
 import com.uade.tpo.marketplace.entity.OrderDetail;
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 import com.uade.tpo.marketplace.entity.Producto;
-import com.uade.tpo.marketplace.entity.dto.OrdenDeCompraRequest;
+import com.uade.tpo.marketplace.controllers.OrdenDeCompraRequest;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -22,6 +22,13 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Logica de ordenes: convierte un carrito en una compra cerrada.
+ *
+ * Lo llama OrdenesController. Lee el carrito, valida que tenga items y stock,
+ * copia cada linea a un OrderDetail con el precio del momento, descuenta el
+ * stock del producto y vacia el carrito.
+ */
 @Service
 @RequiredArgsConstructor
 public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {

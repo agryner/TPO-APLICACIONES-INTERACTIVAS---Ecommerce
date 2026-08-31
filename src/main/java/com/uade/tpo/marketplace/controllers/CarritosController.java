@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.Carrito;
-import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
@@ -22,6 +21,9 @@ import lombok.RequiredArgsConstructor;
 /**
  * El carrito es unico por usuario, asi que cuelga del usuario y no tiene id propio
  * en la URL. Cuando se sume la autenticacion, el {idUsuario} sale del token.
+ *
+ * Delega todo en CarritoService y devuelve la entidad Carrito ya con
+ * sus totales recalculados.
  */
 @RestController
 @RequestMapping("usuarios/{idUsuario}/carrito")

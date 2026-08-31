@@ -6,20 +6,35 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.uade.tpo.marketplace.entity.Categoria;
-import com.uade.tpo.marketplace.entity.dto.CategoriaRequest;
+import com.uade.tpo.marketplace.entity.TipoUsuario;
+import com.uade.tpo.marketplace.entity.Usuario;
+import com.uade.tpo.marketplace.controllers.CategoriaRequest;
 import com.uade.tpo.marketplace.exceptions.CategoriaConSubcategoriasException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CategoriaDuplicadaException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.JerarquiaInvalidaException;
+import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.CategoriaRepository;
+import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Logica de categorias: altas, jerarquia y validaciones.
+ *
+ * Lo llama CategoriasController y se apoya en CategoriaRepository. Valida que
+ * no haya dos hermanas con el mismo nombre, que una categoria no quede como
+ * descendiente de si misma y que no se borre una que tenga subcategorias.
+ * Consulta ademas UsuarioRepository, porque solo un ADMIN puede crear,
+ * editar o borrar categorias.
+ */
 @Service
 @RequiredArgsConstructor
 public class CategoriaServiceImpl implements CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public List<Categoria> getCategorias() {
         return categoriaRepository.findAll();
@@ -40,8 +55,11 @@ public class CategoriaServiceImpl implements CategoriaService {
         return categoriaRepository.findById(idCategoria);
     }
 
-    public Categoria createCategoria(CategoriaRequest request)
-            throws CategoriaDuplicadaException, CategoriaNoEncontradaException {
+    public Categoria createCategoria(CategoriaRequest request, Long idUsuario)
+            throws CategoriaDuplicadaException, CategoriaNoEncontradaException,
+            UsuarioNoEncontradoException, AccesoDenegadoException {
+        validarAdmin(idUsuario);
+
         Categoria padre = buscarPadre(request.getIdCategoriaPadre());
 
         if (!hermanasConEseNombre(request.getNombre(), padre).isEmpty())
@@ -52,8 +70,11 @@ public class CategoriaServiceImpl implements CategoriaService {
         return categoriaRepository.save(categoria);
     }
 
-    public Categoria updateCategoria(Long idCategoria, CategoriaRequest request)
-            throws CategoriaNoEncontradaException, JerarquiaInvalidaException {
+    public Categoria updateCategoria(Long idCategoria, CategoriaRequest request, Long idUsuario)
+            throws CategoriaNoEncontradaException, JerarquiaInvalidaException,
+            UsuarioNoEncontradoException, AccesoDenegadoException {
+        validarAdmin(idUsuario);
+
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(CategoriaNoEncontradaException::new);
 
@@ -66,8 +87,11 @@ public class CategoriaServiceImpl implements CategoriaService {
         return categoriaRepository.save(categoria);
     }
 
-    public void deleteCategoria(Long idCategoria)
-            throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException {
+    public void deleteCategoria(Long idCategoria, Long idUsuario)
+            throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException,
+            UsuarioNoEncontradoException, AccesoDenegadoException {
+        validarAdmin(idUsuario);
+
         if (!categoriaRepository.existsById(idCategoria))
             throw new CategoriaNoEncontradaException();
 
@@ -105,4 +129,21 @@ public class CategoriaServiceImpl implements CategoriaService {
             actual = actual.getCategoriaPadre();
         }
     }
+
+    /**
+     * Corta la operacion si el usuario que la pide no es ADMIN.
+     *
+     * Mientras no haya autenticacion, el id llega como parametro desde el
+     * controller. Cuando se sume el token, el idUsuario sale de ahi y este
+     * metodo no cambia.
+     */
+    private void validarAdmin(Long idUsuario)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (usuario.getRol() != TipoUsuario.ADMIN)
+            throw new AccesoDenegadoException();
+    }
+
 }

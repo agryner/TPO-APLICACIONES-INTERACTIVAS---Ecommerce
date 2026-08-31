@@ -1,4 +1,4 @@
-package com.uade.tpo.marketplace.entity.dto;
+package com.uade.tpo.marketplace.controllers;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,6 +6,8 @@ import lombok.Data;
 /**
  * Respuesta simple para las operaciones que no devuelven un recurso,
  * como los borrados.
+ *
+ * Lo arma el controller al terminar; los services no lo conocen.
  */
 @Data
 @AllArgsConstructor

@@ -1,12 +1,17 @@
 package com.uade.tpo.marketplace.service;
 
 import com.uade.tpo.marketplace.entity.Carrito;
-import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
+import com.uade.tpo.marketplace.controllers.ItemCarritoRequest;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
+/**
+ * Contrato de la logica del carrito.
+ *
+ * Lo consume CarritosController y lo implementa CarritoServiceImpl.
+ */
 public interface CarritoService {
 
     /**

@@ -23,6 +23,9 @@ import lombok.ToString;
  * Guarda una copia del nombre, el precio y el descuento que tenia el producto
  * en el momento de la compra. Si despues el vendedor cambia el precio, esta
  * orden sigue mostrando lo que el comprador efectivamente pago.
+ *
+ * Lo crea OrdenDeCompraServiceImpl al cerrar la compra y se guarda en
+ * cascada junto con su OrdenDeCompra.
  */
 @Data
 @NoArgsConstructor

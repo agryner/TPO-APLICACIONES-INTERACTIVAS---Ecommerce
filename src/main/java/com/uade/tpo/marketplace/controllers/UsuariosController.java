@@ -14,14 +14,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.entity.dto.UsuarioRequest;
-import com.uade.tpo.marketplace.entity.dto.MensajeResponse;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.service.UsuarioService;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Endpoints REST de usuarios.
+ *
+ * Recibe UsuarioRequest, delega en UsuarioService y devuelve entidades
+ * Usuario o MensajeResponse.
+ */
 @RestController
 @RequestMapping("usuarios")
 @RequiredArgsConstructor

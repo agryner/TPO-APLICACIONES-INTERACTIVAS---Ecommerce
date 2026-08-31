@@ -1,16 +1,14 @@
 package com.uade.tpo.marketplace.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.uade.tpo.marketplace.entity.Categoria;
-import com.uade.tpo.marketplace.entity.Foto;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.entity.dto.ProductoRequest;
+import com.uade.tpo.marketplace.controllers.ProductoRequest;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -20,6 +18,13 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Logica de productos: altas, ediciones y busquedas.
+ *
+ * Lo llama ProductosController y usa ProductoRepository para persistir, mas
+ * CategoriaRepository y UsuarioRepository para resolver las referencias que
+ * el ProductoRequest trae como ids.
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductoServiceImpl implements ProductoService {
@@ -82,16 +87,6 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setCategoria(categoria);
         producto.setVendedor(vendedor);
 
-        if (request.getFotos() != null) {
-            List<Foto> fotos = producto.getFotos() == null ? new ArrayList<>() : producto.getFotos();
-            fotos.clear();
-            for (String url : request.getFotos()) {
-                Foto foto = new Foto();
-                foto.setUrl(url);
-                foto.setProducto(producto);
-                fotos.add(foto);
-            }
-            producto.setFotos(fotos);
-        }
+        // Las fotos no se cargan aca: se suben como archivo a POST /fotos.
     }
 }

@@ -22,6 +22,12 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * Orden de compra generada a partir de un carrito.
+ *
+ * Agrupa sus OrderDetail en cascade ALL y congela subtotal y total al momento
+ * de la compra. La persiste OrdenDeCompraRepository.
+ */
 @Data
 @NoArgsConstructor
 @Entity

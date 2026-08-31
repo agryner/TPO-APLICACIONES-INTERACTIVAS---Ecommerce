@@ -15,16 +15,26 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.Categoria;
-import com.uade.tpo.marketplace.entity.dto.CategoriaRequest;
-import com.uade.tpo.marketplace.entity.dto.MensajeResponse;
 import com.uade.tpo.marketplace.exceptions.CategoriaConSubcategoriasException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CategoriaDuplicadaException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.JerarquiaInvalidaException;
+import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.service.CategoriaService;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Endpoints REST del arbol de categorias.
+ *
+ * Recibe CategoriaRequest desde el body, delega todo en CategoriaService y
+ * devuelve entidades Categoria o MensajeResponse. No tiene logica propia:
+ * solo traduce HTTP a llamadas al service.
+ *
+ * El alta, la edicion y la baja estan restringidas a administradores: el id
+ * de quien las pide viaja como query param idUsuario y lo valida el service.
+ */
 @RestController
 @RequestMapping("categorias")
 @RequiredArgsConstructor
@@ -57,23 +67,28 @@ public class CategoriasController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createCategoria(@RequestBody CategoriaRequest request)
-            throws CategoriaDuplicadaException, CategoriaNoEncontradaException {
-        Categoria result = categoriaService.createCategoria(request);
+    public ResponseEntity<Object> createCategoria(@RequestBody CategoriaRequest request,
+            @RequestParam Long idUsuario)
+            throws CategoriaDuplicadaException, CategoriaNoEncontradaException,
+            UsuarioNoEncontradoException, AccesoDenegadoException {
+        Categoria result = categoriaService.createCategoria(request, idUsuario);
         return ResponseEntity.created(URI.create("/categorias/" + result.getId())).body(result);
     }
 
     @PutMapping("/{idCategoria}")
     public ResponseEntity<Categoria> updateCategoria(@PathVariable Long idCategoria,
-            @RequestBody CategoriaRequest request)
-            throws CategoriaNoEncontradaException, JerarquiaInvalidaException {
-        return ResponseEntity.ok(categoriaService.updateCategoria(idCategoria, request));
+            @RequestBody CategoriaRequest request, @RequestParam Long idUsuario)
+            throws CategoriaNoEncontradaException, JerarquiaInvalidaException,
+            UsuarioNoEncontradoException, AccesoDenegadoException {
+        return ResponseEntity.ok(categoriaService.updateCategoria(idCategoria, request, idUsuario));
     }
 
     @DeleteMapping("/{idCategoria}")
-    public ResponseEntity<MensajeResponse> deleteCategoria(@PathVariable Long idCategoria)
-            throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException {
-        categoriaService.deleteCategoria(idCategoria);
+    public ResponseEntity<MensajeResponse> deleteCategoria(@PathVariable Long idCategoria,
+            @RequestParam Long idUsuario)
+            throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException,
+            UsuarioNoEncontradoException, AccesoDenegadoException {
+        categoriaService.deleteCategoria(idCategoria, idUsuario);
         return ResponseEntity.ok(new MensajeResponse("Categoria eliminada correctamente"));
     }
 }

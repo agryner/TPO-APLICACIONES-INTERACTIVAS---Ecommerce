@@ -23,6 +23,9 @@ import lombok.ToString;
  *
  * Una categoria sin padre es una categoria raiz; si tiene padre, es una
  * subcategoria. La profundidad no esta limitada.
+ *
+ * La persiste CategoriaRepository y la maneja CategoriaServiceImpl,
+ * que es quien valida la jerarquia.
  */
 @Data
 @NoArgsConstructor

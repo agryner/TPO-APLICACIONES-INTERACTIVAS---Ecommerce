@@ -11,7 +11,7 @@ import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.entity.ItemCarrito;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
+import com.uade.tpo.marketplace.controllers.ItemCarritoRequest;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
@@ -22,6 +22,13 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Logica del carrito: items, totales y vencimiento.
+ *
+ * Lo llama CarritosController y usa CarritoRepository, ItemCarritoRepository,
+ * ProductoRepository y UsuarioRepository. Antes de cada operacion vacia el
+ * carrito si paso su fechaLimite, y despues recalcula subtotal y total.
+ */
 @Service
 @RequiredArgsConstructor
 public class CarritoServiceImpl implements CarritoService {

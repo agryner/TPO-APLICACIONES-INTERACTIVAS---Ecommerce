@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.Producto;
-import com.uade.tpo.marketplace.entity.dto.ProductoRequest;
-import com.uade.tpo.marketplace.entity.dto.MensajeResponse;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -24,6 +22,13 @@ import com.uade.tpo.marketplace.service.ProductoService;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Endpoints REST del catalogo de productos.
+ *
+ * Recibe ProductoRequest, delega en ProductoService y devuelve entidades
+ * Producto o MensajeResponse. Los filtros de busqueda llegan como query
+ * params y se pasan tal cual al service.
+ */
 @RestController
 @RequestMapping("productos")
 @RequiredArgsConstructor

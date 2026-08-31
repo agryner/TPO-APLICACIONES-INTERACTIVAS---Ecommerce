@@ -8,6 +8,12 @@ import org.springframework.stereotype.Repository;
 
 import com.uade.tpo.marketplace.entity.ItemCarrito;
 
+/**
+ * Acceso a datos de ItemCarrito.
+ *
+ * findByCarritoIdAndProductoId le permite a CarritoServiceImpl detectar si el
+ * producto ya estaba en el carrito y sumar cantidad en vez de duplicar.
+ */
 @Repository
 public interface ItemCarritoRepository extends JpaRepository<ItemCarrito, Long> {
 

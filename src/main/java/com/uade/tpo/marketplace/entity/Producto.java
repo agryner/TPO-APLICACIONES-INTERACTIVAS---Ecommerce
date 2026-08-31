@@ -18,6 +18,13 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * Producto publicado por un vendedor.
+ *
+ * Cuelga de una Categoria y de un Usuario vendedor, y agrupa sus Foto en
+ * cascade ALL, asi que borrar el producto borra sus fotos. Lo persiste
+ * ProductoRepository y el controller lo devuelve tal cual en el JSON.
+ */
 @Data
 @NoArgsConstructor
 @Entity

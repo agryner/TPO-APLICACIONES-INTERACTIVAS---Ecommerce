@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
-import com.uade.tpo.marketplace.entity.dto.OrdenDeCompraRequest;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -23,6 +22,13 @@ import com.uade.tpo.marketplace.service.OrdenDeCompraService;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Endpoints REST de ordenes de compra.
+ *
+ * Recibe OrdenDeCompraRequest, delega en OrdenDeCompraService y devuelve
+ * entidades OrdenDeCompra. El alta toma el contenido del carrito del usuario,
+ * asi que el body solo trae de quien es la orden.
+ */
 @RestController
 @RequestMapping("ordenes")
 @RequiredArgsConstructor

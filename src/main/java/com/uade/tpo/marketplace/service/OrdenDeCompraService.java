@@ -4,12 +4,17 @@ import java.util.List;
 import java.util.Optional;
 
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
-import com.uade.tpo.marketplace.entity.dto.OrdenDeCompraRequest;
+import com.uade.tpo.marketplace.controllers.OrdenDeCompraRequest;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
+/**
+ * Contrato de la logica de ordenes.
+ *
+ * Lo consume OrdenesController y lo implementa OrdenDeCompraServiceImpl.
+ */
 public interface OrdenDeCompraService {
 
     List<OrdenDeCompra> getOrdenes();

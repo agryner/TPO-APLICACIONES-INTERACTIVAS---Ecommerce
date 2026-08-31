@@ -1,10 +1,15 @@
-package com.uade.tpo.marketplace.entity.dto;
+package com.uade.tpo.marketplace.controllers;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import lombok.Data;
 
+/**
+ * Datos que entran por el body al crear o editar un producto.
+ *
+ * Trae idCategoria e idVendedor en vez de los objetos completos; el service
+ * los resuelve contra sus repositories antes de armar la entidad Producto.
+ */
 @Data
 public class ProductoRequest {
     private String nombre;
@@ -15,5 +20,4 @@ public class ProductoRequest {
     private Integer descuento;
     private Long idCategoria;
     private Long idVendedor;
-    private List<String> fotos;
 }

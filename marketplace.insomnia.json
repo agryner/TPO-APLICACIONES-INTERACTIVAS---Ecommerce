@@ -81,7 +81,7 @@
       "_type": "request",
       "parentId": "fld_categorias",
       "name": "Crear categoria raiz",
-      "description": "Sin idCategoriaPadre queda como categoria raiz.",
+      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
       "method": "POST",
       "url": "http://localhost:4002/categorias",
       "headers": [
@@ -90,7 +90,13 @@
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_admin_crear",
+          "name": "idUsuario",
+          "value": "3"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Semillas\",\n  \"descripcion\": \"Semillas de cultivos extensivos\"\n}"
@@ -102,7 +108,7 @@
       "_type": "request",
       "parentId": "fld_categorias",
       "name": "Crear subcategoria",
-      "description": "idCategoriaPadre la cuelga de otra categoria. El nombre solo tiene que ser unico entre hermanas.",
+      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
       "method": "POST",
       "url": "http://localhost:4002/categorias",
       "headers": [
@@ -111,7 +117,13 @@
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_admin_crear",
+          "name": "idUsuario",
+          "value": "3"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Hibridos de maiz\",\n  \"idCategoriaPadre\": 1\n}"
@@ -123,7 +135,7 @@
       "_type": "request",
       "parentId": "fld_categorias",
       "name": "Modificar o mover categoria",
-      "description": "Cambiar idCategoriaPadre mueve la categoria de rama. 400 si genera un ciclo.",
+      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
       "method": "PUT",
       "url": "http://localhost:4002/categorias/2",
       "headers": [
@@ -132,7 +144,13 @@
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_admin_modificar",
+          "name": "idUsuario",
+          "value": "3"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Hibridos y variedades\",\n  \"idCategoriaPadre\": 1\n}"
@@ -144,11 +162,17 @@
       "_type": "request",
       "parentId": "fld_categorias",
       "name": "Eliminar categoria",
-      "description": "409 si tiene subcategorias. Hay que borrar de la hoja hacia la raiz.",
+      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
       "method": "DELETE",
       "url": "http://localhost:4002/categorias/2",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_admin_eliminar",
+          "name": "idUsuario",
+          "value": "3"
+        }
+      ],
       "body": {},
       "metaSortKey": 8
     },
@@ -294,7 +318,7 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Crear producto",
-      "description": "404 si idCategoria o idVendedor no existen. descuento es el porcentaje (0-100).",
+      "description": "Las fotos no se cargan aca: se suben aparte con \"Subir foto a un producto\".",
       "method": "POST",
       "url": "http://localhost:4002/productos",
       "headers": [
@@ -306,7 +330,7 @@
       "parameters": [],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 185000.0,\n  \"stock\": 40,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 10,\n  \"idCategoria\": 2,\n  \"idVendedor\": 1,\n  \"fotos\": [\n    \"https://img.example/maiz-1.png\",\n    \"https://img.example/maiz-2.png\"\n  ]\n}"
+        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 185000.0,\n  \"stock\": 40,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 10,\n  \"idCategoria\": 2,\n  \"idVendedor\": 1\n}"
       },
       "metaSortKey": 3
     },
@@ -386,22 +410,56 @@
       "_id": "req_fotos_3",
       "_type": "request",
       "parentId": "fld_fotos",
-      "name": "Agregar foto a un producto",
-      "description": "",
+      "name": "Subir foto a un producto",
+      "description": "Elegi el archivo en el campo \"file\" (tipo File) y poné el id del producto en \"idProducto\". Solo acepta imagenes.",
       "method": "POST",
       "url": "http://localhost:4002/fotos",
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
+      "headers": [],
       "parameters": [],
       "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"url\": \"https://img.example/maiz-3.png\",\n  \"idProducto\": 1\n}"
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "id": "pair_file",
+            "name": "file",
+            "value": "",
+            "type": "file",
+            "fileName": ""
+          },
+          {
+            "id": "pair_idprod",
+            "name": "idProducto",
+            "value": "1"
+          }
+        ]
       },
       "metaSortKey": 3
+    },
+    {
+      "_id": "req_fotos_contenido",
+      "_type": "request",
+      "parentId": "fld_fotos",
+      "name": "Ver contenido de la foto",
+      "description": "Devuelve la imagen cruda con su Content-Type. Esta url sirve directo en un <img src>.",
+      "method": "GET",
+      "url": "http://localhost:4002/fotos/1/contenido",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_fotos_base64",
+      "_type": "request",
+      "parentId": "fld_fotos",
+      "name": "Ver foto en base64",
+      "description": "Devuelve la misma imagen codificada en Base64 dentro de un JSON.",
+      "method": "GET",
+      "url": "http://localhost:4002/fotos/1/base64",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "metaSortKey": 5
     },
     {
       "_id": "req_fotos_4",
@@ -414,7 +472,7 @@
       "headers": [],
       "parameters": [],
       "body": {},
-      "metaSortKey": 4
+      "metaSortKey": 6
     },
     {
       "_id": "fld_carrito",

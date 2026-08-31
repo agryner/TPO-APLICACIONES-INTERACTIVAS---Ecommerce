@@ -7,13 +7,19 @@ import org.springframework.stereotype.Service;
 
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.entity.dto.UsuarioRequest;
+import com.uade.tpo.marketplace.controllers.UsuarioRequest;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Logica de usuarios: altas, ediciones y control de duplicados.
+ *
+ * Lo llama UsuariosController y se apoya en UsuarioRepository para verificar
+ * que el mail y el nombre de usuario no esten tomados.
+ */
 @Service
 @RequiredArgsConstructor
 public class UsuarioServiceImpl implements UsuarioService {
