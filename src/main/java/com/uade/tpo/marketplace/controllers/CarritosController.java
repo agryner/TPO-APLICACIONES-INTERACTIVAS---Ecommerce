@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,6 +44,15 @@ public class CarritosController {
             @RequestBody ItemCarritoRequest request)
             throws UsuarioNoEncontradoException, ProductoNoEncontradoException, StockInsuficienteException {
         return ResponseEntity.ok(carritoService.agregarItem(idUsuario, request));
+    }
+
+    @PutMapping("/items/{idItem}")
+    public ResponseEntity<Carrito> modificarCantidad(
+            @PathVariable Long idUsuario,
+            @PathVariable Long idItem,
+            @RequestBody ItemCarritoRequest request)
+            throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, StockInsuficienteException {
+        return ResponseEntity.ok(carritoService.modificarCantidad(idUsuario, idItem, request.getCantidad()));
     }
 
     @DeleteMapping("/items/{idItem}")

@@ -7,11 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.uade.tpo.marketplace.controllers.ItemCarritoRequest;
 import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.entity.ItemCarrito;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.controllers.ItemCarritoRequest;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
@@ -80,6 +80,32 @@ public class CarritoServiceImpl implements CarritoService {
                 throw new StockInsuficienteException();
             item.setCantidad(item.getCantidad() + cantidad);
         }
+
+        renovarVigencia(carrito);
+        recalcularTotales(carrito);
+        return carritoRepository.save(carrito);
+    }
+
+    //lo nuevo que se agregó para la cantidad
+    @Transactional
+    public Carrito modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
+            throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, StockInsuficienteException {
+        Carrito carrito = obtenerCarrito(idUsuario);
+
+        ItemCarrito item = carrito.getItems().stream()
+                .filter(i -> i.getId().equals(idItem))
+                .findFirst()
+                .orElseThrow(ItemCarritoNoEncontradoException::new);
+
+        if (nuevaCantidad == null || nuevaCantidad <= 0) {
+            return eliminarItem(idUsuario, idItem);
+        }
+
+        if (item.getProducto().getStock() < nuevaCantidad) {
+            throw new StockInsuficienteException();
+        }
+
+        item.setCantidad(nuevaCantidad);
 
         renovarVigencia(carrito);
         recalcularTotales(carrito);

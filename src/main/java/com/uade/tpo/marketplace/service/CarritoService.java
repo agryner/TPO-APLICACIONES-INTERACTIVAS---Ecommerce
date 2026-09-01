@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.controllers.ItemCarritoRequest;
+import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
@@ -22,6 +22,9 @@ public interface CarritoService {
 
     Carrito agregarItem(Long idUsuario, ItemCarritoRequest request)
             throws UsuarioNoEncontradoException, ProductoNoEncontradoException, StockInsuficienteException;
+
+    Carrito modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
+            throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, StockInsuficienteException;
 
     Carrito eliminarItem(Long idUsuario, Long idItem)
             throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException;

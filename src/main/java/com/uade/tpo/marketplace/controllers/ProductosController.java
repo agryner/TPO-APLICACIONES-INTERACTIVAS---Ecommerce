@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.controllers;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 
@@ -40,8 +41,10 @@ public class ProductosController {
     public ResponseEntity<List<Producto>> getProductos(
             @RequestParam(required = false) Long idCategoria,
             @RequestParam(required = false) Long idVendedor,
-            @RequestParam(required = false) String nombre) {
-        return ResponseEntity.ok(productoService.getProductos(idCategoria, idVendedor, nombre));
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) BigDecimal precioMin,
+            @RequestParam(required = false) BigDecimal precioMax) {
+        return ResponseEntity.ok(productoService.getProductos(idCategoria, idVendedor, nombre, precioMin, precioMax));
     }
 
     @GetMapping("/{idProducto}")
@@ -52,7 +55,7 @@ public class ProductosController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createProducto(@RequestBody ProductoRequest request)
+    public ResponseEntity<Producto> createProducto(@RequestBody ProductoRequest request)
             throws CategoriaNoEncontradaException, UsuarioNoEncontradoException {
         Producto result = productoService.createProducto(request);
         return ResponseEntity.created(URI.create("/productos/" + result.getId())).body(result);

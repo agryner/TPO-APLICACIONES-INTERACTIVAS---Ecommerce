@@ -1,10 +1,11 @@
 package com.uade.tpo.marketplace.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.controllers.ProductoRequest;
+import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -16,7 +17,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
  */
 public interface ProductoService {
 
-    List<Producto> getProductos(Long idCategoria, Long idVendedor, String nombre);
+    List<Producto> getProductos(Long idCategoria, Long idVendedor, String nombre, BigDecimal precioMin, BigDecimal precioMax);
 
     Optional<Producto> getProductoById(Long idProducto);
 
