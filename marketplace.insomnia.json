@@ -5,6 +5,22 @@
   "__export_source": "claude-code:marketplace",
   "resources": [
     {
+      "_id": "fld_cliente",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "CLIENTE",
+      "description": "Todo lo que puede hacer un usuario comun. En este marketplace no hay roles separados de comprador y vendedor: el mismo usuario publica y compra. Las operaciones de escritura piden idSolicitante y solo permiten actuar sobre lo propio.",
+      "metaSortKey": -200
+    },
+    {
+      "_id": "fld_admin",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "name": "ADMIN",
+      "description": "Lo unico reservado al rol ADMIN: definir el arbol de categorias y moderar las fotos que la verificacion automatica dejo en duda. Todas piden idSolicitante y devuelven 403 si el usuario no es admin. En esta base, Marcos56 (id 3) lo es.",
+      "metaSortKey": -100
+    },
+    {
       "_id": "wrk_marketplace",
       "_type": "workspace",
       "parentId": null,
@@ -15,9 +31,10 @@
     {
       "_id": "fld_categorias",
       "_type": "request_group",
-      "parentId": "wrk_marketplace",
+      "parentId": "fld_cliente",
       "name": "Categorias",
-      "metaSortKey": 1
+      "metaSortKey": 0,
+      "description": "Consulta del arbol. Crear, editar y borrar esta en ADMIN."
     },
     {
       "_id": "req_categorias_1",
@@ -57,7 +74,7 @@
       "name": "Obtener categoria por id",
       "description": "404 si no existe.",
       "method": "GET",
-      "url": "http://localhost:4002/categorias/1",
+      "url": "http://localhost:4002/categorias/10",
       "headers": [],
       "parameters": [],
       "body": {},
@@ -70,7 +87,7 @@
       "name": "Listar subcategorias",
       "description": "Las hijas directas de esa categoria.",
       "method": "GET",
-      "url": "http://localhost:4002/categorias/1/subcategorias",
+      "url": "http://localhost:4002/categorias/10/subcategorias",
       "headers": [],
       "parameters": [],
       "body": {},
@@ -79,9 +96,9 @@
     {
       "_id": "req_categorias_5",
       "_type": "request",
-      "parentId": "fld_categorias",
+      "parentId": "fld_admin",
       "name": "Crear categoria raiz",
-      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
+      "description": "Solo ADMIN (idSolicitante=3 es Marcos56). Sin idCategoriaPadre queda como categoria raiz. La descripcion la usa la verificacion de fotos con IA, asi que conviene que sea precisa.",
       "method": "POST",
       "url": "http://localhost:4002/categorias",
       "headers": [
@@ -92,23 +109,22 @@
       ],
       "parameters": [
         {
-          "id": "pair_admin_crear",
-          "name": "idUsuario",
+          "name": "idSolicitante",
           "value": "3"
         }
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Semillas\",\n  \"descripcion\": \"Semillas de cultivos extensivos\"\n}"
+        "text": "{\n  \"nombre\": \"Maquinaria\",\n  \"descripcion\": \"Tractores, cosechadoras y maquinaria agricola autopropulsada\"\n}"
       },
-      "metaSortKey": 5
+      "metaSortKey": 0
     },
     {
       "_id": "req_categorias_6",
       "_type": "request",
-      "parentId": "fld_categorias",
+      "parentId": "fld_admin",
       "name": "Crear subcategoria",
-      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
+      "description": "Solo ADMIN. idCategoriaPadre=10 es \"Semillas\".",
       "method": "POST",
       "url": "http://localhost:4002/categorias",
       "headers": [
@@ -119,25 +135,24 @@
       ],
       "parameters": [
         {
-          "id": "pair_admin_crear",
-          "name": "idUsuario",
+          "name": "idSolicitante",
           "value": "3"
         }
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Hibridos de maiz\",\n  \"idCategoriaPadre\": 1\n}"
+        "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Semillas hibridas de maiz para siembra\",\n  \"idCategoriaPadre\": 10\n}"
       },
-      "metaSortKey": 6
+      "metaSortKey": 1
     },
     {
       "_id": "req_categorias_7",
       "_type": "request",
-      "parentId": "fld_categorias",
+      "parentId": "fld_admin",
       "name": "Modificar o mover categoria",
-      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
+      "description": "Solo ADMIN. Mandar idCategoriaPadre la mueve en el arbol; omitirlo la deja como raiz.",
       "method": "PUT",
-      "url": "http://localhost:4002/categorias/2",
+      "url": "http://localhost:4002/categorias/10",
       "headers": [
         {
           "name": "Content-Type",
@@ -146,49 +161,50 @@
       ],
       "parameters": [
         {
-          "id": "pair_admin_modificar",
-          "name": "idUsuario",
+          "name": "idSolicitante",
           "value": "3"
         }
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Maiz\",\n  \"descripcion\": \"Hibridos y variedades\",\n  \"idCategoriaPadre\": 1\n}"
+        "text": "{\n  \"nombre\": \"Semillas\",\n  \"descripcion\": \"Semilla para siembra, a granel o envasada\"\n}"
       },
-      "metaSortKey": 7
+      "metaSortKey": 2
     },
     {
       "_id": "req_categorias_8",
       "_type": "request",
-      "parentId": "fld_categorias",
+      "parentId": "fld_admin",
       "name": "Eliminar categoria",
-      "description": "Solo un usuario con rol ADMIN puede ejecutarla. idUsuario=3 es Marcos56.",
+      "description": "Solo ADMIN. Con la categoria 53 devuelve 409 porque tiene productos adentro, que es justamente el caso que conviene mostrar. Una categoria con subcategorias tampoco se puede borrar.",
       "method": "DELETE",
-      "url": "http://localhost:4002/categorias/2",
+      "url": "http://localhost:4002/categorias/53",
       "headers": [],
       "parameters": [
         {
-          "id": "pair_admin_eliminar",
-          "name": "idUsuario",
-          "value": "3"
+          "id": "pair_idSolicitante_33",
+          "name": "idSolicitante",
+          "value": "3",
+          "description": ""
         }
       ],
       "body": {},
-      "metaSortKey": 8
+      "metaSortKey": 3
     },
     {
       "_id": "fld_usuarios",
       "_type": "request_group",
-      "parentId": "wrk_marketplace",
+      "parentId": "fld_cliente",
       "name": "Usuarios",
-      "metaSortKey": 2
+      "metaSortKey": 5,
+      "description": "Registro y gestion de la cuenta propia."
     },
     {
       "_id": "req_usuarios_1",
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Listar usuarios",
-      "description": "",
+      "description": "Devuelve UsuarioResponse: no incluye la contrasena.",
       "method": "GET",
       "url": "http://localhost:4002/usuarios",
       "headers": [],
@@ -214,7 +230,7 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Crear usuario",
-      "description": "La contrasena se acepta pero nunca se devuelve. rol: ADMIN o CLIENTE.",
+      "description": "Unico endpoint de escritura sin idSolicitante: al registrarte todavia no tenes id. 400 si el mail o el nombre de usuario ya existen.",
       "method": "POST",
       "url": "http://localhost:4002/usuarios",
       "headers": [
@@ -226,7 +242,7 @@
       "parameters": [],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Lucca\",\n  \"apellido\": \"Vontobel\",\n  \"nombreUsuario\": \"lucca\",\n  \"mail\": \"lucca@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Ruta 8 km 210, Pergamino\",\n  \"rol\": \"CLIENTE\"\n}"
+        "text": "{\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Gomez\",\n  \"nombreUsuario\": \"anagomez\",\n  \"mail\": \"ana@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Ruta 8 km 40\",\n  \"rol\": \"CLIENTE\"\n}"
       },
       "metaSortKey": 3
     },
@@ -235,7 +251,7 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Modificar usuario",
-      "description": "Manda el objeto completo: los campos que omitas se guardan en null.",
+      "description": "Cada uno modifica solo su propia cuenta: si los dos ids no coinciden, 403.",
       "method": "PUT",
       "url": "http://localhost:4002/usuarios/1",
       "headers": [
@@ -244,10 +260,17 @@
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_31",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Lucca\",\n  \"apellido\": \"Vontobel\",\n  \"nombreUsuario\": \"lucca\",\n  \"mail\": \"lucca@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Av. San Martin 1250, Junin\",\n  \"rol\": \"CLIENTE\"\n}"
+        "text": "{\n  \"nombre\": \"Lucca\",\n  \"apellido\": \"Vontobel\",\n  \"nombreUsuario\": \"lucca\",\n  \"mail\": \"lucca@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Santa Fe 742\",\n  \"rol\": \"CLIENTE\"\n}"
       },
       "metaSortKey": 4
     },
@@ -256,44 +279,79 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Eliminar usuario",
-      "description": "",
+      "description": "Baja logica y solo de la cuenta propia. Ojo que corre de verdad sobre el usuario 1: sus ordenes se conservan pero queda inactivo.",
       "method": "DELETE",
       "url": "http://localhost:4002/usuarios/1",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_32",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {},
       "metaSortKey": 5
     },
     {
       "_id": "fld_productos",
       "_type": "request_group",
-      "parentId": "wrk_marketplace",
+      "parentId": "fld_cliente",
       "name": "Productos",
-      "metaSortKey": 3
+      "metaSortKey": 1,
+      "description": "Publicar y gestionar lo propio, mas el catalogo publico. Un producto nace en BORRADOR y se publica con la primera foto."
     },
     {
       "_id": "req_productos_1",
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Listar productos",
-      "description": "Filtros opcionales: idCategoria, idVendedor o nombre. Se aplica el primero que mandes.",
+      "description": "Catalogo publico: solo productos activos y PUBLICADOS. Todos los filtros son opcionales y se combinan. ordenPrecio acepta asc o desc.",
       "method": "GET",
       "url": "http://localhost:4002/productos",
       "headers": [],
       "parameters": [
         {
+          "id": "pair_idCategoria_1",
           "name": "idCategoria",
-          "value": "2",
+          "value": "53",
+          "description": "",
           "disabled": true
         },
         {
-          "name": "idVendedor",
-          "value": "1",
+          "id": "pair_vendedor_2",
+          "name": "vendedor",
+          "value": "anagomez",
+          "description": "",
           "disabled": true
         },
         {
+          "id": "pair_nombre_3",
           "name": "nombre",
-          "value": "maiz",
+          "value": "tractor",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pair_precioMin_4",
+          "name": "precioMin",
+          "value": "1000000",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pair_precioMax_5",
+          "name": "precioMax",
+          "value": "20000000",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pair_ordenPrecio_6",
+          "name": "ordenPrecio",
+          "value": "asc",
+          "description": "",
           "disabled": true
         }
       ],
@@ -301,13 +359,40 @@
       "metaSortKey": 1
     },
     {
+      "_id": "req_productos_mias",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Mis publicaciones (incluye borradores)",
+      "method": "GET",
+      "url": "http://localhost:4002/productos/mis-publicaciones",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1.5,
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_7",
+          "name": "idSolicitante",
+          "value": "10",
+          "description": ""
+        },
+        {
+          "id": "pair_estado_8",
+          "name": "estado",
+          "value": "BORRADOR",
+          "description": "",
+          "disabled": true
+        }
+      ],
+      "description": "Las publicaciones propias, borradores y pausadas incluidas, que no salen en el catalogo. anagomez (10) es quien tiene productos cargados hoy."
+    },
+    {
       "_id": "req_productos_2",
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Obtener producto por id",
-      "description": "",
+      "description": "Publico: no pide idSolicitante.",
       "method": "GET",
-      "url": "http://localhost:4002/productos/1",
+      "url": "http://localhost:4002/productos/53",
       "headers": [],
       "parameters": [],
       "body": {},
@@ -318,7 +403,7 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Crear producto",
-      "description": "Las fotos no se cargan aca: se suben aparte con \"Subir foto a un producto\".",
+      "description": "Nace en BORRADOR y todavia no aparece en el catalogo: se publica solo cuando se le sube la primera foto. El vendedor es el idSolicitante.",
       "method": "POST",
       "url": "http://localhost:4002/productos",
       "headers": [
@@ -327,10 +412,17 @@
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_9",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 185000.0,\n  \"stock\": 40,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 10,\n  \"idCategoria\": 2,\n  \"idVendedor\": 1\n}"
+        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 185000.0,\n  \"stock\": 40,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 10,\n  \"idCategoria\": 10\n}"
       },
       "metaSortKey": 3
     },
@@ -339,55 +431,105 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Modificar producto",
-      "description": "Mandar fotos reemplaza todas las existentes; omitirlo las deja como estan.",
+      "description": "El producto 53 es de anagomez (10), asi que idSolicitante tiene que ser 10. Con cualquier otro id da 403: nadie opera sobre publicaciones ajenas.",
       "method": "PUT",
-      "url": "http://localhost:4002/productos/1",
+      "url": "http://localhost:4002/productos/53",
       "headers": [
         {
           "name": "Content-Type",
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_10",
+          "name": "idSolicitante",
+          "value": "10",
+          "description": ""
+        }
+      ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Semilla de maiz hibrido DK 7210\",\n  \"precio\": 195000.0,\n  \"stock\": 25,\n  \"descripcion\": \"Bolsa de 80.000 semillas, ciclo largo\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 15,\n  \"idCategoria\": 2,\n  \"idVendedor\": 1\n}"
+        "text": "{\n  \"nombre\": \"Tractor john deere jp10\",\n  \"precio\": 18500000.0,\n  \"stock\": 2,\n  \"descripcion\": \"Tractor usado, 3200 horas de uso\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 0,\n  \"idCategoria\": 53\n}"
       },
       "metaSortKey": 4
+    },
+    {
+      "_id": "req_productos_estado",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Pausar o reanudar publicacion",
+      "method": "PUT",
+      "url": "http://localhost:4002/productos/53/estado",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 5,
+      "parameters": [
+        {
+          "id": "pair_estado_11",
+          "name": "estado",
+          "value": "PAUSADO",
+          "description": ""
+        },
+        {
+          "id": "pair_estado_12",
+          "name": "estado",
+          "value": "PUBLICADO",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pair_idSolicitante_13",
+          "name": "idSolicitante",
+          "value": "10",
+          "description": ""
+        }
+      ],
+      "description": "Pausar saca la publicacion del catalogo y ademas la quita de todos los carritos donde estuviera cargada. Reanudar la vuelve a PUBLICADO. El producto 53 es de anagomez (10), asi que idSolicitante tiene que ser 10. Con cualquier otro id da 403: nadie opera sobre publicaciones ajenas."
     },
     {
       "_id": "req_productos_5",
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Eliminar producto",
-      "description": "Falla si el producto ya fue comprado: lo referencia un order_detail.",
+      "description": "Baja logica: el producto queda inactivo pero las ordenes viejas lo siguen mostrando. Tambien se saca de los carritos. El producto 53 es de anagomez (10), asi que idSolicitante tiene que ser 10. Con cualquier otro id da 403: nadie opera sobre publicaciones ajenas.",
       "method": "DELETE",
-      "url": "http://localhost:4002/productos/1",
+      "url": "http://localhost:4002/productos/53",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_14",
+          "name": "idSolicitante",
+          "value": "10",
+          "description": ""
+        }
+      ],
       "body": {},
-      "metaSortKey": 5
+      "metaSortKey": 6
     },
     {
       "_id": "fld_fotos",
       "_type": "request_group",
-      "parentId": "wrk_marketplace",
+      "parentId": "fld_cliente",
       "name": "Fotos",
-      "metaSortKey": 4
+      "metaSortKey": 2,
+      "description": "Subir y consultar fotos de los productos propios. La cola de revision esta en ADMIN."
     },
     {
       "_id": "req_fotos_1",
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Listar fotos de un producto",
-      "description": "",
+      "description": "404 si el producto no existe; lista vacia si existe pero esta en BORRADOR.",
       "method": "GET",
       "url": "http://localhost:4002/fotos",
       "headers": [],
       "parameters": [
         {
+          "id": "pair_idProducto_15",
           "name": "idProducto",
-          "value": "1"
+          "value": "53",
+          "description": ""
         }
       ],
       "body": {},
@@ -398,9 +540,9 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Obtener foto por id",
-      "description": "",
+      "description": "Los ids de la URL son de ejemplo: cambialos por los que devuelvan las requests de alta.",
       "method": "GET",
-      "url": "http://localhost:4002/fotos/1",
+      "url": "http://localhost:4002/fotos/34",
       "headers": [],
       "parameters": [],
       "body": {},
@@ -411,11 +553,18 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Subir foto a un producto",
-      "description": "Elegi el archivo en el campo \"file\" (tipo File) y poné el id del producto en \"idProducto\". Solo acepta imagenes.",
+      "description": "Multipart: file es el archivo y idProducto dice a que publicacion va. Si el producto estaba en BORRADOR, esta es la subida que lo publica. La imagen pasa por el verificador de Gemini antes de guardarse. El producto 53 es de anagomez (10), asi que idSolicitante tiene que ser 10. Con cualquier otro id da 403: nadie opera sobre publicaciones ajenas.",
       "method": "POST",
       "url": "http://localhost:4002/fotos",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_16",
+          "name": "idSolicitante",
+          "value": "10",
+          "description": ""
+        }
+      ],
       "body": {
         "mimeType": "multipart/form-data",
         "params": [
@@ -440,9 +589,9 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Ver contenido de la foto",
-      "description": "Devuelve la imagen cruda con su Content-Type. Esta url sirve directo en un <img src>.",
+      "description": "Devuelve los bytes con su Content-Type, para usar directo como src de un <img>.",
       "method": "GET",
-      "url": "http://localhost:4002/fotos/1/contenido",
+      "url": "http://localhost:4002/fotos/34/contenido",
       "headers": [],
       "parameters": [],
       "body": {},
@@ -453,11 +602,64 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Ver foto en base64",
-      "description": "Devuelve la misma imagen codificada en Base64 dentro de un JSON.",
+      "description": "La misma imagen embebida en JSON, para clientes que no pueden pedir binario.",
       "method": "GET",
-      "url": "http://localhost:4002/fotos/1/base64",
+      "url": "http://localhost:4002/fotos/34/base64",
       "headers": [],
       "parameters": [],
+      "body": {},
+      "metaSortKey": 5
+    },
+    {
+      "_id": "req_fotos_pendientes",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "name": "Fotos pendientes de revision",
+      "description": "Solo ADMIN: la cola de fotos EN_REVISION.",
+      "method": "GET",
+      "url": "http://localhost:4002/fotos/pendientes",
+      "headers": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_21",
+          "name": "idSolicitante",
+          "value": "3",
+          "description": ""
+        }
+      ],
+      "body": {},
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_fotos_revisar",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "name": "Aprobar o rechazar una foto",
+      "description": "Solo ADMIN. Resuelve a mano las fotos que quedaron EN_REVISION porque la IA no llego a un veredicto o no estaba disponible.",
+      "method": "PUT",
+      "url": "http://localhost:4002/fotos/34/revision",
+      "headers": [],
+      "parameters": [
+        {
+          "id": "pair_aprobada_18",
+          "name": "aprobada",
+          "value": "true",
+          "description": ""
+        },
+        {
+          "id": "pair_aprobada_19",
+          "name": "aprobada",
+          "value": "false",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pair_idSolicitante_20",
+          "name": "idSolicitante",
+          "value": "3",
+          "description": ""
+        }
+      ],
       "body": {},
       "metaSortKey": 5
     },
@@ -466,31 +668,46 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Eliminar foto",
-      "description": "",
+      "description": "Si era la ultima foto, el producto vuelve a BORRADOR y sale del catalogo y de los carritos. El producto 53 es de anagomez (10), asi que idSolicitante tiene que ser 10. Con cualquier otro id da 403: nadie opera sobre publicaciones ajenas.",
       "method": "DELETE",
-      "url": "http://localhost:4002/fotos/1",
+      "url": "http://localhost:4002/fotos/34",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_17",
+          "name": "idSolicitante",
+          "value": "10",
+          "description": ""
+        }
+      ],
       "body": {},
-      "metaSortKey": 6
+      "metaSortKey": 8
     },
     {
       "_id": "fld_carrito",
       "_type": "request_group",
-      "parentId": "wrk_marketplace",
+      "parentId": "fld_cliente",
       "name": "Carrito",
-      "metaSortKey": 5
+      "metaSortKey": 3,
+      "description": "Cada uno solo sobre su propio carrito."
     },
     {
       "_id": "req_carrito_1",
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Obtener carrito",
-      "description": "Hay un solo carrito por usuario. Si nunca tuvo, se le crea vacio. Si venció, vuelve vacio.",
+      "description": "El carrito es de quien figura en la URL. Si idSolicitante no coincide da 403: no se entra al carrito ajeno.",
       "method": "GET",
       "url": "http://localhost:4002/usuarios/1/carrito",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_22",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {},
       "metaSortKey": 1
     },
@@ -499,7 +716,7 @@
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Agregar item al carrito",
-      "description": "Si el producto ya estaba, acumula la cantidad. 400 si no hay stock.",
+      "description": "El producto tiene que estar activo y PUBLICADO. La respuesta trae el carrito entero con el id de cada item, que es el que usan los dos requests de abajo.",
       "method": "POST",
       "url": "http://localhost:4002/usuarios/1/carrito/items",
       "headers": [
@@ -508,56 +725,113 @@
           "value": "application/json"
         }
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_23",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"idProducto\": 1,\n  \"cantidad\": 2\n}"
+        "text": "{\n  \"idProducto\": 53,\n  \"cantidad\": 1\n}"
       },
       "metaSortKey": 2
+    },
+    {
+      "_id": "req_carrito_modificar",
+      "_type": "request",
+      "parentId": "fld_carrito",
+      "name": "Modificar cantidad de un item",
+      "description": "El id del item sale de la respuesta de \"Agregar item\", no es el id del producto. Cantidad 0 o menos no se acepta: para sacarlo esta el delete.",
+      "method": "PUT",
+      "url": "http://localhost:4002/usuarios/1/carrito/items/1",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_24",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"cantidad\": 5\n}"
+      },
+      "metaSortKey": 3
     },
     {
       "_id": "req_carrito_3",
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Eliminar item del carrito",
-      "description": "404 si ese item no esta en el carrito.",
+      "description": "Mismo id de item que en el request anterior.",
       "method": "DELETE",
       "url": "http://localhost:4002/usuarios/1/carrito/items/1",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_25",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {},
-      "metaSortKey": 3
+      "metaSortKey": 4
     },
     {
       "_id": "req_carrito_4",
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Vaciar carrito",
-      "description": "El carrito no se borra, se queda sin items.",
+      "description": "Saca todos los items de una. El carrito en si no se borra.",
       "method": "DELETE",
       "url": "http://localhost:4002/usuarios/1/carrito/items",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_26",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {},
-      "metaSortKey": 4
+      "metaSortKey": 5
     },
     {
       "_id": "fld_ordenes",
       "_type": "request_group",
-      "parentId": "wrk_marketplace",
+      "parentId": "fld_cliente",
       "name": "Ordenes",
-      "metaSortKey": 6
+      "metaSortKey": 4,
+      "description": "Cerrar el carrito propio y avanzar el estado de las ordenes en las que participas, como comprador o como vendedor."
     },
     {
       "_id": "req_ordenes_1",
       "_type": "request",
       "parentId": "fld_ordenes",
-      "name": "Listar ordenes",
-      "description": "",
+      "name": "Listar mis ordenes",
+      "description": "Las ordenes donde el usuario participa, como comprador o como vendedor. Un ADMIN sin rol recibe todas las del sistema.",
       "method": "GET",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_1",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {},
       "metaSortKey": 1
     },
@@ -565,15 +839,30 @@
       "_id": "req_ordenes_2",
       "_type": "request",
       "parentId": "fld_ordenes",
-      "name": "Listar ordenes de un usuario",
-      "description": "",
+      "name": "Listar solo mis compras o solo mis ventas",
+      "description": "Mismo listado pero mirando una sola punta. rol acepta COMPRADOR o VENDEDOR; cualquier otro valor da 400. Con rol, un ADMIN vuelve a ver solo lo suyo.",
       "method": "GET",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
       "parameters": [
         {
-          "name": "idUsuario",
-          "value": "1"
+          "id": "pair_idSolicitante_2",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        },
+        {
+          "id": "pair_rol_3",
+          "name": "rol",
+          "value": "COMPRADOR",
+          "description": ""
+        },
+        {
+          "id": "pair_rol_4",
+          "name": "rol",
+          "value": "VENDEDOR",
+          "description": "",
+          "disabled": true
         }
       ],
       "body": {},
@@ -584,11 +873,18 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Obtener orden por id",
-      "description": "Los items traen nombre, precio y descuento congelados al momento de la compra.",
+      "description": "403 si el solicitante no es ni el comprador ni el vendedor de esa orden. El ADMIN puede ver cualquiera.",
       "method": "GET",
-      "url": "http://localhost:4002/ordenes/1",
+      "url": "http://localhost:4002/ordenes/19",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pair_idSolicitante_27",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
+        }
+      ],
       "body": {},
       "metaSortKey": 3
     },
@@ -597,20 +893,19 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Crear orden desde el carrito",
-      "description": "Descuenta stock, congela precios en order_detail y vacia el carrito. 400 si el carrito esta vacio.",
+      "description": "Cierra el carrito. Devuelve una lista porque si el carrito mezcla productos de varios vendedores se genera una orden por cada uno. Valida stock de todo antes de escribir nada.",
       "method": "POST",
       "url": "http://localhost:4002/ordenes",
-      "headers": [
+      "headers": [],
+      "parameters": [
         {
-          "name": "Content-Type",
-          "value": "application/json"
+          "id": "pair_idSolicitante_28",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
         }
       ],
-      "parameters": [],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"idUsuario\": 1\n}"
-      },
+      "body": {},
       "metaSortKey": 4
     },
     {
@@ -618,18 +913,56 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Cambiar estado de la orden",
-      "description": "La orden nace en PENDIENTE.",
+      "description": "Cada paso lo pide una parte distinta: PAGADA y RECIBIDA el comprador, ENVIADA el vendedor, CANCELADA cualquiera de los dos. Da 403 si lo pide el otro y 409 si el salto no existe. La orden 19 ya esta en RECIBIDA, que es final: para probar el circuito hay que crear una nueva.",
       "method": "PUT",
-      "url": "http://localhost:4002/ordenes/1/estado",
+      "url": "http://localhost:4002/ordenes/19/estado",
       "headers": [],
       "parameters": [
         {
+          "id": "pair_estado_29",
           "name": "estado",
-          "value": "PAGADA"
+          "value": "PAGADA",
+          "description": ""
+        },
+        {
+          "id": "pair_idSolicitante_30",
+          "name": "idSolicitante",
+          "value": "1",
+          "description": ""
         }
       ],
       "body": {},
       "metaSortKey": 5
+    },
+    {
+      "_id": "req_ordenes_admin",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "modified": 0,
+      "created": 0,
+      "name": "Listar todas las ordenes",
+      "description": "Auditoria: con un idSolicitante que sea ADMIN salen las ordenes de todo el sistema. El mismo endpoint con un cliente devuelve solo las suyas. Marcos56 es el admin de esta coleccion.",
+      "url": "http://localhost:4002/ordenes",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_admin_solicitante",
+          "name": "idSolicitante",
+          "value": "3",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 6,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
     }
   ]
 }

@@ -1,11 +1,11 @@
 package com.uade.tpo.marketplace.service;
 
+import com.uade.tpo.marketplace.entity.dto.UsuarioRequest;
+import com.uade.tpo.marketplace.entity.dto.UsuarioResponse;
 import java.util.List;
-import java.util.Optional;
 
-import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.controllers.UsuarioRequest;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 
 /**
@@ -15,13 +15,17 @@ import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
  */
 public interface UsuarioService {
 
-    List<Usuario> getUsuarios();
+    List<UsuarioResponse> getUsuarios();
 
-    Optional<Usuario> getUsuarioById(Long idUsuario);
+    UsuarioResponse getUsuarioById(Long idUsuario) throws UsuarioNoEncontradoException;
 
-    Usuario createUsuario(UsuarioRequest request) throws UsuarioDuplicadoException;
+    UsuarioResponse createUsuario(UsuarioRequest request) throws UsuarioDuplicadoException;
 
-    Usuario updateUsuario(Long idUsuario, UsuarioRequest request) throws UsuarioNoEncontradoException;
+    /** Cada uno edita solo su propia cuenta. */
+    UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request, Long idSolicitante)
+            throws UsuarioNoEncontradoException, OperacionAjenaException;
 
-    void deleteUsuario(Long idUsuario) throws UsuarioNoEncontradoException;
+    /** Cada uno da de baja solo su propia cuenta. */
+    void deleteUsuario(Long idUsuario, Long idSolicitante)
+            throws UsuarioNoEncontradoException, OperacionAjenaException;
 }

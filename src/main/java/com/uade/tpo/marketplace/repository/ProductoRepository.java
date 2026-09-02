@@ -1,7 +1,5 @@
 package com.uade.tpo.marketplace.repository;
 
-import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,16 +8,16 @@ import com.uade.tpo.marketplace.entity.Producto;
 /**
  * Acceso a datos de Producto.
  *
- * Los tres finder cubren los filtros que expone el controller (categoria,
- * vendedor y nombre). Lo usan ProductoServiceImpl y los services que
- * necesitan resolver un producto por id.
+ * El filtrado del catalogo lo arma ProductoServiceImpl con streams sobre
+ * findAll(); lo unico propio de aca es el chequeo de existencia por categoria.
+ * Lo usan ese service y los que necesitan resolver un producto por id.
  */
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
-    List<Producto> findByCategoriaId(Long idCategoria);
-
-    List<Producto> findByVendedorId(Long idVendedor);
-
-    List<Producto> findByNombreContainingIgnoreCase(String nombre);
+    /**
+     * Lo usa CategoriaServiceImpl antes de borrar: pregunta si queda algun
+     * producto colgado de esa categoria sin traerselos.
+     */
+    boolean existsByCategoriaId(Long idCategoria);
 }

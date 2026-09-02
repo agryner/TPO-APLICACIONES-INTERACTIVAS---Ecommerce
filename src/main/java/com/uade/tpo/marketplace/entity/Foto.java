@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -52,6 +54,22 @@ public class Foto {
 
     @Column
     private Long tamanio;
+
+    /**
+     * Resultado de la verificacion automatica contra la categoria del producto.
+     * Las que quedan EN_REVISION esperan que un admin las mire.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_verificacion", nullable = false)
+    private EstadoVerificacion estadoVerificacion = EstadoVerificacion.EN_REVISION;
+
+    /** Puntaje de 0 a 1 que devolvio la IA. Null si no se pudo consultar. */
+    @Column(name = "confianza_ia")
+    private Double confianzaIa;
+
+    /** Que dijo la IA que vio en la foto, para que el admin no tenga que abrirla. */
+    @Column(name = "que_ve_ia")
+    private String queVeIa;
 
     @JsonIgnore
     @ToString.Exclude

@@ -55,6 +55,14 @@
         @Column
         private String direccion;
 
+        /**
+         * Baja logica. Un registro inactivo desaparece de los listados pero sigue
+         * en la base, porque las ordenes ya cerradas lo referencian y borrarlo de
+         * verdad se llevaria puesto ese historial.
+         */
+        @Column(nullable = false)
+        private Boolean activo = true;
+
         @Enumerated(EnumType.STRING)
         @Column(name = "rol", nullable = false)
         private TipoUsuario rol;
@@ -71,9 +79,17 @@
         @OneToMany(mappedBy = "usuario")
         private List<Carrito> carritos;
 
+        /** Ordenes en las que este usuario es el que compro. */
         @JsonIgnore
         @ToString.Exclude
         @EqualsAndHashCode.Exclude
-        @OneToMany(mappedBy = "usuario")
-        private List<OrdenDeCompra> ordenes;
+        @OneToMany(mappedBy = "comprador")
+        private List<OrdenDeCompra> compras;
+
+        /** Ordenes en las que este usuario es el que vendio. */
+        @JsonIgnore
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
+        @OneToMany(mappedBy = "vendedor")
+        private List<OrdenDeCompra> ventas;
     }

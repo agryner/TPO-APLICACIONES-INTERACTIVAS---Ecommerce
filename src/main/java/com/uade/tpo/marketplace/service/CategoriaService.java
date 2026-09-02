@@ -1,10 +1,10 @@
 package com.uade.tpo.marketplace.service;
 
+import com.uade.tpo.marketplace.entity.dto.CategoriaRequest;
+import com.uade.tpo.marketplace.entity.dto.CategoriaResponse;
 import java.util.List;
-import java.util.Optional;
 
-import com.uade.tpo.marketplace.entity.Categoria;
-import com.uade.tpo.marketplace.controllers.CategoriaRequest;
+import com.uade.tpo.marketplace.exceptions.CategoriaConProductosException;
 import com.uade.tpo.marketplace.exceptions.CategoriaConSubcategoriasException;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CategoriaDuplicadaException;
@@ -20,28 +20,29 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
  */
 public interface CategoriaService {
 
-    List<Categoria> getCategorias();
+    List<CategoriaResponse> getCategorias();
 
     /** Solo las categorias sin padre. */
-    List<Categoria> getCategoriasRaiz();
+    List<CategoriaResponse> getCategoriasRaiz();
 
     /** Las hijas directas de una categoria. */
-    List<Categoria> getSubcategorias(Long idCategoria) throws CategoriaNoEncontradaException;
+    List<CategoriaResponse> getSubcategorias(Long idCategoria) throws CategoriaNoEncontradaException;
 
-    Optional<Categoria> getCategoriaById(Long idCategoria);
+    CategoriaResponse getCategoriaById(Long idCategoria) throws CategoriaNoEncontradaException;
 
     /** Alta de categoria. Solo la puede ejecutar un usuario con rol ADMIN. */
-    Categoria createCategoria(CategoriaRequest request, Long idUsuario)
+    CategoriaResponse createCategoria(CategoriaRequest request, Long idSolicitante)
             throws CategoriaDuplicadaException, CategoriaNoEncontradaException,
             UsuarioNoEncontradoException, AccesoDenegadoException;
 
     /** Edicion de categoria. Solo la puede ejecutar un usuario con rol ADMIN. */
-    Categoria updateCategoria(Long idCategoria, CategoriaRequest request, Long idUsuario)
+    CategoriaResponse updateCategoria(Long idCategoria, CategoriaRequest request, Long idSolicitante)
             throws CategoriaNoEncontradaException, JerarquiaInvalidaException,
-            UsuarioNoEncontradoException, AccesoDenegadoException;
+            CategoriaDuplicadaException, UsuarioNoEncontradoException, AccesoDenegadoException;
 
     /** Baja de categoria. Solo la puede ejecutar un usuario con rol ADMIN. */
-    void deleteCategoria(Long idCategoria, Long idUsuario)
+    void deleteCategoria(Long idCategoria, Long idSolicitante)
             throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException,
-            UsuarioNoEncontradoException, AccesoDenegadoException;
+            CategoriaConProductosException, UsuarioNoEncontradoException,
+            AccesoDenegadoException;
 }

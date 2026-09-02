@@ -6,6 +6,8 @@ import java.util.List;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -53,6 +55,22 @@ public class Producto {
     // Porcentaje de descuento, 0 a 100.
     @Column
     private Integer descuento;
+
+    /**
+     * Baja logica. Un registro inactivo desaparece de los listados pero sigue
+     * en la base, porque las ordenes ya cerradas lo referencian y borrarlo de
+     * verdad se llevaria puesto ese historial.
+     */
+    @Column(nullable = false)
+    private Boolean activo = true;
+
+    /**
+     * Un producto nace en BORRADOR y se publica al subirle la primera foto.
+     * Es distinto de activo, que marca la baja logica.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_publicacion", nullable = false)
+    private EstadoPublicacion estadoPublicacion = EstadoPublicacion.BORRADOR;
 
     @ManyToOne
     @JoinColumn(name = "id_categoria", nullable = false)

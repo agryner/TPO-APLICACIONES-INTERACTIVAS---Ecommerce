@@ -1,4 +1,4 @@
-package com.uade.tpo.marketplace.controllers;
+package com.uade.tpo.marketplace.entity.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +12,7 @@ import lombok.Data;
  */
 @Data
 @AllArgsConstructor
-public class FotoResponse {
+public class FotoContenidoResponse {
     private Long id;
     private String archivo;
 }

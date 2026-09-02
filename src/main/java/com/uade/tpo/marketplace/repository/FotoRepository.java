@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.Foto;
 
 /**
@@ -17,4 +18,7 @@ import com.uade.tpo.marketplace.entity.Foto;
 public interface FotoRepository extends JpaRepository<Foto, Long> {
 
     List<Foto> findByProductoId(Long idProducto);
+
+    /** Cola de revision: lo que la verificacion automatica no pudo resolver sola. */
+    List<Foto> findByEstadoVerificacion(EstadoVerificacion estadoVerificacion);
 }

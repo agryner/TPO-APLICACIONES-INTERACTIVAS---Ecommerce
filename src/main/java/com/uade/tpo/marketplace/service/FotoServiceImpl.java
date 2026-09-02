@@ -1,19 +1,28 @@
 package com.uade.tpo.marketplace.service;
 
+import com.uade.tpo.marketplace.entity.dto.FotoResponse;
+import com.uade.tpo.marketplace.entity.dto.FotoUploadRequest;
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.uade.tpo.marketplace.entity.EstadoVerificacion;
+import com.uade.tpo.marketplace.entity.EstadoPublicacion;
 import com.uade.tpo.marketplace.entity.Foto;
 import com.uade.tpo.marketplace.entity.Producto;
-import com.uade.tpo.marketplace.controllers.FotoUploadRequest;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.ArchivoInvalidoException;
 import com.uade.tpo.marketplace.exceptions.FotoNoEncontradaException;
+import com.uade.tpo.marketplace.exceptions.FotoRechazadaException;
+import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.FotoRepository;
 import com.uade.tpo.marketplace.repository.ProductoRepository;
 
@@ -30,20 +39,42 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FotoServiceImpl implements FotoService {
 
+    private static final Logger log = LoggerFactory.getLogger(FotoServiceImpl.class);
+
+    /** Arriba de este puntaje la foto entra directo. */
+    @Value("${marketplace.ia.umbral-aprobacion:0.7}")
+    private double umbralAprobacion;
+
+    /** Debajo de este puntaje se rechaza la subida. */
+    @Value("${marketplace.ia.umbral-rechazo:0.4}")
+    private double umbralRechazo;
+
     private final FotoRepository fotoRepository;
     private final ProductoRepository productoRepository;
+    private final VerificadorImagenService verificador;
+    private final AutorizacionService autorizacion;
+    private final CarritoService carritoService;
 
-    public List<Foto> getFotosByProducto(Long idProducto) {
-        return fotoRepository.findByProductoId(idProducto);
+    public List<FotoResponse> getFotosByProducto(Long idProducto)
+            throws ProductoNoEncontradoException {
+        if (!productoRepository.existsById(idProducto))
+            throw new ProductoNoEncontradoException();
+
+        return fotoRepository.findByProductoId(idProducto).stream()
+                .map(FotoResponse::from)
+                .toList();
     }
 
-    public Optional<Foto> getFotoById(Long idFoto) {
-        return fotoRepository.findById(idFoto);
+    public FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException {
+        return fotoRepository.findById(idFoto)
+                .map(FotoResponse::from)
+                .orElseThrow(FotoNoEncontradaException::new);
     }
 
     @Transactional
-    public Foto subirFoto(FotoUploadRequest request)
-            throws ProductoNoEncontradoException, ArchivoInvalidoException {
+    public FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
+            throws ProductoNoEncontradoException, ArchivoInvalidoException,
+            FotoRechazadaException, OperacionAjenaException {
 
         if (request.getIdProducto() == null)
             throw new ArchivoInvalidoException("Falta indicar el idProducto");
@@ -59,18 +90,64 @@ public class FotoServiceImpl implements FotoService {
         Producto producto = productoRepository.findById(request.getIdProducto())
                 .orElseThrow(ProductoNoEncontradoException::new);
 
+        autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
+
         Foto foto = new Foto();
         foto.setProducto(producto);
         foto.setTipoContenido(tipoContenido);
         foto.setTamanio(file.getSize());
         foto.setNombreArchivo(file.getOriginalFilename());
+
+        byte[] contenido;
         try {
-            foto.setContenido(file.getBytes());
+            contenido = file.getBytes();
         } catch (IOException e) {
             throw new ArchivoInvalidoException("No se pudo leer el archivo: " + e.getMessage());
         }
+        foto.setContenido(contenido);
 
-        return fotoRepository.save(foto);
+        verificar(foto, contenido, producto);
+        foto = fotoRepository.save(foto);
+
+        // Primera foto: el producto deja de ser borrador y entra al catalogo.
+        producto.setEstadoPublicacion(EstadoPublicacion.PUBLICADO);
+        productoRepository.save(producto);
+
+        return FotoResponse.from(foto);
+    }
+
+    /**
+     * Pasa la foto por la verificacion automatica y decide que hacer con ella.
+     *
+     * Tres bandas: arriba del umbral de aprobacion entra directo, abajo del de
+     * rechazo se corta la subida, y en el medio se guarda pero marcada para que
+     * la revise un admin. Si la IA falla tambien va a revision: que se caiga un
+     * servicio externo no puede dejar al vendedor sin poder publicar.
+     */
+    private void verificar(Foto foto, byte[] contenido, Producto producto)
+            throws FotoRechazadaException {
+        VerificadorImagenService.Resultado resultado;
+        try {
+            resultado = verificador.verificar(contenido, producto.getCategoria());
+        } catch (Exception e) {
+            log.warn("No se pudo verificar la foto del producto {}: {}",
+                    producto.getId(), e.getMessage());
+            foto.setEstadoVerificacion(EstadoVerificacion.EN_REVISION);
+            return;
+        }
+
+        double puntaje = resultado.puntaje();
+        foto.setConfianzaIa(puntaje);
+        foto.setQueVeIa(resultado.queVeo());
+
+        if (puntaje < umbralRechazo)
+            throw new FotoRechazadaException(resultado.mensajeAlVendedor() != null
+                    ? resultado.mensajeAlVendedor()
+                    : "La foto no se corresponde con la categoria del producto");
+
+        foto.setEstadoVerificacion(puntaje > umbralAprobacion
+                ? EstadoVerificacion.APROBADA
+                : EstadoVerificacion.EN_REVISION);
     }
 
     public byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException {
@@ -79,19 +156,66 @@ public class FotoServiceImpl implements FotoService {
                 .getContenido();
     }
 
+    public List<FotoResponse> getPendientesDeRevision(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        autorizacion.validarAdmin(idSolicitante);
+
+        return fotoRepository.findByEstadoVerificacion(EstadoVerificacion.EN_REVISION).stream()
+                .map(FotoResponse::from)
+                .toList();
+    }
+
     @Transactional
-    public void deleteFoto(Long idFoto) throws FotoNoEncontradaException {
+    public FotoResponse revisarFoto(Long idFoto, boolean aprobada, Long idSolicitante)
+            throws FotoNoEncontradaException, UsuarioNoEncontradoException,
+            AccesoDenegadoException {
+        autorizacion.validarAdmin(idSolicitante);
+
         Foto foto = fotoRepository.findById(idFoto)
                 .orElseThrow(FotoNoEncontradaException::new);
 
-        // Producto mapea sus fotos con cascade ALL y las carga en EAGER, asi que
-        // al leer la foto tambien queda gestionada la coleccion que la contiene.
-        // Si no la sacamos de ahi, el cascade PERSIST la revive en el flush y el
-        // borrado se pierde sin error. Sacandola, orphanRemoval dispara el delete.
+        if (!aprobada) {
+            // El admin no es el vendedor, asi que borra sin pasar por el
+            // chequeo de pertenencia: moderar es justamente su atribucion.
+            FotoResponse borrada = FotoResponse.from(foto);
+            borrar(foto);
+            return borrada;
+        }
+
+        foto.setEstadoVerificacion(EstadoVerificacion.APROBADA);
+        return FotoResponse.from(fotoRepository.save(foto));
+    }
+
+    @Transactional
+    public void deleteFoto(Long idFoto, Long idSolicitante)
+            throws FotoNoEncontradaException, OperacionAjenaException {
+        Foto foto = fotoRepository.findById(idFoto)
+                .orElseThrow(FotoNoEncontradaException::new);
+
+        autorizacion.validarDuenio(idSolicitante, foto.getProducto().getVendedor().getId());
+        borrar(foto);
+    }
+
+    /**
+     * Producto mapea sus fotos con cascade ALL y las carga en EAGER, asi que al
+     * leer la foto tambien queda gestionada la coleccion que la contiene. Si no
+     * la sacamos de ahi, el cascade PERSIST la revive en el flush y el borrado
+     * se pierde sin error. Sacandola, orphanRemoval dispara el delete.
+     */
+    private void borrar(Foto foto) {
         Producto producto = foto.getProducto();
         if (producto != null && producto.getFotos() != null)
             producto.getFotos().remove(foto);
 
         fotoRepository.delete(foto);
+
+        // Sin fotos vuelve a borrador: el catalogo nunca muestra un producto
+        // sin imagen. La consulta corre despues del delete, asi que ya refleja
+        // el borrado: si queda alguna, la publicacion sigue en pie.
+        if (producto != null && fotoRepository.findByProductoId(producto.getId()).isEmpty()) {
+            producto.setEstadoPublicacion(EstadoPublicacion.BORRADOR);
+            productoRepository.save(producto);
+            carritoService.quitarDeTodosLosCarritos(producto.getId());
+        }
     }
 }

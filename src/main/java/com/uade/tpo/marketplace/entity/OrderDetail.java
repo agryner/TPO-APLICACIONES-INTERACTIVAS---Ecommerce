@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * Renglon de una orden de compra.
+ * Representa un producto dentro de esa compra. Hay uno por cada producto distinto que el comprador se llevó.
  *
  * Guarda una copia del nombre, el precio y el descuento que tenia el producto
  * en el momento de la compra. Si despues el vendedor cambia el precio, esta
