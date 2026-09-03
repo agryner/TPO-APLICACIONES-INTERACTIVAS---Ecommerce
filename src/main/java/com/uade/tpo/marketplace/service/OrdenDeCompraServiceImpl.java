@@ -10,6 +10,8 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.entity.EstadoOrden;
@@ -33,6 +35,7 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Logica de ordenes: convierte un carrito en una compra cerrada.
@@ -52,6 +55,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     private final UsuarioRepository usuarioRepository;
     private final CarritoService carritoService;
     private final AutorizacionService autorizacion;
+    private final EntityManager entityManager;
 
     public List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
             throws UsuarioNoEncontradoException {
@@ -108,11 +112,30 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     @Transactional
     public List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException {
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException {
+        autorizacion.validarActivo(idSolicitante);
+
         Carrito carrito = carritoService.obtenerCarritoEntidad(idSolicitante);
 
         if (carrito.getItems().isEmpty())
             throw new CarritoVacioException();
+
+        // Se toman los candados antes de mirar nada, y siempre en el mismo
+        // orden: si dos compras coinciden en varios productos, ordenarlos por
+        // id evita que cada una se quede con la mitad de lo que la otra
+        // necesita, que es como se armaba el interbloqueo.
+        //
+        // Va un refresh y no un find: al cargar el carrito los productos ya
+        // quedaron en memoria, y pedirlos de nuevo devolveria esa copia con el
+        // stock de antes de esperar el candado. Asi cada compra vuelve a leer
+        // la fila recien liberada por la anterior.
+        for (Long idProducto : carrito.getItems().stream()
+                .map(item -> item.getProducto().getId())
+                .distinct().sorted().toList()) {
+            Producto producto = productoRepository.findById(idProducto)
+                    .orElseThrow(ProductoNoEncontradoException::new);
+            entityManager.refresh(producto, LockModeType.PESSIMISTIC_WRITE);
+        }
 
         for (ItemCarrito item : carrito.getItems()) {
             Producto producto = item.getProducto();
@@ -203,6 +226,12 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         validarTransicion(orden.getEstado(), estado);
         validarQuienPuede(estado, esComprador, esVendedor);
 
+        // Cancelar tiene que devolver lo que la compra habia reservado. Sin
+        // esto, cancelar una orden dejaba el stock descontado para siempre y el
+        // vendedor perdia unidades que nunca vendio.
+        if (estado == EstadoOrden.CANCELADA)
+            reponerStock(orden);
+
         orden.setEstado(estado);
         return OrdenDeCompraResponse.from(ordenRepository.save(orden));
     }
@@ -212,6 +241,22 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * cancelar mientras no haya salido el envio. RECIBIDA y CANCELADA no tienen
      * salida: una vez ahi la orden esta cerrada.
      */
+    /**
+     * Devuelve al producto las unidades que la orden habia descontado.
+     *
+     * Usa la cantidad guardada en el OrderDetail, no la del carrito: el carrito
+     * ya se vacio cuando se cerro la compra.
+     */
+    private void reponerStock(OrdenDeCompra orden) {
+        for (OrderDetail item : orden.getItems()) {
+            Producto producto = item.getProducto();
+            if (producto == null)
+                continue;
+            producto.setStock(producto.getStock() + item.getCantidad());
+            productoRepository.save(producto);
+        }
+    }
+
     private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo)
             throws TransicionInvalidaException {
         boolean permitida = switch (actual) {

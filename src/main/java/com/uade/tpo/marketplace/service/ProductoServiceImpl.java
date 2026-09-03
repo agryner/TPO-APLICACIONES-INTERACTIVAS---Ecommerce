@@ -4,6 +4,10 @@ import com.uade.tpo.marketplace.entity.dto.ProductoRequest;
 import com.uade.tpo.marketplace.entity.dto.ProductoCreadoResponse;
 import com.uade.tpo.marketplace.entity.dto.ProductoResponse;
 import java.math.BigDecimal;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.Comparator;
 import java.util.List;
 
@@ -24,6 +28,7 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Logica de productos: altas, ediciones y busquedas.
@@ -50,11 +55,20 @@ public class ProductoServiceImpl implements ProductoService {
             BigDecimal precioMin, BigDecimal precioMax, String ordenPrecio)
             throws OrdenamientoInvalidoException {
 
+        Set<Long> ramaBuscada = idCategoria == null ? null : ramaDe(idCategoria);
+
         List<Producto> encontrados = productoRepository.findAll().stream()
                 .filter(Producto::getActivo)
+                // Un vendedor dado de baja no vende: sus publicaciones salen del
+                // catalogo aunque el flag activo del producto siga en true.
+                .filter(p -> p.getVendedor() != null
+                        && Boolean.TRUE.equals(p.getVendedor().getActivo()))
                 .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
-                .filter(p -> idCategoria == null
-                        || (p.getCategoria() != null && p.getCategoria().getId().equals(idCategoria)))
+                // Filtrar por "Semillas" tiene que traer tambien lo que esta en
+                // "Semillas > Maiz": nadie que busca en una categoria espera
+                // que se le escondan los productos de sus subcategorias.
+                .filter(p -> ramaBuscada == null
+                        || (p.getCategoria() != null && ramaBuscada.contains(p.getCategoria().getId())))
                 .filter(p -> vendedor == null
                         || (p.getVendedor() != null && p.getVendedor().getNombreUsuario()
                                 .toLowerCase().contains(vendedor.toLowerCase())))
@@ -87,8 +101,34 @@ public class ProductoServiceImpl implements ProductoService {
         return productos.stream().sorted(porPrecio).toList();
     }
 
+    /**
+     * La categoria pedida mas todas sus descendientes.
+     *
+     * Recorre el arbol hacia abajo en anchura. El arbol de categorias de un
+     * marketplace tiene pocos niveles, asi que no hace falta nada mas fino.
+     */
+    private Set<Long> ramaDe(Long idCategoria) {
+        Set<Long> rama = new LinkedHashSet<>();
+        Deque<Long> pendientes = new ArrayDeque<>();
+        pendientes.add(idCategoria);
+
+        while (!pendientes.isEmpty()) {
+            Long actual = pendientes.poll();
+            if (!rama.add(actual))
+                continue;
+            for (Categoria hija : categoriaRepository.findByCategoriaPadreId(actual))
+                pendientes.add(hija.getId());
+        }
+        return rama;
+    }
+
     public List<ProductoResponse> getMisPublicaciones(Long idSolicitante,
-            EstadoPublicacion estado) {
+            EstadoPublicacion estado) throws UsuarioNoEncontradoException {
+        // Sin esto un id inexistente devolvia 200 con lista vacia, igual que un
+        // vendedor real sin publicaciones. Los otros listados ya tiraban 404.
+        if (!usuarioRepository.existsById(idSolicitante))
+            throw new UsuarioNoEncontradoException();
+
         return productoRepository.findAll().stream()
                 .filter(Producto::getActivo)
                 .filter(p -> p.getVendedor() != null
@@ -105,7 +145,12 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     public ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException {
+        // Un alta no tiene duenio previo, asi que no pasa por validarDuenio y
+        // era la ultima puerta por la que una cuenta dada de baja seguia
+        // publicando. El chequeo va explicito.
+        autorizacion.validarActivo(idSolicitante);
+
         Usuario vendedor = usuarioRepository.findById(idSolicitante)
                 .orElseThrow(UsuarioNoEncontradoException::new);
 
@@ -125,7 +170,7 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoResponse updateProducto(Long idProducto, ProductoRequest request,
             Long idSolicitante)
             throws ProductoNoEncontradoException, CategoriaNoEncontradaException,
-            UsuarioNoEncontradoException, OperacionAjenaException {
+            UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
 
@@ -144,7 +189,7 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoResponse cambiarEstadoPublicacion(Long idProducto, EstadoPublicacion estado,
             Long idSolicitante)
             throws ProductoNoEncontradoException, OperacionAjenaException,
-            TransicionInvalidaException {
+            TransicionInvalidaException, CuentaInactivaException, UsuarioNoEncontradoException {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
 
@@ -181,7 +226,7 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     public void deleteProducto(Long idProducto, Long idSolicitante)
-            throws ProductoNoEncontradoException, OperacionAjenaException {
+            throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
 

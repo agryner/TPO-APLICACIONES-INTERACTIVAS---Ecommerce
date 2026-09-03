@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,8 @@ import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -45,25 +48,28 @@ public class CarritosController {
     @GetMapping
     public ResponseEntity<CarritoResponse> obtenerCarrito(@PathVariable Long idUsuario,
             @RequestParam Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException {
+            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
         return ResponseEntity.ok(carritoService.obtenerCarrito(idUsuario, idSolicitante));
     }
 
     @PostMapping("/items")
     public ResponseEntity<CarritoResponse> agregarItem(@PathVariable Long idUsuario,
-            @RequestBody ItemCarritoRequest request, @RequestParam Long idSolicitante)
+            @Valid @RequestBody ItemCarritoRequest request, @RequestParam Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException,
-            CompraPropiaException {
+            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException {
         return ResponseEntity.ok(carritoService.agregarItem(idUsuario, request, idSolicitante));
     }
 
     @PutMapping("/items/{idItem}")
     public ResponseEntity<CarritoResponse> modificarCantidad(@PathVariable Long idUsuario,
+            // Sin @Valid a proposito: este endpoint manda solo la cantidad, y el
+            // @NotNull de idProducto lo rechazaria. La cantidad la valida el
+            // service, que es quien sabe que aca un cero significa "sacalo".
             @PathVariable Long idItem, @RequestBody ItemCarritoRequest request,
             @RequestParam Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ItemCarritoNoEncontradoException, StockInsuficienteException {
+            ItemCarritoNoEncontradoException, StockInsuficienteException, CuentaInactivaException {
         return ResponseEntity.ok(carritoService.modificarCantidad(
                 idUsuario, idItem, request.getCantidad(), idSolicitante));
     }
@@ -72,14 +78,14 @@ public class CarritosController {
     public ResponseEntity<CarritoResponse> eliminarItem(@PathVariable Long idUsuario,
             @PathVariable Long idItem, @RequestParam Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ItemCarritoNoEncontradoException {
+            ItemCarritoNoEncontradoException, CuentaInactivaException {
         return ResponseEntity.ok(carritoService.eliminarItem(idUsuario, idItem, idSolicitante));
     }
 
     @DeleteMapping("/items")
     public ResponseEntity<CarritoResponse> vaciar(@PathVariable Long idUsuario,
             @RequestParam Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException {
+            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
         return ResponseEntity.ok(carritoService.vaciar(idUsuario, idSolicitante));
     }
 }

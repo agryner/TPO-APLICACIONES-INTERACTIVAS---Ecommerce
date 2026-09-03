@@ -27,6 +27,7 @@ import com.uade.tpo.marketplace.repository.FotoRepository;
 import com.uade.tpo.marketplace.repository.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Logica de fotos: valida el archivo subido y lo guarda.
@@ -74,7 +75,7 @@ public class FotoServiceImpl implements FotoService {
     @Transactional
     public FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException {
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
 
         if (request.getIdProducto() == null)
             throw new ArchivoInvalidoException("Falta indicar el idProducto");
@@ -104,6 +105,14 @@ public class FotoServiceImpl implements FotoService {
         } catch (IOException e) {
             throw new ArchivoInvalidoException("No se pudo leer el archivo: " + e.getMessage());
         }
+        // El Content-Type lo elige el cliente y no prueba nada: un .txt
+        // mandado como "image/jpeg" pasaba el filtro de arriba, quedaba
+        // guardado como foto y encima publicaba el producto. Los primeros
+        // bytes los escribe el programa que genero el archivo.
+        if (!pareceImagen(contenido))
+            throw new ArchivoInvalidoException(
+                    "El archivo no es una imagen: su contenido no corresponde a ningun formato conocido");
+
         foto.setContenido(contenido);
 
         verificar(foto, contenido, producto);
@@ -124,6 +133,46 @@ public class FotoServiceImpl implements FotoService {
      * la revise un admin. Si la IA falla tambien va a revision: que se caiga un
      * servicio externo no puede dejar al vendedor sin poder publicar.
      */
+    /**
+     * Firmas de los formatos aceptados, en bytes.
+     *
+     * Son los primeros bytes que escribe quien genera el archivo, asi que
+     * describen lo que el archivo es de verdad y no lo que el cliente dice
+     * que es en la cabecera.
+     */
+    private static final byte[][] FIRMAS = {
+            { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF },                  // JPEG
+            { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A },     // PNG
+            { 'G', 'I', 'F', '8' },                                     // GIF
+            { 'B', 'M' },                                               // BMP
+    };
+
+    /** WEBP es un contenedor RIFF: "RIFF" + 4 bytes de tamanio + "WEBP". */
+    private boolean esWebp(byte[] b) {
+        return b.length >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
+                && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P';
+    }
+
+    private boolean pareceImagen(byte[] contenido) {
+        if (esWebp(contenido))
+            return true;
+
+        for (byte[] firma : FIRMAS) {
+            if (contenido.length < firma.length)
+                continue;
+            boolean coincide = true;
+            for (int i = 0; i < firma.length; i++) {
+                if (contenido[i] != firma[i]) {
+                    coincide = false;
+                    break;
+                }
+            }
+            if (coincide)
+                return true;
+        }
+        return false;
+    }
+
     private void verificar(Foto foto, byte[] contenido, Producto producto)
             throws FotoRechazadaException {
         VerificadorImagenService.Resultado resultado;
@@ -188,7 +237,7 @@ public class FotoServiceImpl implements FotoService {
 
     @Transactional
     public void deleteFoto(Long idFoto, Long idSolicitante)
-            throws FotoNoEncontradaException, OperacionAjenaException {
+            throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         Foto foto = fotoRepository.findById(idFoto)
                 .orElseThrow(FotoNoEncontradaException::new);
 

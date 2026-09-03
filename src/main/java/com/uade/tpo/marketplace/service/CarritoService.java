@@ -8,6 +8,8 @@ import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
 /**
@@ -21,7 +23,7 @@ public interface CarritoService {
      * Devuelve el carrito del usuario. Si nunca tuvo uno, se lo crea vacio.
      * Si el carrito venció, se devuelve vacio.
      */
-    CarritoResponse obtenerCarrito(Long idUsuario, Long idSolicitante) throws OperacionAjenaException, UsuarioNoEncontradoException;
+    CarritoResponse obtenerCarrito(Long idUsuario, Long idSolicitante) throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException;
 
     /**
      * Version para uso entre services: devuelve la entidad en vez del DTO,
@@ -47,7 +49,8 @@ public interface CarritoService {
 
     CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request, Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ProductoNoEncontradoException, StockInsuficienteException, CompraPropiaException;
+            ProductoNoEncontradoException, StockInsuficienteException, CompraPropiaException,
+            CantidadInvalidaException, CuentaInactivaException;
 
     /**
      * Cambia la cantidad de un item ya cargado. Una cantidad nula o menor o
@@ -56,10 +59,10 @@ public interface CarritoService {
     CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad,
             Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,
-            StockInsuficienteException;
+            StockInsuficienteException, CuentaInactivaException;
 
     CarritoResponse eliminarItem(Long idUsuario, Long idItem, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, ItemCarritoNoEncontradoException;
+            throws OperacionAjenaException, UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, CuentaInactivaException;
 
-    CarritoResponse vaciar(Long idUsuario, Long idSolicitante) throws OperacionAjenaException, UsuarioNoEncontradoException;
+    CarritoResponse vaciar(Long idUsuario, Long idSolicitante) throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException;
 }

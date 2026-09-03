@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +30,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.service.ProductoService;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Endpoints REST del catalogo de productos.
@@ -66,7 +68,8 @@ public class ProductosController {
     @GetMapping("/mis-publicaciones")
     public ResponseEntity<List<ProductoResponse>> getMisPublicaciones(
             @RequestParam Long idSolicitante,
-            @RequestParam(required = false) EstadoPublicacion estado) {
+            @RequestParam(required = false) EstadoPublicacion estado)
+            throws UsuarioNoEncontradoException {
         return ResponseEntity.ok(productoService.getMisPublicaciones(idSolicitante, estado));
     }
 
@@ -77,9 +80,9 @@ public class ProductosController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createProducto(@RequestBody ProductoRequest request,
+    public ResponseEntity<Object> createProducto(@Valid @RequestBody ProductoRequest request,
             @RequestParam Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException {
         ProductoCreadoResponse result = productoService.createProducto(request, idSolicitante);
         return ResponseEntity.created(URI.create("/productos/" + result.getProducto().getId()))
                 .body(result);
@@ -87,9 +90,9 @@ public class ProductosController {
 
     @PutMapping("/{idProducto}")
     public ResponseEntity<ProductoResponse> updateProducto(@PathVariable Long idProducto,
-            @RequestBody ProductoRequest request, @RequestParam Long idSolicitante)
+            @Valid @RequestBody ProductoRequest request, @RequestParam Long idSolicitante)
             throws ProductoNoEncontradoException, CategoriaNoEncontradaException,
-            UsuarioNoEncontradoException, OperacionAjenaException {
+            UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         return ResponseEntity.ok(productoService.updateProducto(idProducto, request, idSolicitante));
     }
 
@@ -104,7 +107,7 @@ public class ProductosController {
             @PathVariable Long idProducto, @RequestParam EstadoPublicacion estado,
             @RequestParam Long idSolicitante)
             throws ProductoNoEncontradoException, OperacionAjenaException,
-            TransicionInvalidaException {
+            TransicionInvalidaException, CuentaInactivaException, UsuarioNoEncontradoException {
         return ResponseEntity.ok(
                 productoService.cambiarEstadoPublicacion(idProducto, estado, idSolicitante));
     }
@@ -112,7 +115,7 @@ public class ProductosController {
     @DeleteMapping("/{idProducto}")
     public ResponseEntity<MensajeResponse> deleteProducto(@PathVariable Long idProducto,
             @RequestParam Long idSolicitante)
-            throws ProductoNoEncontradoException, OperacionAjenaException {
+            throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         productoService.deleteProducto(idProducto, idSolicitante);
         return ResponseEntity.ok(new MensajeResponse("Producto dado de baja correctamente"));
     }

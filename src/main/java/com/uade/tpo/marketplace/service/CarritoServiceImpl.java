@@ -19,6 +19,8 @@ import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.CarritoRepository;
 import com.uade.tpo.marketplace.repository.ItemCarritoRepository;
@@ -52,7 +54,7 @@ public class CarritoServiceImpl implements CarritoService {
 
     @Transactional
     public CarritoResponse obtenerCarrito(Long idUsuario, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException {
+            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
         return CarritoResponse.from(obtenerCarritoEntidad(idUsuario));
     }
@@ -98,7 +100,8 @@ public class CarritoServiceImpl implements CarritoService {
             Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException,
-            CompraPropiaException {
+            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException {
+        autorizacion.validarActivo(idSolicitante);
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
@@ -114,7 +117,13 @@ public class CarritoServiceImpl implements CarritoService {
         if (producto.getVendedor().getId().equals(idUsuario))
             throw new CompraPropiaException(producto);
 
+        // Null significa "una unidad", pero cero o negativo no significan nada:
+        // dejaban el carrito con cantidades y totales negativos. Para sacar un
+        // item esta el delete.
         int cantidad = request.getCantidad() == null ? 1 : request.getCantidad();
+        if (cantidad < 1)
+            throw new CantidadInvalidaException();
+
         if (producto.getStock() < cantidad)
             throw new StockInsuficienteException(producto, cantidad);
 
@@ -146,7 +155,7 @@ public class CarritoServiceImpl implements CarritoService {
     public CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad,
             Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ItemCarritoNoEncontradoException, StockInsuficienteException {
+            ItemCarritoNoEncontradoException, StockInsuficienteException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         // Pedir cero o menos es sacarlo del carrito, no dejar un item vacio.
@@ -173,7 +182,7 @@ public class CarritoServiceImpl implements CarritoService {
     @Transactional
     public CarritoResponse eliminarItem(Long idUsuario, Long idItem, Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ItemCarritoNoEncontradoException {
+            ItemCarritoNoEncontradoException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
@@ -189,7 +198,7 @@ public class CarritoServiceImpl implements CarritoService {
 
     @Transactional
     public CarritoResponse vaciar(Long idUsuario, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException {
+            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
         return CarritoResponse.from(vaciarCarrito(obtenerCarritoEntidad(idUsuario)));
     }

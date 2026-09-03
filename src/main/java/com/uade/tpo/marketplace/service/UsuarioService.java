@@ -7,6 +7,7 @@ import java.util.List;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Contrato de la logica de usuarios.
@@ -23,9 +24,9 @@ public interface UsuarioService {
 
     /** Cada uno edita solo su propia cuenta. */
     UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request, Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException;
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException;
 
     /** Cada uno da de baja solo su propia cuenta. */
     void deleteUsuario(Long idUsuario, Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException;
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException;
 }

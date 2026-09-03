@@ -14,6 +14,7 @@ import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Contrato de la logica de ordenes.
@@ -53,7 +54,7 @@ public interface OrdenDeCompraService {
      */
     List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException;
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException;
 
     /**
      * Avanza el estado de una orden. Solo el comprador o el vendedor pueden

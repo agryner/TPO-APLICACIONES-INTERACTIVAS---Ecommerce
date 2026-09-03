@@ -27,6 +27,7 @@ import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.service.OrdenDeCompraService;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Endpoints REST de ordenes de compra.
@@ -73,7 +74,7 @@ public class OrdenesController {
     public ResponseEntity<List<OrdenDeCompraResponse>> createOrden(
             @RequestParam Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException {
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException {
         return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.createOrden(idSolicitante));
     }
 

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -69,7 +70,7 @@ public class CategoriasController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createCategoria(@RequestBody CategoriaRequest request,
+    public ResponseEntity<Object> createCategoria(@Valid @RequestBody CategoriaRequest request,
             @RequestParam Long idSolicitante)
             throws CategoriaDuplicadaException, CategoriaNoEncontradaException,
             UsuarioNoEncontradoException, AccesoDenegadoException {
@@ -79,7 +80,7 @@ public class CategoriasController {
 
     @PutMapping("/{idCategoria}")
     public ResponseEntity<CategoriaResponse> updateCategoria(@PathVariable Long idCategoria,
-            @RequestBody CategoriaRequest request, @RequestParam Long idSolicitante)
+            @Valid @RequestBody CategoriaRequest request, @RequestParam Long idSolicitante)
             throws CategoriaNoEncontradaException, JerarquiaInvalidaException,
             CategoriaDuplicadaException, UsuarioNoEncontradoException, AccesoDenegadoException {
         return ResponseEntity.ok(categoriaService.updateCategoria(idCategoria, request, idSolicitante));

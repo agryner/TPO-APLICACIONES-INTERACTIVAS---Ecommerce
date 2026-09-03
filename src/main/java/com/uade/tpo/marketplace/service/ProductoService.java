@@ -13,6 +13,7 @@ import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Contrato de la logica de productos.
@@ -41,19 +42,20 @@ public interface ProductoService {
      * vendedor no tendria como ver sus borradores ni sus pausadas. Con estado
      * en null vienen todas.
      */
-    List<ProductoResponse> getMisPublicaciones(Long idSolicitante, EstadoPublicacion estado);
+    List<ProductoResponse> getMisPublicaciones(Long idSolicitante, EstadoPublicacion estado)
+            throws UsuarioNoEncontradoException;
 
     /**
      * Da de alta a nombre del solicitante: no se puede publicar por otro. El
      * producto queda en BORRADOR hasta que se le suba la primera foto.
      */
     ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException;
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException;
 
     /** Solo el vendedor duenio de la publicacion puede editarla. */
     ProductoResponse updateProducto(Long idProducto, ProductoRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, CategoriaNoEncontradaException,
-            UsuarioNoEncontradoException, OperacionAjenaException;
+            UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException;
 
     /**
      * Pausa o reanuda una publicacion. Solo el vendedor duenio.
@@ -65,9 +67,9 @@ public interface ProductoService {
     ProductoResponse cambiarEstadoPublicacion(Long idProducto, EstadoPublicacion estado,
             Long idSolicitante)
             throws ProductoNoEncontradoException, OperacionAjenaException,
-            TransicionInvalidaException;
+            TransicionInvalidaException, CuentaInactivaException, UsuarioNoEncontradoException;
 
     /** Solo el vendedor duenio de la publicacion puede darla de baja. */
     void deleteProducto(Long idProducto, Long idSolicitante)
-            throws ProductoNoEncontradoException, OperacionAjenaException;
+            throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException;
 }

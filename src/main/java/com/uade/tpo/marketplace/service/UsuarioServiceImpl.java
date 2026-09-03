@@ -8,12 +8,15 @@ import org.springframework.stereotype.Service;
 
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
+import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.repository.UsuarioRepository;
+import com.uade.tpo.marketplace.repository.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Logica de usuarios: altas, ediciones y control de duplicados.
@@ -27,6 +30,8 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
+    private final ProductoRepository productoRepository;
+    private final CarritoService carritoService;
 
     public List<UsuarioResponse> getUsuarios() {
         return usuarioRepository.findAll().stream()
@@ -48,11 +53,16 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         Usuario usuario = new Usuario();
         copiarDatos(usuario, request);
+
+        // El rol NO sale del body. Mandando "rol": "ADMIN" en el alta publica
+        // cualquiera se hacia administrador, y por la edicion cualquiera se
+        // ascendia a si mismo. Un ADMIN se crea a mano en la base.
+        usuario.setRol(TipoUsuario.CLIENTE);
         return UsuarioResponse.from(usuarioRepository.save(usuario));
     }
 
     public UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request, Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException {
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
@@ -70,7 +80,7 @@ public class UsuarioServiceImpl implements UsuarioService {
      * ventas de los vendedores que le vendieron.
      */
     public void deleteUsuario(Long idUsuario, Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException {
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
@@ -78,6 +88,19 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
+
+        // Sin esto la baja quedaba a medias: el vendedor desaparecia de los
+        // listados pero sus publicaciones seguian en el catalogo y se compraban
+        // igual. Se dan de baja tambien, y salen de los carritos ajenos.
+        for (Producto producto : productoRepository.findAll()) {
+            if (producto.getVendedor() != null
+                    && producto.getVendedor().getId().equals(idUsuario)
+                    && Boolean.TRUE.equals(producto.getActivo())) {
+                producto.setActivo(false);
+                productoRepository.save(producto);
+                carritoService.quitarDeTodosLosCarritos(producto.getId());
+            }
+        }
     }
 
     private void copiarDatos(Usuario usuario, UsuarioRequest request) {
@@ -87,6 +110,5 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setMail(request.getMail());
         usuario.setContrasena(request.getContrasena());
         usuario.setDireccion(request.getDireccion());
-        usuario.setRol(request.getRol() == null ? TipoUsuario.CLIENTE : request.getRol());
     }
 }

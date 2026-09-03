@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +24,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.service.UsuarioService;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Endpoints REST de usuarios.
@@ -49,7 +51,7 @@ public class UsuariosController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createUsuario(@RequestBody UsuarioRequest request)
+    public ResponseEntity<Object> createUsuario(@Valid @RequestBody UsuarioRequest request)
             throws UsuarioDuplicadoException {
         UsuarioResponse result = usuarioService.createUsuario(request);
         return ResponseEntity.created(URI.create("/usuarios/" + result.getId())).body(result);
@@ -57,15 +59,15 @@ public class UsuariosController {
 
     @PutMapping("/{idUsuario}")
     public ResponseEntity<UsuarioResponse> updateUsuario(@PathVariable Long idUsuario,
-            @RequestBody UsuarioRequest request, @RequestParam Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException {
+            @Valid @RequestBody UsuarioRequest request, @RequestParam Long idSolicitante)
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         return ResponseEntity.ok(usuarioService.updateUsuario(idUsuario, request, idSolicitante));
     }
 
     @DeleteMapping("/{idUsuario}")
     public ResponseEntity<MensajeResponse> deleteUsuario(@PathVariable Long idUsuario,
             @RequestParam Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException {
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         usuarioService.deleteUsuario(idUsuario, idSolicitante);
         return ResponseEntity.ok(new MensajeResponse("Usuario dado de baja correctamente"));
     }

@@ -31,6 +31,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.service.FotoService;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
 /**
  * Endpoints REST de las fotos de un producto.
@@ -67,7 +68,7 @@ public class FotosController {
     public ResponseEntity<FotoResponse> subirFoto(@ModelAttribute FotoUploadRequest request,
             @RequestParam Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException {
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         FotoResponse result = fotoService.subirFoto(request, idSolicitante);
         return ResponseEntity.created(URI.create("/fotos/" + result.getId())).body(result);
     }
@@ -116,7 +117,7 @@ public class FotosController {
     @DeleteMapping("/{idFoto}")
     public ResponseEntity<MensajeResponse> deleteFoto(@PathVariable Long idFoto,
             @RequestParam Long idSolicitante)
-            throws FotoNoEncontradaException, OperacionAjenaException {
+            throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         fotoService.deleteFoto(idFoto, idSolicitante);
         return ResponseEntity.ok(new MensajeResponse("Foto eliminada correctamente"));
     }

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.UsuarioRepository;
@@ -25,14 +26,38 @@ public class AutorizacionService {
     private final UsuarioRepository usuarioRepository;
 
     /**
+     * Corta la operacion si la cuenta que la pide esta dada de baja.
+     *
+     * Va antes que cualquier otro chequeo: quien no deberia estar operando no
+     * tiene por que llegar a que se le evalue la pertenencia.
+     */
+    public void validarActivo(Long idUsuario)
+            throws UsuarioNoEncontradoException, CuentaInactivaException {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (!Boolean.TRUE.equals(usuario.getActivo()))
+            throw new CuentaInactivaException();
+    }
+
+    /**
      * Corta la operacion si quien la pide no es el duenio del recurso.
      *
      * Es el chequeo que impide editar el producto de otro vendedor, entrar al
-     * carrito ajeno o dar de baja la cuenta de otro.
+     * carrito ajeno o dar de baja la cuenta de otro. De paso corta si la cuenta
+     * que pide esta dada de baja.
      */
-    public void validarDuenio(Long idSolicitante, Long idDuenio) throws OperacionAjenaException {
+    public void validarDuenio(Long idSolicitante, Long idDuenio)
+            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
         if (idSolicitante == null || !idSolicitante.equals(idDuenio))
             throw new OperacionAjenaException();
+
+        // Ser el duenio no alcanza: la cuenta tambien tiene que estar vigente.
+        // Va aca y no en cada service porque este metodo es el cuello por el
+        // que ya pasan todas las operaciones sobre algo propio; repartir el
+        // chequeo por fuera garantizaba olvidarse de alguna, que fue justo lo
+        // que paso.
+        validarActivo(idSolicitante);
     }
 
     /**
