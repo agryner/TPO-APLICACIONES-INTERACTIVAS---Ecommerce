@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uade.tpo.marketplace.exceptions.AdminNoPuedeVenderException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
@@ -79,7 +80,7 @@ public class ProductosController {
     @PostMapping
     public ResponseEntity<Object> createProducto(@RequestBody ProductoRequest request,
             @RequestParam Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, AdminNoPuedeVenderException {
         ProductoCreadoResponse result = productoService.createProducto(request, idSolicitante);
         return ResponseEntity.created(URI.create("/productos/" + result.getProducto().getId()))
                 .body(result);

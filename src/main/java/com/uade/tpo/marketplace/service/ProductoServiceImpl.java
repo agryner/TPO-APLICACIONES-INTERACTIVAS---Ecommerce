@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import com.uade.tpo.marketplace.entity.Categoria;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
 import com.uade.tpo.marketplace.entity.Producto;
+import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
+import com.uade.tpo.marketplace.exceptions.AdminNoPuedeVenderException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
@@ -105,9 +107,14 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     public ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, AdminNoPuedeVenderException {
         Usuario vendedor = usuarioRepository.findById(idSolicitante)
                 .orElseThrow(UsuarioNoEncontradoException::new);
+
+        // Regla de negocio: El ADMIN modera la plataforma, no vende productos.
+        if (vendedor.getRol() == TipoUsuario.ADMIN) {
+            throw new AdminNoPuedeVenderException();
+        }
 
         Producto producto = new Producto();
         producto.setVendedor(vendedor);

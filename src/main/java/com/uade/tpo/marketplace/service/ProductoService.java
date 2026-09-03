@@ -7,6 +7,7 @@ import com.uade.tpo.marketplace.entity.dto.ProductoResponse;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.uade.tpo.marketplace.exceptions.AdminNoPuedeVenderException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
@@ -45,10 +46,10 @@ public interface ProductoService {
 
     /**
      * Da de alta a nombre del solicitante: no se puede publicar por otro. El
-     * producto queda en BORRADOR hasta que se le suba la primera foto.
+     * producto queda en BORRADOR hasta que se le sube la primera foto.
      */
     ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException;
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, AdminNoPuedeVenderException;
 
     /** Solo el vendedor duenio de la publicacion puede editarla. */
     ProductoResponse updateProducto(Long idProducto, ProductoRequest request, Long idSolicitante)
