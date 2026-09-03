@@ -81,7 +81,9 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     public void deleteUsuario(Long idUsuario, Long idSolicitante)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+        // Cada uno da de baja su propia cuenta, y el ADMIN la de cualquiera:
+        // moderar incluye poder sacar a alguien de circulacion.
+        autorizacion.validarDuenioOAdmin(idSolicitante, idUsuario);
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(UsuarioNoEncontradoException::new);

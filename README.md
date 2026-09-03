@@ -97,7 +97,8 @@ Hay dos reglas distintas, y conviene no mezclarlas: la **pertenencia** pregunta 
 | Editar, pausar o dar de baja un producto | su vendedor |
 | Subir o borrar una foto | el vendedor del producto |
 | Ver o tocar un carrito | su dueño |
-| Editar o dar de baja una cuenta | esa misma cuenta |
+| Editar una cuenta | esa misma cuenta |
+| Dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
 | Crear, editar o borrar categorías | ADMIN |
@@ -105,7 +106,7 @@ Hay dos reglas distintas, y conviene no mezclarlas: la **pertenencia** pregunta 
 | Comprar un producto | cualquiera menos su vendedor |
 | Ver el catálogo y crear una cuenta | abierto |
 
-El ADMIN puede **ver** todas las órdenes para auditarlas, pero no puede cambiarles el estado: su rol manda en las categorías y en moderar fotos, no en una transacción entre dos privados.
+El ADMIN modera: categorías, fotos y bajas de cuenta. Lo que **no** puede es meterse en una transacción entre dos privados — ve todas las órdenes para auditarlas, pero no puede cambiarles el estado. Esa distinción vive en `AutorizacionService`: `validarDuenio` es sólo para el dueño, `validarDuenioOAdmin` abre la puerta a la moderación, y son métodos separados a propósito.
 
 ---
 
@@ -130,7 +131,7 @@ El ADMIN puede **ver** todas las órdenes para auditarlas, pero no puede cambiar
 | `GET` | `/usuarios/{id}` | Un usuario |
 | `POST` | `/usuarios` | Alta. 400 si el mail o el nombre ya existen |
 | `PUT` | `/usuarios/{id}` | Editar |
-| `DELETE` | `/usuarios/{id}` | Baja lógica: el historial de órdenes sobrevive |
+| `DELETE` | `/usuarios/{id}` | Baja lógica, propia o por un **ADMIN**. El historial de órdenes sobrevive |
 | `GET` | `/usuarios/{id}/carrito` | El carrito, vaciado si venció |
 | `POST` | `/usuarios/{id}/carrito/items` | Agregar. Acumula si ya estaba |
 | `PUT` | `/usuarios/{id}/carrito/items/{item}` | Cambiar cantidad |

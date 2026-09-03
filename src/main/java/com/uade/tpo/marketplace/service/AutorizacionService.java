@@ -74,6 +74,25 @@ public class AutorizacionService {
                 .orElse(false);
     }
 
+    /**
+     * Deja pasar al duenio del recurso o a un ADMIN.
+     *
+     * Es el permiso de las operaciones que normalmente son personales pero que
+     * la moderacion tambien necesita, como dar de baja una cuenta. Se separa de
+     * validarDuenio porque la mayoria de las operaciones NO deben abrirse al
+     * admin: el rol no lo vuelve duenio de los productos ni de los carritos de
+     * los demas.
+     */
+    public void validarDuenioOAdmin(Long idSolicitante, Long idDuenio)
+            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
+        if (idSolicitante != null && esAdmin(idSolicitante)) {
+            validarActivo(idSolicitante);
+            return;
+        }
+
+        validarDuenio(idSolicitante, idDuenio);
+    }
+
     /** Corta la operacion si el usuario que la pide no es ADMIN. */
     public void validarAdmin(Long idUsuario)
             throws UsuarioNoEncontradoException, AccesoDenegadoException {
