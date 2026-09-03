@@ -411,7 +411,7 @@
       <div class="fact"><dt>Java</dt><dd>25</dd></div>
       <div class="fact"><dt>Persistencia</dt><dd>MySQL 8</dd></div>
       <div class="fact"><dt>Endpoints</dt><dd>35</dd></div>
-      <div class="fact"><dt>Clases</dt><dd>77</dd></div>
+      <div class="fact"><dt>Clases</dt><dd>78</dd></div>
     </dl>
   </header>
 
@@ -520,7 +520,7 @@
             <tr><td><code>repository</code></td><td>7</td><td>Interfaces de Spring Data. La implementación la genera el framework.</td></tr>
             <tr><td><code>entity</code></td><td>12</td><td>8 entidades JPA y 4 enums que se guardan como texto.</td></tr>
             <tr><td><code>entity/dto</code></td><td>17</td><td>Lo que entra y lo que sale. No tienen <code>@Entity</code> ni tabla.</td></tr>
-            <tr><td><code>exceptions</code></td><td>20</td><td>Una por regla de negocio, cada una con su código HTTP en <code>@ResponseStatus</code>.</td></tr>
+            <tr><td><code>exceptions</code></td><td>21</td><td>Una por regla de negocio, cada una con su código HTTP en <code>@ResponseStatus</code>.</td></tr>
           </tbody>
         </table>
       </div>
@@ -537,7 +537,7 @@
       <span class="h2-num">02</span>
       <h2>Mapa del código</h2>
 
-      <p>77 clases, 4.080 líneas. Ninguna hace <code>new</code> de otra: todas declaran sus dependencias como campos <code>final</code> y Spring las inyecta por constructor. La lista completa, paquete por paquete.</p>
+      <p>78 clases, 4.129 líneas. Ninguna hace <code>new</code> de otra: todas declaran sus dependencias como campos <code>final</code> y Spring las inyecta por constructor. La lista completa, paquete por paquete.</p>
 
       <div class="pkg-head">
         <h3><code>controllers</code></h3>
@@ -653,9 +653,9 @@
 
       <div class="pkg-head">
         <h3><code>exceptions</code></h3>
-        <span class="pkg-count">20 clases</span>
+        <span class="pkg-count">21 clases</span>
       </div>
-      <p class="pkg-rule">Una excepción por regla de negocio, cada una con su código en <code>@ResponseStatus</code>. Ningún service atrapa ninguna: Spring las traduce sola antes de responder.</p>
+      <p class="pkg-rule">Una excepción por regla de negocio — 21, una por cada regla — cada una con su código en <code>@ResponseStatus</code>. Ningún service atrapa ninguna: Spring las traduce sola antes de responder.</p>
       <div class="table-scroll">
         <table>
           <thead><tr><th>HTTP</th><th>Excepciones</th><th>Cuándo</th></tr></thead>
@@ -663,7 +663,7 @@
             <tr><td class="cls">404</td><td class="cls" style="white-space:normal">UsuarioNoEncontrada · CategoriaNoEncontrada · ProductoNoEncontrado · FotoNoEncontrada · OrdenNoEncontrada · ItemCarritoNoEncontrado</td><td>No existe el recurso. Se usan también para no confundir “no existe” con “existe pero está vacío”.</td></tr>
             <tr><td class="cls">400</td><td class="cls" style="white-space:normal">UsuarioDuplicada · CategoriaDuplicada · ArchivoInvalido · OrdenamientoInvalido · JerarquiaInvalida</td><td>El pedido está mal formado o choca con una unicidad. <code>ArchivoInvalido</code> es la única que lleva mensaje propio.</td></tr>
             <tr><td class="cls">403</td><td class="cls" style="white-space:normal">OperacionAjena · AccesoDenegado · CambioDeEstadoNoPermitido</td><td>Tres motivos distintos: no es tuyo, no sos admin, no te toca a vos ese paso.</td></tr>
-            <tr><td class="cls">409</td><td class="cls" style="white-space:normal">CategoriaConProductos · CategoriaConSubcategorias · StockInsuficiente · CarritoVacio · TransicionInvalida · FotoRechazada</td><td>El pedido es válido pero el estado actual no lo permite.</td></tr>
+            <tr><td class="cls">409</td><td class="cls" style="white-space:normal">CategoriaConProductos · CategoriaConSubcategorias · StockInsuficiente · CarritoVacio · TransicionInvalida · FotoRechazada · CompraPropia</td><td>El pedido es válido pero el estado actual no lo permite.</td></tr>
           </tbody>
         </table>
       </div>
@@ -982,6 +982,7 @@
             <tr><td>Crear, editar o borrar categorías</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Ver la cola de fotos pendientes</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Aprobar o rechazar una foto</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
+            <tr><td>Comprar un producto</td><td><span class="pill">cualquiera menos su vendedor</span></td><td>409</td></tr>
             <tr><td>Ver el catálogo y crear una cuenta</td><td><span class="pill">abierto</span></td><td>—</td></tr>
           </tbody>
         </table>
@@ -1075,7 +1076,7 @@
         </div>
         <div class="decision">
           <h4>Excepciones con <code>@ResponseStatus</code></h4>
-          <p>20 excepciones de dominio, cada una con su código. Spring las traduce sola sin un handler. Lo que falta es un <code>@RestControllerAdvice</code> para lo imprevisto: hoy un error no contemplado sale como 500 con el SQL adentro.</p>
+          <p>21 excepciones de dominio, cada una con su código. Spring las traduce sola sin un handler. Lo que falta es un <code>@RestControllerAdvice</code> para lo imprevisto: hoy un error no contemplado sale como 500 con el SQL adentro.</p>
         </div>
         <div class="decision">
           <h4>El producto nace en borrador</h4>
@@ -1084,6 +1085,10 @@
         <div class="decision">
           <h4>Salir de circulación vacía los carritos</h4>
           <p>Pausar, dar de baja o quedarse sin fotos saca al producto de todos los carritos donde estuviera cargado. Sin eso el comprador se enteraría recién al pagar, con un error sobre algo que él no hizo.</p>
+        </div>
+        <div class="decision">
+          <h4>Nadie se compra a sí mismo</h4>
+          <p>Los chequeos de la orden no podían detectarlo: preguntan si el solicitante es el comprador y si es el vendedor, y cuando es las dos cosas ambas dan verdadero. Un vendedor podía cerrar una compra consigo mismo, descontarse el stock y recorrer los cuatro estados solo. La regla va antes, sobre el producto: al agregarlo al carrito, y otra vez al cerrar la orden.</p>
         </div>
         <div class="decision">
           <h4>Pertenencia y rol son dos cosas</h4>
@@ -1102,13 +1107,12 @@
         <li><strong>Paginación.</strong> Todos los listados devuelven la colección completa.</li>
         <li><strong>Bloqueo pesimista en el stock.</strong> Dos compras simultáneas del último producto pueden dejar stock negativo.</li>
         <li><strong>Rango del descuento.</strong> <code>descuento</code> no valida estar entre 0 y 100: un valor mayor da totales negativos.</li>
-        <li><strong>Comprarse a uno mismo.</strong> Nada impide agregar al carrito un producto propio.</li>
         <li><strong>WebP.</strong> <code>ImageIO</code> no lo lee, así que esas subidas saltean la verificación con IA y quedan en revisión manual.</li>
       </ul>
     </section>
 
     <footer>
-      Marketplace agropecuario · TPO Aplicaciones Interactivas · Spring Boot 4.1 · Java 25 · MySQL 8 · 77 clases · 4.080 líneas
+      Marketplace agropecuario · TPO Aplicaciones Interactivas · Spring Boot 4.1 · Java 25 · MySQL 8 · 78 clases · 4.129 líneas
     </footer>
 
   </main>

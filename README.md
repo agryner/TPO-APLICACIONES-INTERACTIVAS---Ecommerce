@@ -40,7 +40,7 @@ Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `f
 | `repository` | 7 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
 | `entity` | 12 | 8 entidades JPA y 4 enums, guardados como texto. |
 | `entity/dto` | 17 | Lo que entra y lo que sale. Sin `@Entity` ni tabla. |
-| `exceptions` | 20 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
+| `exceptions` | 21 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
 
 ---
 
@@ -59,6 +59,8 @@ BORRADOR ──sube la primera foto──▶ PUBLICADO ──▶ PAUSADO
 Pausar, dar de baja o quedarse sin fotos **saca el producto de todos los carritos** donde estuviera cargado. Sin eso el comprador se enteraría recién al pagar.
 
 ### Comprar
+
+Nadie puede comprar lo que él mismo publica: la regla se chequea al agregar al carrito y otra vez al cerrar la orden, porque los chequeos de la orden no alcanzan — preguntan si sos el comprador y si sos el vendedor, y cuando sos los dos ambas dan verdadero.
 
 `POST /ordenes` cierra el carrito. Si mezcla productos de varios vendedores genera **una orden por vendedor**, porque una orden es una transacción entre dos personas: con una sola no se podría representar que un vendedor ya despachó y el otro no. Valida el stock de todo antes de escribir nada, así un ítem sin stock no deja órdenes a medio crear.
 
@@ -100,6 +102,7 @@ Hay dos reglas distintas, y conviene no mezclarlas: la **pertenencia** pregunta 
 | Listar órdenes | las propias — el ADMIN ve todas |
 | Crear, editar o borrar categorías | ADMIN |
 | Moderar fotos | ADMIN |
+| Comprar un producto | cualquiera menos su vendedor |
 | Ver el catálogo y crear una cuenta | abierto |
 
 El ADMIN puede **ver** todas las órdenes para auditarlas, pero no puede cambiarles el estado: su rol manda en las categorías y en moderar fotos, no en una transacción entre dos privados.
@@ -156,7 +159,7 @@ El ADMIN puede **ver** todas las órdenes para auditarlas, pero no puede cambiar
 
 **DTOs en las dos direcciones.** Los `Request` no tienen `id`, así que nadie puede pisar el de otro registro. Los `Response` no tienen `contrasena`, así que no puede filtrarse en un listado anidado.
 
-**Excepciones con `@ResponseStatus`.** 20 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
+**Excepciones con `@ResponseStatus`.** 21 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
 
 **Filtros con streams.** El catálogo se filtra en Java sobre `findAll()`. Es legible y alcanza para el volumen del TPO, pero trae toda la tabla a memoria.
 
@@ -169,5 +172,4 @@ El ADMIN puede **ver** todas las órdenes para auditarlas, pero no puede cambiar
 - **Paginación.** Todos los listados devuelven la colección completa.
 - **Bloqueo pesimista en el stock.** Dos compras simultáneas del último producto pueden dejar stock negativo.
 - **Rango del descuento.** No valida estar entre 0 y 100: un valor mayor da totales negativos.
-- **Comprarse a uno mismo.** Nada lo impide.
 - **WebP.** `ImageIO` no lo lee, así que esas subidas saltean la verificación con IA.

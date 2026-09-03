@@ -7,6 +7,7 @@ import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
+import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
 /**
@@ -45,7 +46,8 @@ public interface CarritoService {
     void vaciarEntidad(Long idUsuario) throws UsuarioNoEncontradoException;
 
     CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, ProductoNoEncontradoException, StockInsuficienteException;
+            throws OperacionAjenaException, UsuarioNoEncontradoException,
+            ProductoNoEncontradoException, StockInsuficienteException, CompraPropiaException;
 
     /**
      * Cambia la cantidad de un item ya cargado. Una cantidad nula o menor o

@@ -21,6 +21,7 @@ import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
+import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -107,7 +108,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     @Transactional
     public List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException {
+            ProductoNoEncontradoException, CompraPropiaException {
         Carrito carrito = carritoService.obtenerCarritoEntidad(idSolicitante);
 
         if (carrito.getItems().isEmpty())
@@ -119,6 +120,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
             if (!producto.getActivo()
                     || producto.getEstadoPublicacion() != EstadoPublicacion.PUBLICADO)
                 throw new ProductoNoEncontradoException();
+            // Se repite el chequeo del carrito porque este es el punto donde se
+            // descuenta el stock y se escribe la orden: un item cargado antes de
+            // que existiera la regla llegaria hasta aca sin que nadie lo mire.
+            if (producto.getVendedor().getId().equals(idSolicitante))
+                throw new CompraPropiaException(producto);
             if (producto.getStock() < item.getCantidad())
                 throw new StockInsuficienteException(producto, item.getCantidad());
         }

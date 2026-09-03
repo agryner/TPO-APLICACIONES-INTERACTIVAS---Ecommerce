@@ -18,6 +18,7 @@ import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
+import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.CarritoRepository;
 import com.uade.tpo.marketplace.repository.ItemCarritoRepository;
@@ -96,7 +97,8 @@ public class CarritoServiceImpl implements CarritoService {
     public CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request,
             Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ProductoNoEncontradoException, StockInsuficienteException {
+            ProductoNoEncontradoException, StockInsuficienteException,
+            CompraPropiaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
@@ -106,6 +108,11 @@ public class CarritoServiceImpl implements CarritoService {
                 .filter(Producto::getActivo)
                 .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
                 .orElseThrow(ProductoNoEncontradoException::new);
+
+        // Cortar aca y no en el checkout: el comprador se entera al tocar el
+        // boton de agregar y no despues de armar todo el carrito.
+        if (producto.getVendedor().getId().equals(idUsuario))
+            throw new CompraPropiaException(producto);
 
         int cantidad = request.getCantidad() == null ? 1 : request.getCantidad();
         if (producto.getStock() < cantidad)

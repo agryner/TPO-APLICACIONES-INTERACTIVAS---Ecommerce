@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
+import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
@@ -52,7 +53,7 @@ public interface OrdenDeCompraService {
      */
     List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException;
+            ProductoNoEncontradoException, CompraPropiaException;
 
     /**
      * Avanza el estado de una orden. Solo el comprador o el vendedor pueden

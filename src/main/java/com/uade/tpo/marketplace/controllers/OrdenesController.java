@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
+import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -72,7 +73,7 @@ public class OrdenesController {
     public ResponseEntity<List<OrdenDeCompraResponse>> createOrden(
             @RequestParam Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException {
+            ProductoNoEncontradoException, CompraPropiaException {
         return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.createOrden(idSolicitante));
     }
 

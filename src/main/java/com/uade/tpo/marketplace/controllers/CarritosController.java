@@ -15,6 +15,7 @@ import com.uade.tpo.marketplace.entity.dto.CarritoResponse;
 import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
+import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -52,7 +53,8 @@ public class CarritosController {
     public ResponseEntity<CarritoResponse> agregarItem(@PathVariable Long idUsuario,
             @RequestBody ItemCarritoRequest request, @RequestParam Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
-            ProductoNoEncontradoException, StockInsuficienteException {
+            ProductoNoEncontradoException, StockInsuficienteException,
+            CompraPropiaException {
         return ResponseEntity.ok(carritoService.agregarItem(idUsuario, request, idSolicitante));
     }
 
