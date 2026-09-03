@@ -110,7 +110,7 @@
       "parameters": [
         {
           "name": "idSolicitante",
-          "value": "3"
+          "value": "4"
         }
       ],
       "body": {
@@ -136,7 +136,7 @@
       "parameters": [
         {
           "name": "idSolicitante",
-          "value": "3"
+          "value": "4"
         }
       ],
       "body": {
@@ -163,7 +163,7 @@
         {
           "id": "pair_idSolicitante_3",
           "name": "idSolicitante",
-          "value": "3",
+          "value": "4",
           "description": ""
         }
       ],
@@ -186,7 +186,7 @@
         {
           "id": "pair_idSolicitante_4",
           "name": "idSolicitante",
-          "value": "3",
+          "value": "4",
           "description": ""
         }
       ],
@@ -232,7 +232,7 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Crear usuario",
-      "description": "Ya existen anagomez (1) y LuccaS (2). Este alta crea el tercero, que la coleccion usa como ADMIN. El campo rol se ignora: desde la API todos nacen CLIENTE, asi que despues hay que correr en MySQL:  UPDATE usuario SET rol='ADMIN' WHERE id=3;",
+      "description": "El campo rol se ignora: desde la API todos nacen CLIENTE. El admin de esta coleccion es Marcos56 (id 4), que ya esta creado y marcado a mano en la base. Para hacer otro:  UPDATE usuario SET rol='ADMIN' WHERE nombre_usuario='...';",
       "method": "POST",
       "url": "http://localhost:4002/usuarios",
       "headers": [
@@ -625,7 +625,7 @@
         {
           "id": "pair_idSolicitante_25",
           "name": "idSolicitante",
-          "value": "3",
+          "value": "4",
           "description": ""
         }
       ],
@@ -658,7 +658,7 @@
         {
           "id": "pair_idSolicitante_24",
           "name": "idSolicitante",
-          "value": "3",
+          "value": "4",
           "description": ""
         }
       ],
@@ -943,7 +943,7 @@
       "modified": 0,
       "created": 0,
       "name": "Listar todas las ordenes",
-      "description": "Auditoria: con un idSolicitante ADMIN salen las ordenes de todo el sistema. El admin las ve todas pero no puede cambiarles el estado.",
+      "description": "Auditoria: con un idSolicitante ADMIN (Marcos56 es el 4) salen las ordenes de todo el sistema. El admin las ve todas pero no puede cambiarles el estado.",
       "url": "http://localhost:4002/ordenes",
       "method": "GET",
       "body": {},
@@ -951,7 +951,7 @@
         {
           "id": "pair_idSolicitante_39",
           "name": "idSolicitante",
-          "value": "3",
+          "value": "4",
           "description": ""
         }
       ],
