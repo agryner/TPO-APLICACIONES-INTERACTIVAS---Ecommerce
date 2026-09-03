@@ -90,23 +90,23 @@ Si la API no está disponible la foto queda en `EN_REVISION`: la verificación n
 
 Todavía no hay autenticación, así que el id de quien pide la operación viaja como query param `idSolicitante`. Cuando se sume JWT ese id sale del token y **ninguna validación cambia**.
 
-Hay dos reglas distintas, y conviene no mezclarlas: la **pertenencia** pregunta si el recurso es tuyo y no mira el rol; el **rol** pregunta si sos ADMIN y no mira de quién es la cosa. Viven en `AutorizacionService`, en métodos separados.
+Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** pregunta si sos ADMIN. Las dos viven en `AutorizacionService`. El ADMIN **atraviesa la pertenencia**: puede operar sobre lo de cualquiera, porque modera todo el sistema. Esa excepción está dentro de `validarDuenio` y no repartida por los services, justamente para que valga en todos lados por igual y no se le escape ninguna operación.
 
 | Operación | Quién |
 |---|---|
-| Editar, pausar o dar de baja un producto | su vendedor |
-| Subir o borrar una foto | el vendedor del producto |
-| Ver o tocar un carrito | su dueño |
-| Editar una cuenta | esa misma cuenta |
-| Dar de baja una cuenta | esa misma cuenta · ADMIN |
+| Editar, pausar o dar de baja un producto | su vendedor · ADMIN |
+| Subir o borrar una foto | el vendedor del producto · ADMIN |
+| Ver o tocar un carrito | su dueño · ADMIN |
+| Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
+| Avanzar el estado de una orden | la parte que corresponde · ADMIN |
 | Crear, editar o borrar categorías | ADMIN |
 | Moderar fotos | ADMIN |
 | Comprar un producto | cualquiera menos su vendedor |
 | Ver el catálogo y crear una cuenta | abierto |
 
-El ADMIN modera: categorías, fotos y bajas de cuenta. Lo que **no** puede es meterse en una transacción entre dos privados — ve todas las órdenes para auditarlas, pero no puede cambiarles el estado. Esa distinción vive en `AutorizacionService`: `validarDuenio` es sólo para el dueño, `validarDuenioOAdmin` abre la puerta a la moderación, y son métodos separados a propósito.
+Lo único que el ADMIN no puede saltear son las reglas que no son de permisos: una transición de estado que no existe sigue dando 409 para él también, porque ahí el problema no es quién lo pide sino que la orden quedaría en un estado que no significa nada.
 
 ---
 
@@ -140,7 +140,7 @@ El ADMIN modera: categorías, fotos y bajas de cuenta. Lo que **no** puede es me
 | `GET` | `/ordenes` | Sólo las del solicitante. Con `?rol=` se mira una punta; el ADMIN las ve todas |
 | `GET` | `/ordenes/{id}` | Una orden con sus renglones. 403 si no sos parte |
 | `POST` | `/ordenes` | Cerrar el carrito. Devuelve una orden por vendedor |
-| `PUT` | `/ordenes/{id}/estado` | Avanzar el estado, según quién lo pida |
+| `PUT` | `/ordenes/{id}/estado` | Avanzar el estado, según quién lo pida; el **ADMIN** puede cualquiera |
 | `GET` | `/fotos?idProducto=` | Fotos de un producto |
 | `GET` | `/fotos/{id}` | Metadatos de una foto |
 | `POST` | `/fotos` | Subir. Verifica con IA antes de guardar |

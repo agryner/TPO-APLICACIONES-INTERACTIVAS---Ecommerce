@@ -45,11 +45,11 @@ public class AutorizacionService {
      *
      * Es el chequeo que impide editar el producto de otro vendedor, entrar al
      * carrito ajeno o dar de baja la cuenta de otro. De paso corta si la cuenta
-     * que pide esta dada de baja.
+     * que pide esta dada de baja, y deja pasar al ADMIN, que modera todo.
      */
     public void validarDuenio(Long idSolicitante, Long idDuenio)
             throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
-        if (idSolicitante == null || !idSolicitante.equals(idDuenio))
+        if (idSolicitante == null)
             throw new OperacionAjenaException();
 
         // Ser el duenio no alcanza: la cuenta tambien tiene que estar vigente.
@@ -58,6 +58,15 @@ public class AutorizacionService {
         // chequeo por fuera garantizaba olvidarse de alguna, que fue justo lo
         // que paso.
         validarActivo(idSolicitante);
+
+        if (idSolicitante.equals(idDuenio))
+            return;
+
+        // El ADMIN atraviesa la pertenencia. Es la unica excepcion, y esta aca
+        // y no repartida por los services para que valga en todos lados por
+        // igual: no hay operacion que module algo ajeno y se le escape.
+        if (!esAdmin(idSolicitante))
+            throw new OperacionAjenaException();
     }
 
     /**
@@ -72,25 +81,6 @@ public class AutorizacionService {
         return usuarioRepository.findById(idUsuario)
                 .map(usuario -> usuario.getRol() == TipoUsuario.ADMIN)
                 .orElse(false);
-    }
-
-    /**
-     * Deja pasar al duenio del recurso o a un ADMIN.
-     *
-     * Es el permiso de las operaciones que normalmente son personales pero que
-     * la moderacion tambien necesita, como dar de baja una cuenta. Se separa de
-     * validarDuenio porque la mayoria de las operaciones NO deben abrirse al
-     * admin: el rol no lo vuelve duenio de los productos ni de los carritos de
-     * los demas.
-     */
-    public void validarDuenioOAdmin(Long idSolicitante, Long idDuenio)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
-        if (idSolicitante != null && esAdmin(idSolicitante)) {
-            validarActivo(idSolicitante);
-            return;
-        }
-
-        validarDuenio(idSolicitante, idDuenio);
     }
 
     /** Corta la operacion si el usuario que la pide no es ADMIN. */

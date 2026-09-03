@@ -220,11 +220,21 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
 
         boolean esComprador = orden.getComprador().getId().equals(idSolicitante);
         boolean esVendedor = orden.getVendedor().getId().equals(idSolicitante);
-        if (!esComprador && !esVendedor)
+        boolean esAdmin = autorizacion.esAdmin(idSolicitante);
+
+        if (!esComprador && !esVendedor && !esAdmin)
             throw new CambioDeEstadoNoPermitidoException();
 
+        // La transicion se valida siempre, incluso para el ADMIN: que un salto
+        // no exista no es una cuestion de permisos sino de que la orden quedaria
+        // en un estado que no significa nada.
         validarTransicion(orden.getEstado(), estado);
-        validarQuienPuede(estado, esComprador, esVendedor);
+
+        // Quien pide, en cambio, si es cuestion de permisos, y ahi el ADMIN
+        // pasa: puede destrabar una orden que quedo esperando a una de las dos
+        // partes.
+        if (!esAdmin)
+            validarQuienPuede(estado, esComprador, esVendedor);
 
         // Cancelar tiene que devolver lo que la compra habia reservado. Sin
         // esto, cancelar una orden dejaba el stock descontado para siempre y el
