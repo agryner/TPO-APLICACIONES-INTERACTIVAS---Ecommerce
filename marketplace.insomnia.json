@@ -409,7 +409,7 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Crear producto",
-      "description": "Nace en BORRADOR: se publica cuando se le sube la primera foto. El vendedor sale del idSolicitante, no del body. Precio mayor a cero, stock no negativo y descuento entre 0 y 100.",
+      "description": "Nace en BORRADOR: se publica cuando se le sube la primera foto. El vendedor sale del idSolicitante, no del body. Un ADMIN recibe 403: modera el marketplace, no vende en el.",
       "method": "POST",
       "url": "http://localhost:4002/productos",
       "headers": [
@@ -620,17 +620,31 @@
       "_id": "req_fotos_pendientes",
       "_type": "request",
       "parentId": "fld_admin",
-      "name": "Fotos pendientes de revision",
-      "description": "Solo ADMIN. Hoy la foto 1 esta aca: sin GEMINI_API_KEY seteada la verificacion no corre y todo cae en EN_REVISION, que es la degradacion buscada.",
+      "name": "Cola de revision de fotos",
+      "description": "Solo ADMIN. Sin estado devuelve lo que espera decision (EN_REVISION). Con estado se mira lo ya resuelto, que es como el admin revisa si se equivoco al aprobar o rechazar.",
       "method": "GET",
       "url": "http://localhost:4002/fotos/pendientes",
       "headers": [],
       "parameters": [
         {
-          "id": "pair_idSolicitante_5",
+          "id": "pf1",
           "name": "idSolicitante",
           "value": "4",
           "description": ""
+        },
+        {
+          "id": "pf2",
+          "name": "estado",
+          "value": "APROBADA",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pf3",
+          "name": "estado",
+          "value": "RECHAZADA",
+          "description": "",
+          "disabled": true
         }
       ],
       "body": {},
@@ -722,7 +736,7 @@
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Agregar item al carrito",
-      "description": "El comprador 2 carga el producto del vendedor 1. Nadie puede cargar lo suyo: 409. La cantidad tiene que ser al menos 1.",
+      "description": "El comprador 2 carga el producto del vendedor 1. Nadie carga lo suyo (409) y un ADMIN no carga nada (403): puede entrar a los carritos ajenos para moderar, pero no arma el suyo.",
       "method": "POST",
       "url": "http://localhost:4002/usuarios/2/carrito/items",
       "headers": [
@@ -899,7 +913,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Crear orden desde el carrito",
-      "description": "Cierra el carrito del comprador. Una orden por vendedor. Valida el stock de todo antes de escribir nada.",
+      "description": "Cierra el carrito del comprador. Una orden por vendedor. Valida el stock de todo antes de escribir nada. Un ADMIN recibe 403: no compra.",
       "method": "POST",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
@@ -919,7 +933,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Cambiar estado de la orden",
-      "description": "La orden 1 esta en ENVIADA, asi que el paso valido es RECIBIDA y lo pide el comprador (2). PAGADA y RECIBIDA son del comprador, ENVIADA del vendedor, y el ADMIN puede cualquiera. CANCELADA solo desde PENDIENTE o PAGADA, y repone el stock. 409 si el salto no existe, tambien para el admin.",
+      "description": "PAGADA y RECIBIDA las pide el comprador, ENVIADA el vendedor, y el ADMIN cualquiera. CANCELADA repone el stock: desde PENDIENTE o PAGADA la piden las partes, y desde ENVIADA solo el ADMIN, que es quien arbitra si el producto no llego o llego roto. 409 si el salto no existe, tambien para el admin.",
       "method": "PUT",
       "url": "http://localhost:4002/ordenes/1/estado",
       "headers": [],
@@ -999,6 +1013,146 @@
       "headers": [],
       "authentication": {},
       "metaSortKey": 7,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_admin_reactivar_usuario",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "modified": 0,
+      "created": 0,
+      "name": "Reactivar un usuario",
+      "description": "Solo ADMIN. La contracara de la baja logica: vuelve al listado, y la cuenta puede volver a operar. No reactiva las publicaciones del usuario, porque entre ellas pueden estar las que el vendedor habia dado de baja por su cuenta: cada producto se reactiva aparte.",
+      "url": "http://localhost:4002/usuarios/3/reactivar",
+      "method": "PUT",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_admin_reactivar_usuario_0",
+          "name": "idSolicitante",
+          "value": "4",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 8,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_admin_rol",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "modified": 0,
+      "created": 0,
+      "name": "Cambiar el rol de un usuario",
+      "description": "Solo ADMIN. El rol no viaja nunca en el body de un alta ni de una edicion, porque ahi cualquiera se promoveria solo: por eso es un endpoint aparte. Un admin no puede quitarse el rol a si mismo (409): si el ultimo se degrada, no queda quien promueva a nadie.",
+      "url": "http://localhost:4002/usuarios/2/rol",
+      "method": "PUT",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_admin_rol_0",
+          "name": "rol",
+          "value": "ADMIN",
+          "description": ""
+        },
+        {
+          "id": "pair_req_admin_rol_1",
+          "name": "rol",
+          "value": "CLIENTE",
+          "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pair_req_admin_rol_2",
+          "name": "idSolicitante",
+          "value": "4",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 9,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_admin_catalogo",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "modified": 0,
+      "created": 0,
+      "name": "Catalogo completo",
+      "description": "Solo ADMIN. GET /productos esconde lo inactivo, lo que no esta PUBLICADO y lo de vendedores dados de baja, que es correcto para quien compra pero deja al admin sin ver lo que tiene que moderar. estado filtra por BORRADOR, PUBLICADO o PAUSADO.",
+      "url": "http://localhost:4002/productos/todos",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_admin_catalogo_0",
+          "name": "idSolicitante",
+          "value": "4",
+          "description": ""
+        },
+        {
+          "id": "pair_req_admin_catalogo_1",
+          "name": "estado",
+          "value": "BORRADOR",
+          "description": "",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 10,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_admin_reactivar_producto",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "modified": 0,
+      "created": 0,
+      "name": "Reactivar un producto",
+      "description": "Su vendedor o el ADMIN. Vuelve al estado de publicacion que tenia: si estaba PUBLICADO reaparece en el catalogo, si estaba en BORRADOR sigue necesitando una foto.",
+      "url": "http://localhost:4002/productos/1/reactivar",
+      "method": "PUT",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_admin_reactivar_producto_0",
+          "name": "idSolicitante",
+          "value": "4",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 11,
       "isPrivate": false,
       "settingStoreCookies": true,
       "settingSendCookies": true,

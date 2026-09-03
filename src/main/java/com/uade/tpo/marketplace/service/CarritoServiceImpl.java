@@ -19,6 +19,7 @@ import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -100,9 +101,13 @@ public class CarritoServiceImpl implements CarritoService {
             Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException,
-            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException {
+            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException {
         autorizacion.validarActivo(idSolicitante);
         autorizacion.validarDuenio(idSolicitante, idUsuario);
+
+        // El admin entra a los carritos ajenos para moderar, pero no arma el
+        // suyo: cargar algo es el primer paso de una compra.
+        autorizacion.validarQueNoSeaAdmin(idSolicitante);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
         // Un producto dado de baja o fuera del catalogo no existe para quien

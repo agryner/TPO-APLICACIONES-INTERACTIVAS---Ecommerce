@@ -2,6 +2,7 @@ package com.uade.tpo.marketplace.controllers;
 
 import com.uade.tpo.marketplace.entity.dto.FotoContenidoResponse;
 import com.uade.tpo.marketplace.entity.dto.FotoResponse;
+import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.dto.FotoUploadRequest;
 import com.uade.tpo.marketplace.entity.dto.MensajeResponse;
 import java.net.URI;
@@ -100,9 +101,10 @@ public class FotosController {
 
     /** Cola de revision del admin: las fotos que la IA no pudo resolver sola. */
     @GetMapping("/pendientes")
-    public ResponseEntity<List<FotoResponse>> getPendientes(@RequestParam Long idSolicitante)
+    public ResponseEntity<List<FotoResponse>> getPendientes(@RequestParam Long idSolicitante,
+            @RequestParam(required = false) EstadoVerificacion estado)
             throws UsuarioNoEncontradoException, AccesoDenegadoException {
-        return ResponseEntity.ok(fotoService.getPendientesDeRevision(idSolicitante));
+        return ResponseEntity.ok(fotoService.getPendientesDeRevision(idSolicitante, estado));
     }
 
     /** Aprobar deja la foto visible; rechazar la elimina. */

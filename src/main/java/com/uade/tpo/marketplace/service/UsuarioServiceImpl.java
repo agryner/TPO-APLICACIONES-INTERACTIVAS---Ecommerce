@@ -5,6 +5,7 @@ import com.uade.tpo.marketplace.entity.dto.UsuarioResponse;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
@@ -12,6 +13,9 @@ import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
+import com.uade.tpo.marketplace.exceptions.CambioDeRolInvalidoException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.repository.UsuarioRepository;
 import com.uade.tpo.marketplace.repository.ProductoRepository;
 
@@ -79,6 +83,57 @@ public class UsuarioServiceImpl implements UsuarioService {
      * apuntando a el, asi que un DELETE real las arrastraria, incluidas las
      * ventas de los vendedores que le vendieron.
      */
+    /**
+     * Vuelve a poner en circulacion una cuenta dada de baja.
+     *
+     * Es la contracara de la baja logica: si se guarda el registro justamente
+     * para poder revertir, tiene que haber por donde. Solo ADMIN, porque una
+     * cuenta dada de baja no puede pedir nada por si misma.
+     *
+     * No reactiva las publicaciones del usuario a proposito. La baja las
+     * arrastro, pero entre ellas pueden estar las que el vendedor habia dado de
+     * baja antes por su cuenta, y resucitarlas seria decidir por el. Cada
+     * producto se reactiva por separado.
+     */
+    @Transactional
+    public UsuarioResponse reactivarUsuario(Long idUsuario, Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, CuentaInactivaException {
+        autorizacion.validarAdmin(idSolicitante);
+        autorizacion.validarActivo(idSolicitante);
+
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        usuario.setActivo(true);
+        return UsuarioResponse.from(usuarioRepository.save(usuario));
+    }
+
+    /**
+     * Promueve o degrada a un usuario.
+     *
+     * El rol no viaja nunca en el body de un alta ni de una edicion: si viajara,
+     * cualquiera se haria administrador. Por eso es un endpoint aparte, y solo
+     * para ADMIN.
+     */
+    @Transactional
+    public UsuarioResponse cambiarRol(Long idUsuario, TipoUsuario rol, Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, CuentaInactivaException,
+            CambioDeRolInvalidoException {
+        autorizacion.validarAdmin(idSolicitante);
+        autorizacion.validarActivo(idSolicitante);
+
+        // Si el unico admin se degrada, no queda nadie que pueda promover a
+        // nadie y el sistema se cierra por fuera de la base.
+        if (idUsuario.equals(idSolicitante) && rol != TipoUsuario.ADMIN)
+            throw new CambioDeRolInvalidoException();
+
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        usuario.setRol(rol);
+        return UsuarioResponse.from(usuarioRepository.save(usuario));
+    }
+
     public void deleteUsuario(Long idUsuario, Long idSolicitante)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         // Cada uno da de baja su propia cuenta; el ADMIN, la de cualquiera.

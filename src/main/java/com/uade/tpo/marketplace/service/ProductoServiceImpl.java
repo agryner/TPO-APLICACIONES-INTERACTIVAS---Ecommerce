@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.uade.tpo.marketplace.entity.Categoria;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
@@ -21,6 +22,8 @@ import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.CategoriaRepository;
@@ -145,11 +148,14 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     public ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException, AdminNoComerciaException {
         // Un alta no tiene duenio previo, asi que no pasa por validarDuenio y
         // era la ultima puerta por la que una cuenta dada de baja seguia
         // publicando. El chequeo va explicito.
         autorizacion.validarActivo(idSolicitante);
+
+        // Publicar es vender, y el admin no vende: modera a los que venden.
+        autorizacion.validarQueNoSeaAdmin(idSolicitante);
 
         Usuario vendedor = usuarioRepository.findById(idSolicitante)
                 .orElseThrow(UsuarioNoEncontradoException::new);
@@ -223,6 +229,43 @@ public class ProductoServiceImpl implements ProductoService {
 
         if (!permitida)
             throw new TransicionInvalidaException();
+    }
+
+    /**
+     * Devuelve al catalogo un producto dado de baja.
+     *
+     * Lo puede pedir su vendedor o el ADMIN, igual que la baja. Vuelve al
+     * estado de publicacion que tenia: si estaba PUBLICADO reaparece, y si
+     * estaba en BORRADOR sigue necesitando una foto.
+     */
+    @Transactional
+    public ProductoResponse reactivarProducto(Long idProducto, Long idSolicitante)
+            throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException,
+            UsuarioNoEncontradoException {
+        Producto producto = productoRepository.findById(idProducto)
+                .orElseThrow(ProductoNoEncontradoException::new);
+
+        autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
+
+        producto.setActivo(true);
+        return ProductoResponse.from(productoRepository.save(producto));
+    }
+
+    /**
+     * Todo el catalogo tal cual esta, sin los filtros que ve el comprador.
+     *
+     * getProductos esconde lo inactivo, lo que no esta PUBLICADO y lo de
+     * vendedores dados de baja, que es lo correcto para quien compra pero deja
+     * al ADMIN sin poder ver justamente lo que tiene que moderar.
+     */
+    public List<ProductoResponse> getTodosLosProductos(Long idSolicitante, EstadoPublicacion estado)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        autorizacion.validarAdmin(idSolicitante);
+
+        return productoRepository.findAll().stream()
+                .filter(p -> estado == null || p.getEstadoPublicacion() == estado)
+                .map(ProductoResponse::from)
+                .toList();
     }
 
     public void deleteProducto(Long idProducto, Long idSolicitante)

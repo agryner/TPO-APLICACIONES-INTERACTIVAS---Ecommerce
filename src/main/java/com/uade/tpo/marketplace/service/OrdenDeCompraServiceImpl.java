@@ -24,6 +24,7 @@ import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -112,8 +113,9 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     @Transactional
     public List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException {
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, AdminNoComerciaException {
         autorizacion.validarActivo(idSolicitante);
+        autorizacion.validarQueNoSeaAdmin(idSolicitante);
 
         Carrito carrito = carritoService.obtenerCarritoEntidad(idSolicitante);
 
@@ -228,7 +230,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         // La transicion se valida siempre, incluso para el ADMIN: que un salto
         // no exista no es una cuestion de permisos sino de que la orden quedaria
         // en un estado que no significa nada.
-        validarTransicion(orden.getEstado(), estado);
+        validarTransicion(orden.getEstado(), estado, esAdmin);
 
         // Quien pide, en cambio, si es cuestion de permisos, y ahi el ADMIN
         // pasa: puede destrabar una orden que quedo esperando a una de las dos
@@ -267,12 +269,16 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         }
     }
 
-    private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo)
+    private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo, boolean esAdmin)
             throws TransicionInvalidaException {
         boolean permitida = switch (actual) {
             case PENDIENTE -> nuevo == EstadoOrden.PAGADA || nuevo == EstadoOrden.CANCELADA;
             case PAGADA -> nuevo == EstadoOrden.ENVIADA || nuevo == EstadoOrden.CANCELADA;
-            case ENVIADA -> nuevo == EstadoOrden.RECIBIDA;
+            // Despachado, ninguna de las dos partes puede arrepentirse sola. El
+            // ADMIN si, porque es quien arbitra cuando el producto no llego o
+            // llego roto: cancelar repone el stock.
+            case ENVIADA -> nuevo == EstadoOrden.RECIBIDA
+                    || (esAdmin && nuevo == EstadoOrden.CANCELADA);
             case RECIBIDA, CANCELADA -> false;
         };
 

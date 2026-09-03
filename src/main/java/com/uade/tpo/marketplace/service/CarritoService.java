@@ -11,6 +11,7 @@ import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
 /**
  * Contrato de la logica del carrito.
@@ -50,7 +51,7 @@ public interface CarritoService {
     CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request, Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException, CompraPropiaException,
-            CantidadInvalidaException, CuentaInactivaException;
+            CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException;
 
     /**
      * Cambia la cantidad de un item ya cargado. Una cantidad nula o menor o

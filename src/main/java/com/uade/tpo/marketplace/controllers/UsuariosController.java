@@ -3,6 +3,7 @@ package com.uade.tpo.marketplace.controllers;
 import com.uade.tpo.marketplace.entity.dto.MensajeResponse;
 import com.uade.tpo.marketplace.entity.dto.UsuarioRequest;
 import com.uade.tpo.marketplace.entity.dto.UsuarioResponse;
+import com.uade.tpo.marketplace.entity.TipoUsuario;
 import java.net.URI;
 import java.util.List;
 
@@ -19,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
+import com.uade.tpo.marketplace.exceptions.CambioDeRolInvalidoException;
+import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.service.UsuarioService;
@@ -62,6 +66,26 @@ public class UsuariosController {
             @Valid @RequestBody UsuarioRequest request, @RequestParam Long idSolicitante)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         return ResponseEntity.ok(usuarioService.updateUsuario(idUsuario, request, idSolicitante));
+    }
+
+    /** Solo ADMIN: devuelve al ruedo una cuenta dada de baja. */
+    @PutMapping("/{idUsuario}/reactivar")
+    public ResponseEntity<UsuarioResponse> reactivar(@PathVariable Long idUsuario,
+            @RequestParam Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, CuentaInactivaException {
+        return ResponseEntity.ok(usuarioService.reactivarUsuario(idUsuario, idSolicitante));
+    }
+
+    /**
+     * Solo ADMIN. El rol llega como enum, asi que Spring rechaza con 400
+     * cualquier valor que no sea ADMIN o CLIENTE.
+     */
+    @PutMapping("/{idUsuario}/rol")
+    public ResponseEntity<UsuarioResponse> cambiarRol(@PathVariable Long idUsuario,
+            @RequestParam TipoUsuario rol, @RequestParam Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, CuentaInactivaException,
+            CambioDeRolInvalidoException {
+        return ResponseEntity.ok(usuarioService.cambiarRol(idUsuario, rol, idSolicitante));
     }
 
     @DeleteMapping("/{idUsuario}")

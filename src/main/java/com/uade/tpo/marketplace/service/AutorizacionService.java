@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -81,6 +82,21 @@ public class AutorizacionService {
         return usuarioRepository.findById(idUsuario)
                 .map(usuario -> usuario.getRol() == TipoUsuario.ADMIN)
                 .orElse(false);
+    }
+
+    /**
+     * Corta la operacion si quien la pide es ADMIN.
+     *
+     * Es el reverso de validarAdmin, y protege lo comercial: publicar, cargar
+     * el carrito y cerrar una compra. El admin modera el marketplace, no
+     * participa en el. Si participara podria aprobarse sus propias fotos,
+     * despacharse sus propias ordenes y auditar transacciones en las que es
+     * parte.
+     */
+    public void validarQueNoSeaAdmin(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AdminNoComerciaException {
+        if (esAdmin(idSolicitante))
+            throw new AdminNoComerciaException();
     }
 
     /** Corta la operacion si el usuario que la pide no es ADMIN. */

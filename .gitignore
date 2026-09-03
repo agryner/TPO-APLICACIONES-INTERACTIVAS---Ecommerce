@@ -34,3 +34,7 @@ build/
 
 ### Backups locales ###
 *.bak
+
+### Configuracion local, fuera del repo ###
+# Lleva la clave de Gemini. El repo es publico: no se versiona.
+application-local.properties

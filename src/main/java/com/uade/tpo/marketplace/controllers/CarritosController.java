@@ -25,6 +25,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.service.CarritoService;
 
 import lombok.RequiredArgsConstructor;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
 /**
  * El carrito es unico por usuario, asi que cuelga del usuario y no tiene id
@@ -57,7 +58,7 @@ public class CarritosController {
             @Valid @RequestBody ItemCarritoRequest request, @RequestParam Long idSolicitante)
             throws OperacionAjenaException, UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException,
-            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException {
+            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException {
         return ResponseEntity.ok(carritoService.agregarItem(idUsuario, request, idSolicitante));
     }
 

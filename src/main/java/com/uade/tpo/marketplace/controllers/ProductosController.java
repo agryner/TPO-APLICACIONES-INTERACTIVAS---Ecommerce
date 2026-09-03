@@ -25,12 +25,14 @@ import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.service.ProductoService;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
 /**
  * Endpoints REST del catalogo de productos.
@@ -82,7 +84,7 @@ public class ProductosController {
     @PostMapping
     public ResponseEntity<Object> createProducto(@Valid @RequestBody ProductoRequest request,
             @RequestParam Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException, AdminNoComerciaException {
         ProductoCreadoResponse result = productoService.createProducto(request, idSolicitante);
         return ResponseEntity.created(URI.create("/productos/" + result.getProducto().getId()))
                 .body(result);
@@ -110,6 +112,26 @@ public class ProductosController {
             TransicionInvalidaException, CuentaInactivaException, UsuarioNoEncontradoException {
         return ResponseEntity.ok(
                 productoService.cambiarEstadoPublicacion(idProducto, estado, idSolicitante));
+    }
+
+    /** Su vendedor o el ADMIN: devuelve al catalogo un producto dado de baja. */
+    @PutMapping("/{idProducto}/reactivar")
+    public ResponseEntity<ProductoResponse> reactivar(@PathVariable Long idProducto,
+            @RequestParam Long idSolicitante)
+            throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException,
+            UsuarioNoEncontradoException {
+        return ResponseEntity.ok(productoService.reactivarProducto(idProducto, idSolicitante));
+    }
+
+    /**
+     * Solo ADMIN: el catalogo entero, incluidos los inactivos, los borradores y
+     * los pausados, que el listado publico esconde.
+     */
+    @GetMapping("/todos")
+    public ResponseEntity<List<ProductoResponse>> getTodos(@RequestParam Long idSolicitante,
+            @RequestParam(required = false) EstadoPublicacion estado)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        return ResponseEntity.ok(productoService.getTodosLosProductos(idSolicitante, estado));
     }
 
     @DeleteMapping("/{idProducto}")

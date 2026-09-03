@@ -11,9 +11,11 @@ import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
 /**
  * Contrato de la logica de productos.
@@ -50,7 +52,7 @@ public interface ProductoService {
      * producto queda en BORRADOR hasta que se le suba la primera foto.
      */
     ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException;
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException, AdminNoComerciaException;
 
     /** Solo el vendedor duenio de la publicacion puede editarla. */
     ProductoResponse updateProducto(Long idProducto, ProductoRequest request, Long idSolicitante)
@@ -70,6 +72,18 @@ public interface ProductoService {
             TransicionInvalidaException, CuentaInactivaException, UsuarioNoEncontradoException;
 
     /** Solo el vendedor duenio de la publicacion puede darla de baja. */
+    /** Devuelve al catalogo un producto dado de baja. Su vendedor o el ADMIN. */
+    ProductoResponse reactivarProducto(Long idProducto, Long idSolicitante)
+            throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException,
+            UsuarioNoEncontradoException;
+
+    /**
+     * Todo el catalogo sin los filtros del comprador: incluye inactivos,
+     * borradores y pausados. Solo ADMIN.
+     */
+    List<ProductoResponse> getTodosLosProductos(Long idSolicitante, EstadoPublicacion estado)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException;
+
     void deleteProducto(Long idProducto, Long idSolicitante)
             throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException;
 }

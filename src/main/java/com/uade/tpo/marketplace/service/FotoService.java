@@ -1,6 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
 import com.uade.tpo.marketplace.entity.dto.FotoResponse;
+import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.dto.FotoUploadRequest;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public interface FotoService {
     byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException;
 
     /** Fotos que quedaron esperando que un admin las mire. Solo para ADMIN. */
-    List<FotoResponse> getPendientesDeRevision(Long idSolicitante)
+    List<FotoResponse> getPendientesDeRevision(Long idSolicitante, EstadoVerificacion estado)
             throws UsuarioNoEncontradoException, AccesoDenegadoException;
 
     /**

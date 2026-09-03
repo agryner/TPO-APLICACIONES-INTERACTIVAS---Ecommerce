@@ -40,7 +40,7 @@ Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `f
 | `repository` | 7 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
 | `entity` | 12 | 8 entidades JPA y 4 enums, guardados como texto. |
 | `entity/dto` | 17 | Lo que entra y lo que sale. Sin `@Entity` ni tabla. |
-| `exceptions` | 21 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
+| `exceptions` | 26 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
 
 ---
 
@@ -82,7 +82,7 @@ La imagen se guarda como `byte[]` en la misma tabla. Antes de guardarse se le pr
 | entre 0,4 y 0,7 | `EN_REVISION` — la resuelve un admin a mano |
 | ≤ 0,4 | `RECHAZADA` — la subida falla |
 
-Si la API no está disponible la foto queda en `EN_REVISION`: la verificación no puede ser un punto único de falla para publicar.
+La clave de Gemini está escrita en `application.properties`; la variable de entorno `GEMINI_API_KEY`, si existe, le gana. Si la API no está disponible o la clave no sirve, la foto queda en `EN_REVISION`: la verificación no puede ser un punto único de falla para publicar.
 
 ---
 
@@ -101,16 +101,21 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
 | Avanzar el estado de una orden | la parte que corresponde · ADMIN |
+| Cancelar una orden ya enviada | sólo ADMIN |
+| Reactivar una cuenta o cambiar un rol | sólo ADMIN |
 | Crear, editar o borrar categorías | ADMIN |
 | Moderar fotos | ADMIN |
-| Comprar un producto | cualquiera menos su vendedor |
+| Comprar un producto | cualquier CLIENTE menos su vendedor |
+| Publicar, carritear o comprar | **el ADMIN no**: modera, no comercia |
 | Ver el catálogo y crear una cuenta | abierto |
 
-Lo único que el ADMIN no puede saltear son las reglas que no son de permisos: una transición de estado que no existe sigue dando 409 para él también, porque ahí el problema no es quién lo pide sino que la orden quedaría en un estado que no significa nada.
+El ADMIN **no participa del marketplace**: no publica, no carga el carrito y no compra. No es que le falten permisos, es que le sobran — un admin que vende puede aprobarse sus propias fotos y despacharse sus propias órdenes, y uno que compra audita transacciones en las que es parte. Separar los dos papeles evita tener que confiar en que no los mezcle.
+
+Tampoco puede saltear las reglas que no son de permisos: una transición de estado que no existe le da 409 igual, porque ahí el problema no es quién lo pide sino que la orden quedaría en un estado sin sentido. Ni quitarse el rol a sí mismo: si el último administrador se degrada, no queda nadie que pueda promover a nadie.
 
 ---
 
-## Los 35 endpoints
+## Los 39 endpoints
 
 | | Ruta | Qué hace |
 |---|---|---|
@@ -122,15 +127,19 @@ Lo único que el ADMIN no puede saltear son las reglas que no son de permisos: u
 | `DELETE` | `/categorias/{id}` | Baja. 409 si tiene hijas o productos · **ADMIN** |
 | `GET` | `/productos` | Catálogo: sólo activos y PUBLICADOS, con filtros y orden por precio |
 | `GET` | `/productos/mis-publicaciones` | Las propias, borradores y pausadas incluidas |
+| `GET` | `/productos/todos` | El catálogo entero, sin los filtros del comprador · **ADMIN** |
 | `GET` | `/productos/{id}` | Un producto, con categoría, vendedor y fotos |
 | `POST` | `/productos` | Alta. Nace en BORRADOR |
 | `PUT` | `/productos/{id}` | Editar |
 | `PUT` | `/productos/{id}/estado` | Pausar o reanudar |
+| `PUT` | `/productos/{id}/reactivar` | Devuelve al catálogo un producto dado de baja |
 | `DELETE` | `/productos/{id}` | Baja lógica |
 | `GET` | `/usuarios` | Listar los activos, sin contraseña |
 | `GET` | `/usuarios/{id}` | Un usuario |
 | `POST` | `/usuarios` | Alta. 400 si el mail o el nombre ya existen |
-| `PUT` | `/usuarios/{id}` | Editar |
+| `PUT` | `/usuarios/{id}` | Editar. El rol no se toca desde el body |
+| `PUT` | `/usuarios/{id}/reactivar` | Vuelve a poner en circulación una cuenta · **ADMIN** |
+| `PUT` | `/usuarios/{id}/rol` | Promueve o degrada · **ADMIN** |
 | `DELETE` | `/usuarios/{id}` | Baja lógica, propia o por un **ADMIN**. El historial de órdenes sobrevive |
 | `GET` | `/usuarios/{id}/carrito` | El carrito, vaciado si venció |
 | `POST` | `/usuarios/{id}/carrito/items` | Agregar. Acumula si ya estaba |
@@ -146,7 +155,7 @@ Lo único que el ADMIN no puede saltear son las reglas que no son de permisos: u
 | `POST` | `/fotos` | Subir. Verifica con IA antes de guardar |
 | `GET` | `/fotos/{id}/contenido` | La imagen cruda, servible en un `<img>` |
 | `GET` | `/fotos/{id}/base64` | La misma imagen dentro de un JSON |
-| `GET` | `/fotos/pendientes` | Cola de revisión · **ADMIN** |
+| `GET` | `/fotos/pendientes` | Cola de revisión; con `?estado=` mira lo ya resuelto · **ADMIN** |
 | `PUT` | `/fotos/{id}/revision` | Aprobar o rechazar · **ADMIN** |
 | `DELETE` | `/fotos/{id}` | Borrado real. Si era la última, el producto vuelve a BORRADOR |
 
@@ -160,7 +169,7 @@ Lo único que el ADMIN no puede saltear son las reglas que no son de permisos: u
 
 **DTOs en las dos direcciones.** Los `Request` no tienen `id`, así que nadie puede pisar el de otro registro. Los `Response` no tienen `contrasena`, así que no puede filtrarse en un listado anidado.
 
-**Excepciones con `@ResponseStatus`.** 21 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
+**Excepciones con `@ResponseStatus`.** 26 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
 
 **Filtros con streams.** El catálogo se filtra en Java sobre `findAll()`. Es legible y alcanza para el volumen del TPO, pero trae toda la tabla a memoria.
 

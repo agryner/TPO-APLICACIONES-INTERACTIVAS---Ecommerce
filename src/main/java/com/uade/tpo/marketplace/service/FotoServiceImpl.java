@@ -205,11 +205,16 @@ public class FotoServiceImpl implements FotoService {
                 .getContenido();
     }
 
-    public List<FotoResponse> getPendientesDeRevision(Long idSolicitante)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+    public List<FotoResponse> getPendientesDeRevision(Long idSolicitante,
+            EstadoVerificacion estado) throws UsuarioNoEncontradoException, AccesoDenegadoException {
         autorizacion.validarAdmin(idSolicitante);
 
-        return fotoRepository.findByEstadoVerificacion(EstadoVerificacion.EN_REVISION).stream()
+        // Sin estado devuelve la cola: lo que espera decision. Con estado se
+        // puede mirar lo ya resuelto, que es como el admin revisa si se
+        // equivoco al aprobar o rechazar algo.
+        EstadoVerificacion buscado = estado == null ? EstadoVerificacion.EN_REVISION : estado;
+
+        return fotoRepository.findByEstadoVerificacion(buscado).stream()
                 .map(FotoResponse::from)
                 .toList();
     }
