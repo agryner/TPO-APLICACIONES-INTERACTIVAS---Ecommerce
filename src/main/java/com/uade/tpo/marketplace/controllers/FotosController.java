@@ -33,6 +33,7 @@ import com.uade.tpo.marketplace.service.FotoService;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
 /**
  * Endpoints REST de las fotos de un producto.
@@ -69,7 +70,7 @@ public class FotosController {
     public ResponseEntity<FotoResponse> subirFoto(@ModelAttribute FotoUploadRequest request,
             @RequestParam Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException {
         FotoResponse result = fotoService.subirFoto(request, idSolicitante);
         return ResponseEntity.created(URI.create("/fotos/" + result.getId())).body(result);
     }

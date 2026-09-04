@@ -95,7 +95,8 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Operación | Quién |
 |---|---|
 | Editar, pausar o dar de baja un producto | su vendedor · ADMIN |
-| Subir o borrar una foto | el vendedor del producto · ADMIN |
+| Subir una foto | sólo el vendedor del producto |
+| Borrar una foto | el vendedor del producto · ADMIN |
 | Ver o tocar un carrito | su dueño · ADMIN |
 | Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |

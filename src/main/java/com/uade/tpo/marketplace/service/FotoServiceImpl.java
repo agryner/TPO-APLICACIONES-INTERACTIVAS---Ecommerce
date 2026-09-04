@@ -18,6 +18,7 @@ import com.uade.tpo.marketplace.entity.Foto;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.ArchivoInvalidoException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.FotoNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.FotoRechazadaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -75,7 +76,7 @@ public class FotoServiceImpl implements FotoService {
     @Transactional
     public FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException {
 
         if (request.getIdProducto() == null)
             throw new ArchivoInvalidoException("Falta indicar el idProducto");
@@ -92,6 +93,11 @@ public class FotoServiceImpl implements FotoService {
                 .orElseThrow(ProductoNoEncontradoException::new);
 
         autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
+
+        // validarDuenio deja pasar al ADMIN, y para subir una foto no
+        // corresponde: subirla es parte de publicar, y el admin no publica.
+        // Modera lo que otros suben, con la cola de revision y el borrado.
+        autorizacion.validarQueNoSeaAdmin(idSolicitante);
 
         Foto foto = new Foto();
         foto.setProducto(producto);

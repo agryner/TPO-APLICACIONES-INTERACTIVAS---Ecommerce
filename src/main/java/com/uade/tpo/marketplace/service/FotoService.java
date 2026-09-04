@@ -13,6 +13,7 @@ import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
 /**
  * Contrato de la logica de fotos.
@@ -38,7 +39,7 @@ public interface FotoService {
     /** Solo el vendedor duenio del producto puede subirle fotos. */
     FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException;
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException;
 
     /** Devuelve los bytes crudos de una foto. */
     byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException;

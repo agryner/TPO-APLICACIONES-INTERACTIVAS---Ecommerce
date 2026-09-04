@@ -559,7 +559,7 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Subir foto a un producto",
-      "description": "Multipart: file es el archivo y idProducto la publicacion. Si el producto estaba en BORRADOR, esta subida lo publica. Se valida el contenido real del archivo: un .txt renombrado a .jpg se rechaza aunque diga image/jpeg.",
+      "description": "Multipart: file es el archivo y idProducto la publicacion. Si el producto estaba en BORRADOR, esta subida lo publica. Solo su vendedor: un ADMIN recibe 403, porque subir una foto es parte de publicar. Se valida el contenido real del archivo, no el Content-Type: un .txt renombrado a .jpg se rechaza.",
       "method": "POST",
       "url": "http://localhost:4002/fotos",
       "headers": [],
