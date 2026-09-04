@@ -716,7 +716,7 @@
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Obtener carrito",
-      "description": "El carrito es del usuario de la URL. Otro CLIENTE recibe 403; el ADMIN entra.",
+      "description": "El carrito es del usuario de la URL. Otro CLIENTE recibe 403; el ADMIN entra. Vence al mes de la ultima vez que se toco, y se vacia solo cuando alguien lo mira despues de vencido.",
       "method": "GET",
       "url": "http://localhost:4002/usuarios/2/carrito",
       "headers": [],
@@ -1153,6 +1153,146 @@
       "headers": [],
       "authentication": {},
       "metaSortKey": 11,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "fld_wishlist",
+      "_type": "request_group",
+      "parentId": "fld_cliente",
+      "modified": 0,
+      "created": 0,
+      "name": "Wishlist",
+      "description": "Lo que el usuario quiere comprar mas adelante. Se parece al carrito pero no es lo mismo: sin cantidades, sin totales, dura 8 meses en vez de 1, y los productos se quedan aunque se pausen.",
+      "environment": {},
+      "metaSortKey": -1000000000,
+      "authentication": {}
+    },
+    {
+      "_id": "req_wishlist_1",
+      "_type": "request",
+      "parentId": "fld_wishlist",
+      "modified": 0,
+      "created": 0,
+      "name": "Ver la wishlist",
+      "description": "Es del usuario de la URL: otro CLIENTE recibe 403. Cada item trae disponible, que resume si hoy se puede comprar: la lista conserva los productos pausados, dados de baja o sin stock, asi que el frontend los muestra apagados en vez de esconderlos.",
+      "url": "http://localhost:4002/usuarios/2/wishlist",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_wishlist_1_0",
+          "name": "idSolicitante",
+          "value": "2",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_wishlist_2",
+      "_type": "request",
+      "parentId": "fld_wishlist",
+      "modified": 0,
+      "created": 0,
+      "name": "Guardar un producto",
+      "description": "Solo el id del producto: la wishlist no tiene cantidades. Guardar algo que ya estaba no hace nada, asi que se puede reintentar sin duplicar. Un BORRADOR o un producto pausado no se pueden guardar (404), pero si se pausan despues el item se queda.",
+      "url": "http://localhost:4002/usuarios/2/wishlist/items",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"idProducto\": 1\n}"
+      },
+      "parameters": [
+        {
+          "id": "pair_req_wishlist_2_0",
+          "name": "idSolicitante",
+          "value": "2",
+          "description": ""
+        }
+      ],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 1,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_wishlist_3",
+      "_type": "request",
+      "parentId": "fld_wishlist",
+      "modified": 0,
+      "created": 0,
+      "name": "Sacar un producto",
+      "description": "El id del item sale de la respuesta de guardar, no es el id del producto.",
+      "url": "http://localhost:4002/usuarios/2/wishlist/items/1",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_wishlist_3_0",
+          "name": "idSolicitante",
+          "value": "2",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 2,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_wishlist_4",
+      "_type": "request",
+      "parentId": "fld_wishlist",
+      "modified": 0,
+      "created": 0,
+      "name": "Vaciar la wishlist",
+      "description": "Saca todo de una. La lista en si no se borra, y al quedar vacia deja de vencer.",
+      "url": "http://localhost:4002/usuarios/2/wishlist/items",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_req_wishlist_4_0",
+          "name": "idSolicitante",
+          "value": "2",
+          "description": ""
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 3,
       "isPrivate": false,
       "settingStoreCookies": true,
       "settingSendCookies": true,

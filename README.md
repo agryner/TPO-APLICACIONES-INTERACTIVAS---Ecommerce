@@ -35,12 +35,12 @@ Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `f
 
 | Paquete | Clases | Responsabilidad |
 |---|---|---|
-| `controllers` | 6 | Traducen HTTP a llamadas al service. Cero lógica de negocio. |
-| `service` | 14 | Las reglas: validaciones, cálculos, transacciones. 6 interfaces + 6 impl + 2 sin interfaz. |
-| `repository` | 7 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
-| `entity` | 12 | 8 entidades JPA y 4 enums, guardados como texto. |
-| `entity/dto` | 17 | Lo que entra y lo que sale. Sin `@Entity` ni tabla. |
-| `exceptions` | 26 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
+| `controllers` | 7 | Traducen HTTP a llamadas al service. Cero lógica de negocio. |
+| `service` | 16 | Las reglas: validaciones, cálculos, transacciones. 7 interfaces + 7 impl + 2 sin interfaz. |
+| `repository` | 8 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
+| `entity` | 14 | 10 entidades JPA y 4 enums, guardados como texto. |
+| `entity/dto` | 20 | Lo que entra y lo que sale. Sin `@Entity` ni tabla. |
+| `exceptions` | 27 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
 
 ---
 
@@ -57,6 +57,23 @@ BORRADOR ──sube la primera foto──▶ PUBLICADO ──▶ PAUSADO
 ```
 
 Pausar, dar de baja o quedarse sin fotos **saca el producto de todos los carritos** donde estuviera cargado. Sin eso el comprador se enteraría recién al pagar.
+
+### Carrito y wishlist
+
+Se parecen —uno por usuario, con ítems y vencimiento— pero resuelven cosas distintas, y por eso son entidades separadas:
+
+| | Carrito | Wishlist |
+|---|---|---|
+| Qué es | una compra a punto de cerrarse | una lista de intenciones |
+| Cantidad por ítem | sí | no: querer algo dos veces no significa nada |
+| Totales | subtotal y total | ninguno |
+| Si el producto se pausa | **se va** del carrito | **se queda**, marcado `disponible: false` |
+| Agregar dos veces | acumula cantidad | no hace nada |
+| Vence a los | 30 días | 8 meses |
+
+Que el ítem se quede cuando el producto sale de circulación es el punto de la wishlist: sirve para volver a mirarlo cuando vuelva. En el carrito sería lo contrario — descubrir al pagar que lo que ibas a comprar ya no está.
+
+Ninguna de las dos tiene tarea programada: la limpieza es perezosa, ocurre cuando alguien mira la lista después de vencida. Y una lista vacía no vence, porque no hay nada que limpiar.
 
 ### Comprar
 
@@ -98,6 +115,7 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Subir una foto | sólo el vendedor del producto |
 | Borrar una foto | el vendedor del producto · ADMIN |
 | Ver o tocar un carrito | su dueño · ADMIN |
+| Ver o tocar una wishlist | su dueño · ADMIN |
 | Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
@@ -116,7 +134,7 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 
 ---
 
-## Los 39 endpoints
+## Los 43 endpoints
 
 | | Ruta | Qué hace |
 |---|---|---|
@@ -147,6 +165,10 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 | `PUT` | `/usuarios/{id}/carrito/items/{item}` | Cambiar cantidad |
 | `DELETE` | `/usuarios/{id}/carrito/items/{item}` | Sacar un ítem |
 | `DELETE` | `/usuarios/{id}/carrito/items` | Vaciar |
+| `GET` | `/usuarios/{id}/wishlist` | Lo guardado para más adelante |
+| `POST` | `/usuarios/{id}/wishlist/items` | Guardar un producto. Idempotente |
+| `DELETE` | `/usuarios/{id}/wishlist/items/{item}` | Sacar uno |
+| `DELETE` | `/usuarios/{id}/wishlist/items` | Vaciar |
 | `GET` | `/ordenes` | Sólo las del solicitante. Con `?rol=` se mira una punta; el ADMIN las ve todas |
 | `GET` | `/ordenes/{id}` | Una orden con sus renglones. 403 si no sos parte |
 | `POST` | `/ordenes` | Cerrar el carrito. Devuelve una orden por vendedor |
@@ -170,7 +192,7 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 
 **DTOs en las dos direcciones.** Los `Request` no tienen `id`, así que nadie puede pisar el de otro registro. Los `Response` no tienen `contrasena`, así que no puede filtrarse en un listado anidado.
 
-**Excepciones con `@ResponseStatus`.** 26 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
+**Excepciones con `@ResponseStatus`.** 27 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
 
 **Filtros con streams.** El catálogo se filtra en Java sobre `findAll()`. Es legible y alcanza para el volumen del TPO, pero trae toda la tabla a memoria.
 
