@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.UsuarioRequest;
-import com.uade.tpo.marketplace.entity.dto.UsuarioResponse;
+import com.uade.tpo.marketplace.controllers.usuarios.UsuarioRequest;
+import com.uade.tpo.marketplace.controllers.usuarios.UsuarioResponse;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import java.util.List;
 

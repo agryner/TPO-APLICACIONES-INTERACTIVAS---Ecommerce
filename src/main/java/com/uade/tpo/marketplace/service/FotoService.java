@@ -1,8 +1,8 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.FotoResponse;
+import com.uade.tpo.marketplace.controllers.fotos.FotoResponse;
 import com.uade.tpo.marketplace.entity.EstadoVerificacion;
-import com.uade.tpo.marketplace.entity.dto.FotoUploadRequest;
+import com.uade.tpo.marketplace.controllers.fotos.FotoUploadRequest;
 import java.util.List;
 
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;

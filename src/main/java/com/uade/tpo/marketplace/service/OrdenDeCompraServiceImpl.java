@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.OrdenDeCompraResponse;
-import com.uade.tpo.marketplace.entity.dto.RolEnOrden;
+import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
+import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -58,6 +58,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     private final AutorizacionService autorizacion;
     private final EntityManager entityManager;
 
+    /**
+     * Pre : el id de quien pregunta y, opcionalmente, desde que lado mirar.
+     * Post: las ordenes donde participa. Sin rol, las dos puntas; un ADMIN sin
+     *       rol recibe todas las del sistema.
+     */
     public List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
             throws UsuarioNoEncontradoException {
         validarQueExista(idSolicitante);
@@ -77,6 +82,12 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
                 .toList();
     }
 
+    /**
+     * Pre : el id de la orden y el id de quien pregunta.
+     * Post: la orden. Tira OperacionAjenaException si no es ni comprador ni
+     *       vendedor ni ADMIN: sin esto, filtrar el listado no serviria de
+     *       nada porque se podrian pedir de a una.
+     */
     public OrdenDeCompraResponse getOrdenById(Long idOrden, Long idSolicitante)
             throws OrdenNoEncontradaException, OperacionAjenaException {
         OrdenDeCompra orden = ordenRepository.findById(idOrden)
@@ -96,6 +107,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * Sin esto, filtrar por un id que no existe devuelve una lista vacia, igual
      * que un usuario real sin movimientos. Son dos situaciones distintas y el
      * cliente no tiene como distinguirlas.
+     *
+     * Pre : el id de un usuario.
+     * Post: nada si existe. Sin esto, filtrar por un id inexistente devolveria
+     *       una lista vacia igual que un usuario real sin movimientos, y el
+     *       cliente no podria distinguirlos.
      */
     private void validarQueExista(Long idUsuario) throws UsuarioNoEncontradoException {
         if (!usuarioRepository.existsById(idUsuario))
@@ -109,6 +125,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * mezcla productos de varios vendedores se genera una orden por cada uno.
      * Primero se valida todo y recien despues se escribe: si un solo item falla,
      * no queda ninguna orden a medio crear.
+     *
+     * Pre : el id de quien compra; el contenido sale de su carrito.
+     * Post: una orden por cada vendedor involucrado, con el stock ya
+     *       descontado y el carrito vacio. Valida todo antes de escribir, asi
+     *       que si un item falla no queda ninguna orden a medias.
      */
     @Transactional
     public List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
@@ -172,6 +193,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /** Arma y guarda la orden de un vendedor con los items que le corresponden. */
+    /**
+     * Pre : el comprador, el vendedor y los items que le corresponden.
+     * Post: la orden guardada, con cada renglon copiando el precio del momento
+     *       para que una edicion posterior no reescriba la historia.
+     */
     private OrdenDeCompra armarOrden(Usuario comprador, Usuario vendedor, List<ItemCarrito> items) {
         OrdenDeCompra orden = new OrdenDeCompra();
         orden.setComprador(comprador);
@@ -213,6 +239,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * Mientras no haya autenticacion, quien pide el cambio llega como parametro
      * desde el controller. Cuando se sume el token, el idSolicitante sale de ahi y
      * las validaciones no cambian.
+     *
+     * Pre : el id de la orden, el estado destino y el id de quien pide.
+     * Post: la orden en el estado nuevo. Cancelar repone el stock. Tira
+     *       CambioDeEstadoNoPermitidoException si el paso no le toca a quien
+     *       lo pide, y TransicionInvalidaException si el salto no existe.
      */
     public OrdenDeCompraResponse actualizarEstado(Long idOrden, EstadoOrden estado, Long idSolicitante)
             throws OrdenNoEncontradaException, TransicionInvalidaException,
@@ -258,6 +289,9 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      *
      * Usa la cantidad guardada en el OrderDetail, no la del carrito: el carrito
      * ya se vacio cuando se cerro la compra.
+     *
+     * Pre : la orden que se esta cancelando.
+     * Post: nada. Devuelve al producto las unidades de cada renglon.
      */
     private void reponerStock(OrdenDeCompra orden) {
         for (OrderDetail item : orden.getItems()) {
@@ -269,6 +303,12 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         }
     }
 
+    /**
+     * Pre : el estado actual, el destino y si quien pide es ADMIN.
+     * Post: nada si el salto existe. Cancelar una orden ya ENVIADA solo lo
+     *       puede el ADMIN, que es quien arbitra si el producto no llego o
+     *       llego roto.
+     */
     private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo, boolean esAdmin)
             throws TransicionInvalidaException {
         boolean permitida = switch (actual) {
@@ -290,6 +330,10 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * Cada paso lo declara quien puede saberlo de verdad: el vendedor es el que
      * despacha y el comprador el que paga y el que recibe. Cancelar lo puede
      * pedir cualquiera de los dos.
+     *
+     * Pre : el estado destino y si quien pide es el comprador o el vendedor.
+     * Post: nada si le toca. PAGADA y RECIBIDA son del comprador, ENVIADA del
+     *       vendedor, CANCELADA de cualquiera de los dos.
      */
     private void validarQuienPuede(EstadoOrden nuevo, boolean esComprador, boolean esVendedor)
             throws CambioDeEstadoNoPermitidoException {

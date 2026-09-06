@@ -1,8 +1,8 @@
 package com.uade.tpo.marketplace.service;
 
 import com.uade.tpo.marketplace.entity.EstadoOrden;
-import com.uade.tpo.marketplace.entity.dto.OrdenDeCompraResponse;
-import com.uade.tpo.marketplace.entity.dto.RolEnOrden;
+import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
+import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.util.List;
 
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;

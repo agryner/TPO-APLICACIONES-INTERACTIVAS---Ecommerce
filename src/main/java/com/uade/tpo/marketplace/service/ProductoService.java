@@ -1,9 +1,9 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.ProductoRequest;
+import com.uade.tpo.marketplace.controllers.productos.ProductoRequest;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
-import com.uade.tpo.marketplace.entity.dto.ProductoCreadoResponse;
-import com.uade.tpo.marketplace.entity.dto.ProductoResponse;
+import com.uade.tpo.marketplace.controllers.productos.ProductoCreadoResponse;
+import com.uade.tpo.marketplace.controllers.productos.ProductoResponse;
 import java.math.BigDecimal;
 import java.util.List;
 

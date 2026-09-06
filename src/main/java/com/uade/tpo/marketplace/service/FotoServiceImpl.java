@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.FotoResponse;
-import com.uade.tpo.marketplace.entity.dto.FotoUploadRequest;
+import com.uade.tpo.marketplace.controllers.fotos.FotoResponse;
+import com.uade.tpo.marketplace.controllers.fotos.FotoUploadRequest;
 import java.io.IOException;
 import java.util.List;
 
@@ -57,6 +57,12 @@ public class FotoServiceImpl implements FotoService {
     private final AutorizacionService autorizacion;
     private final CarritoService carritoService;
 
+    /**
+     * Pre : el id del producto.
+     * Post: los metadatos de sus fotos, sin los bytes. Tira
+     *       ProductoNoEncontradoException si el producto no existe, para
+     *       distinguirlo de uno real que todavia no tiene fotos.
+     */
     public List<FotoResponse> getFotosByProducto(Long idProducto)
             throws ProductoNoEncontradoException {
         if (!productoRepository.existsById(idProducto))
@@ -67,12 +73,24 @@ public class FotoServiceImpl implements FotoService {
                 .toList();
     }
 
+    /**
+     * Pre : el id de la foto.
+     * Post: sus metadatos y la URL del contenido.
+     */
     public FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException {
         return fotoRepository.findById(idFoto)
                 .map(FotoResponse::from)
                 .orElseThrow(FotoNoEncontradaException::new);
     }
 
+    /**
+     * Pre : el request con el archivo y el idProducto, mas el id de quien
+     *       sube.
+     * Post: la foto guardada. Si el producto estaba en BORRADOR queda
+     *       PUBLICADO. Tira ArchivoInvalidoException si el contenido no es una
+     *       imagen, FotoRechazadaException si la IA la descarta, y
+     *       AdminNoComerciaException si quien sube es ADMIN.
+     */
     @Transactional
     public FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
@@ -154,11 +172,22 @@ public class FotoServiceImpl implements FotoService {
     };
 
     /** WEBP es un contenedor RIFF: "RIFF" + 4 bytes de tamanio + "WEBP". */
+    /**
+     * Pre : los primeros bytes del archivo.
+     * Post: si son la firma de un WebP: RIFF al principio y WEBP en la
+     *       posicion 8.
+     */
     private boolean esWebp(byte[] b) {
         return b.length >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
                 && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P';
     }
 
+    /**
+     * Pre : el contenido del archivo.
+     * Post: si los primeros bytes son la firma de un JPEG, PNG, GIF o WebP.
+     *       Mira el contenido real y no el Content-Type que declara el
+     *       cliente, que se puede mentir.
+     */
     private boolean pareceImagen(byte[] contenido) {
         if (esWebp(contenido))
             return true;
@@ -179,6 +208,12 @@ public class FotoServiceImpl implements FotoService {
         return false;
     }
 
+    /**
+     * Pre : el producto y los bytes de la imagen.
+     * Post: el veredicto de la IA. Si el servicio no responde devuelve
+     *       EN_REVISION en vez de fallar: la verificacion no puede ser un
+     *       punto unico de falla para publicar.
+     */
     private void verificar(Foto foto, byte[] contenido, Producto producto)
             throws FotoRechazadaException {
         VerificadorImagenService.Resultado resultado;
@@ -205,12 +240,23 @@ public class FotoServiceImpl implements FotoService {
                 : EstadoVerificacion.EN_REVISION);
     }
 
+    /**
+     * Pre : el id de la foto.
+     * Post: la entidad completa, con los bytes. Es el unico camino por el que
+     *       salen: los DTOs nunca los llevan.
+     */
     public byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException {
         return fotoRepository.findById(idFoto)
                 .orElseThrow(FotoNoEncontradaException::new)
                 .getContenido();
     }
 
+    /**
+     * Pre : el id de quien pide, que tiene que ser ADMIN, y un estado
+     *       opcional.
+     * Post: las fotos en ese estado. Sin estado devuelve las EN_REVISION, que
+     *       es la cola de trabajo.
+     */
     public List<FotoResponse> getPendientesDeRevision(Long idSolicitante,
             EstadoVerificacion estado) throws UsuarioNoEncontradoException, AccesoDenegadoException {
         autorizacion.validarAdmin(idSolicitante);
@@ -225,6 +271,11 @@ public class FotoServiceImpl implements FotoService {
                 .toList();
     }
 
+    /**
+     * Pre : el id de la foto, si se aprueba, y el id de quien pide.
+     * Post: la foto resuelta a mano. Aprobar la deja visible; rechazar la
+     *       elimina.
+     */
     @Transactional
     public FotoResponse revisarFoto(Long idFoto, boolean aprobada, Long idSolicitante)
             throws FotoNoEncontradaException, UsuarioNoEncontradoException,
@@ -246,6 +297,11 @@ public class FotoServiceImpl implements FotoService {
         return FotoResponse.from(fotoRepository.save(foto));
     }
 
+    /**
+     * Pre : el id de la foto y el id de quien pide.
+     * Post: nada. Si era la ultima del producto, este vuelve a BORRADOR y sale
+     *       del catalogo y de los carritos.
+     */
     @Transactional
     public void deleteFoto(Long idFoto, Long idSolicitante)
             throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
@@ -261,6 +317,10 @@ public class FotoServiceImpl implements FotoService {
      * leer la foto tambien queda gestionada la coleccion que la contiene. Si no
      * la sacamos de ahi, el cascade PERSIST la revive en el flush y el borrado
      * se pierde sin error. Sacandola, orphanRemoval dispara el delete.
+     *
+     * Pre : la foto.
+     * Post: nada. La saca primero de la coleccion del producto: con cascade y
+     *       orphanRemoval, borrarla sola la revivia al hacer flush.
      */
     private void borrar(Foto foto) {
         Producto producto = foto.getProducto();

@@ -1,8 +1,8 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.ProductoRequest;
-import com.uade.tpo.marketplace.entity.dto.ProductoCreadoResponse;
-import com.uade.tpo.marketplace.entity.dto.ProductoResponse;
+import com.uade.tpo.marketplace.controllers.productos.ProductoRequest;
+import com.uade.tpo.marketplace.controllers.productos.ProductoCreadoResponse;
+import com.uade.tpo.marketplace.controllers.productos.ProductoResponse;
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -53,6 +53,12 @@ public class ProductoServiceImpl implements ProductoService {
     /**
      * Cada filtro se saltea solo cuando su parametro llega en null, asi los que
      * si vienen con valor se combinan entre si.
+     *
+     * Pre : los filtros, todos opcionales: categoria, vendedor, nombre, rango
+     *       de precio y orden.
+     * Post: los productos activos, PUBLICADOS y de vendedores vigentes que
+     *       cumplen todos los filtros. Filtrar por una categoria incluye a sus
+     *       descendientes.
      */
     public List<ProductoResponse> getProductos(Long idCategoria, String vendedor, String nombre,
             BigDecimal precioMin, BigDecimal precioMax, String ordenPrecio)
@@ -89,6 +95,10 @@ public class ProductoServiceImpl implements ProductoService {
     /**
      * Ordena por precio si se pidio. Sin parametro se devuelve el orden en que
      * los trajo la base, que es por id.
+     *
+     * Pre : la lista y el criterio, asc o desc.
+     * Post: la lista ordenada por precio, o tal cual si no se pidio orden.
+     *       Tira OrdenamientoInvalidoException con cualquier otro valor.
      */
     private List<Producto> ordenar(List<Producto> productos, String ordenPrecio)
             throws OrdenamientoInvalidoException {
@@ -109,6 +119,10 @@ public class ProductoServiceImpl implements ProductoService {
      *
      * Recorre el arbol hacia abajo en anchura. El arbol de categorias de un
      * marketplace tiene pocos niveles, asi que no hace falta nada mas fino.
+     *
+     * Pre : el id de una categoria.
+     * Post: ese id mas los de todas sus descendientes. Sin esto, filtrar por
+     *       una categoria padre no traeria nada de sus hijas.
      */
     private Set<Long> ramaDe(Long idCategoria) {
         Set<Long> rama = new LinkedHashSet<>();
@@ -125,6 +139,12 @@ public class ProductoServiceImpl implements ProductoService {
         return rama;
     }
 
+    /**
+     * Pre : el id del vendedor y, opcionalmente, el estado.
+     * Post: sus publicaciones, incluidos borradores y pausados. Tira
+     *       UsuarioNoEncontradoException si el id no existe, para no
+     *       confundirlo con un vendedor sin productos.
+     */
     public List<ProductoResponse> getMisPublicaciones(Long idSolicitante,
             EstadoPublicacion estado) throws UsuarioNoEncontradoException {
         // Sin esto un id inexistente devolvia 200 con lista vacia, igual que un
@@ -141,12 +161,23 @@ public class ProductoServiceImpl implements ProductoService {
                 .toList();
     }
 
+    /**
+     * Pre : el id.
+     * Post: el producto con su categoria, su vendedor y sus fotos, sin
+     *       importar en que estado este.
+     */
     public ProductoResponse getProductoById(Long idProducto) throws ProductoNoEncontradoException {
         return productoRepository.findById(idProducto)
                 .map(ProductoResponse::from)
                 .orElseThrow(ProductoNoEncontradoException::new);
     }
 
+    /**
+     * Pre : el request y el id del vendedor.
+     * Post: el producto en BORRADOR mas el aviso de que falta la foto. Todavia
+     *       no aparece en el catalogo. Tira AdminNoComerciaException si quien
+     *       publica es ADMIN.
+     */
     public ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
             throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException, AdminNoComerciaException {
         // Un alta no tiene duenio previo, asi que no pasa por validarDuenio y
@@ -173,6 +204,11 @@ public class ProductoServiceImpl implements ProductoService {
                         + " para que se publique en el catalogo.");
     }
 
+    /**
+     * Pre : el id, el request y el id de quien pide.
+     * Post: el producto con los datos nuevos. No toca el estado de
+     *       publicacion. Las ordenes ya cerradas conservan el precio viejo.
+     */
     public ProductoResponse updateProducto(Long idProducto, ProductoRequest request,
             Long idSolicitante)
             throws ProductoNoEncontradoException, CategoriaNoEncontradaException,
@@ -191,6 +227,11 @@ public class ProductoServiceImpl implements ProductoService {
      *
      * Los renglones de las ordenes ya cerradas lo referencian para trazabilidad,
      * asi que un DELETE real romperia el historial de ventas.
+     *
+     * Pre : el id, el estado destino y el id de quien pide.
+     * Post: el producto en el estado nuevo. Pausar lo saca de todos los
+     *       carritos. Tira TransicionInvalidaException si se intenta salir de
+     *       BORRADOR: de ahi solo se sale subiendo una foto.
      */
     public ProductoResponse cambiarEstadoPublicacion(Long idProducto, EstadoPublicacion estado,
             Long idSolicitante)
@@ -218,6 +259,10 @@ public class ProductoServiceImpl implements ProductoService {
      * BORRADOR no es un estado que el vendedor elija: se entra al crear el
      * producto y se sale al subirle la primera foto, asi que ni se pausa un
      * borrador ni se vuelve a borrador a mano.
+     *
+     * Pre : el estado actual y el destino.
+     * Post: nada si el salto existe. Solo son validos PUBLICADO a PAUSADO y al
+     *       reves.
      */
     private void validarCambioDePublicacion(EstadoPublicacion actual, EstadoPublicacion nuevo)
             throws TransicionInvalidaException {
@@ -237,6 +282,10 @@ public class ProductoServiceImpl implements ProductoService {
      * Lo puede pedir su vendedor o el ADMIN, igual que la baja. Vuelve al
      * estado de publicacion que tenia: si estaba PUBLICADO reaparece, y si
      * estaba en BORRADOR sigue necesitando una foto.
+     *
+     * Pre : el id y el id de quien pide.
+     * Post: el producto activo otra vez, en el estado de publicacion que
+     *       tenia.
      */
     @Transactional
     public ProductoResponse reactivarProducto(Long idProducto, Long idSolicitante)
@@ -257,6 +306,11 @@ public class ProductoServiceImpl implements ProductoService {
      * getProductos esconde lo inactivo, lo que no esta PUBLICADO y lo de
      * vendedores dados de baja, que es lo correcto para quien compra pero deja
      * al ADMIN sin poder ver justamente lo que tiene que moderar.
+     *
+     * Pre : el id de quien pide, que tiene que ser ADMIN, y un estado
+     *       opcional.
+     * Post: todo el catalogo sin los filtros del comprador: inactivos,
+     *       borradores y pausados incluidos.
      */
     public List<ProductoResponse> getTodosLosProductos(Long idSolicitante, EstadoPublicacion estado)
             throws UsuarioNoEncontradoException, AccesoDenegadoException {
@@ -268,6 +322,11 @@ public class ProductoServiceImpl implements ProductoService {
                 .toList();
     }
 
+    /**
+     * Pre : el id y el id de quien pide.
+     * Post: nada. Baja logica: el producto sale del catalogo y de los
+     *       carritos, pero las ordenes lo siguen mostrando.
+     */
     public void deleteProducto(Long idProducto, Long idSolicitante)
             throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         Producto producto = productoRepository.findById(idProducto)
@@ -281,6 +340,11 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     /** El vendedor no se toca aca: lo fija el alta y despues no cambia. */
+    /**
+     * Pre : el producto y el request.
+     * Post: nada. Vuelca los campos del request sobre la entidad, resolviendo
+     *       la categoria contra su repositorio.
+     */
     private void copiarDatos(Producto producto, ProductoRequest request)
             throws CategoriaNoEncontradaException {
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())

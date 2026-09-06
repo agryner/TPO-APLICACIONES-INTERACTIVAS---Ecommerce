@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.CategoriaRequest;
-import com.uade.tpo.marketplace.entity.dto.CategoriaResponse;
+import com.uade.tpo.marketplace.controllers.categorias.CategoriaRequest;
+import com.uade.tpo.marketplace.controllers.categorias.CategoriaResponse;
 import java.util.List;
 
 import com.uade.tpo.marketplace.exceptions.CategoriaConProductosException;

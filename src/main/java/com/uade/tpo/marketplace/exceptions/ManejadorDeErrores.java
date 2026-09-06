@@ -14,6 +14,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -89,6 +91,31 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(base(HttpStatus.CONFLICT,
                         "Otra operacion esta usando esos datos en este momento, volve a intentar"));
+    }
+
+    /**
+     * Mail o contrasena que no cierran, o cuenta dada de baja.
+     *
+     * Sin esto caeria en el catch-all de abajo y saldria como 500, porque las
+     * excepciones de Spring Security no llevan @ResponseStatus. Es 401 y no
+     * 403: 401 es "no se quien sos", 403 es "se quien sos y no podes".
+     *
+     * El mensaje no distingue si fallo el mail o la contrasena a proposito: si
+     * lo hiciera, serviria para averiguar que mails estan registrados.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Object> credencialesInvalidas(AuthenticationException ex) {
+        log.debug("Autenticacion fallida", ex);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(base(HttpStatus.UNAUTHORIZED, "Mail o contrasena incorrectos"));
+    }
+
+    /** Autenticado, pero sin permiso para eso. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> sinPermiso(AccessDeniedException ex) {
+        log.debug("Acceso denegado", ex);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(base(HttpStatus.FORBIDDEN, "No tenes permiso para hacer eso"));
     }
 
     /** Lo que no previo nadie. Nunca sale con detalle al cliente. */

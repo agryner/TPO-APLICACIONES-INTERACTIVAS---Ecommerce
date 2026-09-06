@@ -33,14 +33,26 @@ Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `f
 
 ### Mapa del código
 
+Los controllers están agrupados por dominio, siguiendo el ejemplo de la cátedra: `controllers/productos`, `controllers/ordenes`, etc., cada uno con su controller y sus DTOs. `controllers/config` guarda las cuatro clases de Spring Security, y `controllers/common` lo que no tiene dueño.
+
 | Paquete | Clases | Responsabilidad |
 |---|---|---|
-| `controllers` | 7 | Traducen HTTP a llamadas al service. Cero lógica de negocio. |
-| `service` | 16 | Las reglas: validaciones, cálculos, transacciones. 7 interfaces + 7 impl + 2 sin interfaz. |
+| `controllers/*` | 34 | 8 controllers, sus 22 DTOs y las 4 clases de seguridad, agrupados por dominio. |
+| `service` | 17 | Las reglas: validaciones, cálculos, transacciones. 7 interfaces + 7 impl + 3 sin interfaz. |
 | `repository` | 8 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
 | `entity` | 14 | 10 entidades JPA y 4 enums, guardados como texto. |
-| `entity/dto` | 20 | Lo que entra y lo que sale. Sin `@Entity` ni tabla. |
 | `exceptions` | 27 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
+
+Adentro de `controllers` hay una carpeta por dominio, y cada una lleva su controller y sus DTOs:
+
+```
+controllers/
+  auth/       AutenticacionController · LoginRequest · TokenResponse
+  carritos/   CarritosController · CarritoResponse · ItemCarritoRequest · ItemCarritoResponse
+  categorias/ · fotos/ · ordenes/ · productos/ · usuarios/ · wishlist/
+  config/     SecurityConfig · ApplicationConfig · JwtAuthenticationFilter · JwtService
+  common/     MensajeResponse, que usan cuatro controllers y no tiene dueño
+```
 
 ---
 
@@ -103,9 +115,44 @@ La clave de Gemini está escrita en `application.properties`; la variable de ent
 
 ---
 
+## Autenticación
+
+Nada de lo privado se puede pedir sin un token. Se consigue en uno de dos lugares:
+
+```bash
+POST /auth/registro   # crea la cuenta y ya devuelve el token
+POST /auth/login      # mail y contraseña a cambio del token
+```
+
+Los dos responden lo mismo:
+
+```json
+{"access_token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbmFAdGVzdC5jb20i..."}
+```
+
+y a partir de ahí todo va con el header:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+```
+
+**Qué es ese texto.** Tres partes separadas por puntos: `header.payload.firma`. Las dos primeras son JSON en Base64 y **se leen sin ninguna clave** — pegá un token en jwt.io y vas a ver el mail y el vencimiento en claro. La tercera es `HMAC-SHA512(header+payload, clave)`. O sea que un JWT **no oculta, garantiza que no lo tocaron**: cualquiera puede leerlo, pero sólo el servidor puede fabricar uno. Por eso adentro va el mail y la fecha, nunca la contraseña.
+
+**Qué pasa en cada request.** `JwtAuthenticationFilter` corre antes que cualquier controller: lee el header, verifica la firma, busca el usuario y lo deja en el `SecurityContext`. Si no hay token, o venció, o la firma no cierra, no rechaza nada — deja el contexto vacío y sigue. Quién decide si eso alcanza es `SecurityConfig`, y esa división es lo que permite que convivan rutas públicas y privadas sin un solo `if`.
+
+**Lo público** es el catálogo: `GET /productos`, `/categorias`, `/fotos`, más el alta de usuario y las dos rutas de auth. Todo lo demás pide token.
+
+**El token dura 24 horas** y no se guarda en ningún lado: que sea válido se decide verificando la firma y la fecha, no buscándolo en una tabla. Esa es la razón por la que no se puede invalidar uno antes de que venza.
+
+**Después de loguearte**, `GET /usuarios/me` te dice quién sos. El login devuelve sólo el token, así que ese es el endpoint que usa el frontend para saber a quién saludar y si mostrar el panel de administración.
+
+Las contraseñas se guardan con **BCrypt**, que incluye una sal distinta en cada hash y es lento a propósito. Nunca se desencripta: para verificar un login se hashea lo que llega y se comparan los hashes.
+
+---
+
 ## Permisos
 
-Todavía no hay autenticación, así que el id de quien pide la operación viaja como query param `idSolicitante`. Cuando se sume JWT ese id sale del token y **ninguna validación cambia**.
+El id de quien pide la operación sale del **token**, no de la URL. Los controllers lo reciben con `@AuthenticationPrincipal` y se lo pasan a los services, que no se enteraron del cambio: siguen recibiendo un `Long` y decidiendo con las mismas reglas que cuando el id venía por query param.
 
 Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** pregunta si sos ADMIN. Las dos viven en `AutorizacionService`. El ADMIN **atraviesa la pertenencia**: puede operar sobre lo de cualquiera, porque modera todo el sistema. Esa excepción está dentro de `validarDuenio` y no repartida por los services, justamente para que valga en todos lados por igual y no se le escape ninguna operación.
 
@@ -114,8 +161,8 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Editar, pausar o dar de baja un producto | su vendedor · ADMIN |
 | Subir una foto | sólo el vendedor del producto |
 | Borrar una foto | el vendedor del producto · ADMIN |
-| Ver o tocar un carrito | su dueño · ADMIN |
-| Ver o tocar una wishlist | su dueño · ADMIN |
+| Ver o tocar el carrito | sólo su dueño: la ruta no admite un id ajeno |
+| Ver o tocar la wishlist | sólo su dueño |
 | Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
@@ -134,17 +181,22 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 
 ---
 
-## Los 43 endpoints
+## Los 46 endpoints
+
+Todo lo que no diga **público** necesita `Authorization: Bearer <token>`.
 
 | | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/categorias` | Listar. Con `?soloRaices=true`, sólo las de primer nivel |
+| `POST` | `/auth/registro` | Crea la cuenta y devuelve el token · **público** |
+| `POST` | `/auth/login` | Mail y contraseña a cambio del token · **público** |
+| `GET` | `/usuarios/me` | Quién soy, según el token |
+| `GET` | `/categorias` | Listar. Con `?soloRaices=true`, sólo las de primer nivel · **público** |
 | `GET` | `/categorias/{id}` | Una categoría |
 | `GET` | `/categorias/{id}/subcategorias` | Sus hijas directas |
 | `POST` | `/categorias` | Alta · **ADMIN** |
 | `PUT` | `/categorias/{id}` | Editar o mover en el árbol · **ADMIN** |
 | `DELETE` | `/categorias/{id}` | Baja. 409 si tiene hijas o productos · **ADMIN** |
-| `GET` | `/productos` | Catálogo: sólo activos y PUBLICADOS, con filtros y orden por precio |
+| `GET` | `/productos` | Catálogo: sólo activos y PUBLICADOS, con filtros y orden por precio · **público** |
 | `GET` | `/productos/mis-publicaciones` | Las propias, borradores y pausadas incluidas |
 | `GET` | `/productos/todos` | El catálogo entero, sin los filtros del comprador · **ADMIN** |
 | `GET` | `/productos/{id}` | Un producto, con categoría, vendedor y fotos |
@@ -155,20 +207,20 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 | `DELETE` | `/productos/{id}` | Baja lógica |
 | `GET` | `/usuarios` | Listar los activos, sin contraseña |
 | `GET` | `/usuarios/{id}` | Un usuario |
-| `POST` | `/usuarios` | Alta. 400 si el mail o el nombre ya existen |
+| `POST` | `/usuarios` | Alta sin token de vuelta; para eso está `/auth/registro` · **público** |
 | `PUT` | `/usuarios/{id}` | Editar. El rol no se toca desde el body |
 | `PUT` | `/usuarios/{id}/reactivar` | Vuelve a poner en circulación una cuenta · **ADMIN** |
 | `PUT` | `/usuarios/{id}/rol` | Promueve o degrada · **ADMIN** |
 | `DELETE` | `/usuarios/{id}` | Baja lógica, propia o por un **ADMIN**. El historial de órdenes sobrevive |
-| `GET` | `/usuarios/{id}/carrito` | El carrito, vaciado si venció |
-| `POST` | `/usuarios/{id}/carrito/items` | Agregar. Acumula si ya estaba |
-| `PUT` | `/usuarios/{id}/carrito/items/{item}` | Cambiar cantidad |
-| `DELETE` | `/usuarios/{id}/carrito/items/{item}` | Sacar un ítem |
-| `DELETE` | `/usuarios/{id}/carrito/items` | Vaciar |
-| `GET` | `/usuarios/{id}/wishlist` | Lo guardado para más adelante |
-| `POST` | `/usuarios/{id}/wishlist/items` | Guardar un producto. Idempotente |
-| `DELETE` | `/usuarios/{id}/wishlist/items/{item}` | Sacar uno |
-| `DELETE` | `/usuarios/{id}/wishlist/items` | Vaciar |
+| `GET` | `/carrito` | Mi carrito, vaciado si venció |
+| `POST` | `/carrito/items` | Agregar. Acumula si ya estaba |
+| `PUT` | `/carrito/items/{item}` | Cambiar cantidad |
+| `DELETE` | `/carrito/items/{item}` | Sacar un ítem |
+| `DELETE` | `/carrito` | Vaciar |
+| `GET` | `/wishlist` | Lo guardado para más adelante |
+| `POST` | `/wishlist/items` | Guardar un producto. Idempotente |
+| `DELETE` | `/wishlist/items/{item}` | Sacar uno |
+| `DELETE` | `/wishlist` | Vaciar |
 | `GET` | `/ordenes` | Sólo las del solicitante. Con `?rol=` se mira una punta; el ADMIN las ve todas |
 | `GET` | `/ordenes/{id}` | Una orden con sus renglones. 403 si no sos parte |
 | `POST` | `/ordenes` | Cerrar el carrito. Devuelve una orden por vendedor |
@@ -200,7 +252,6 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 
 ## Lo que queda pendiente
 
-- **Autenticación.** Las reglas de permisos ya están escritas; falta que el id venga de un token y no del query string.
 - **Manejo centralizado de errores.** Sin `@RestControllerAdvice`, un error no contemplado sale como 500 con el SQL adentro.
 - **Paginación.** Todos los listados devuelven la colección completa.
 - **Bloqueo pesimista en el stock.** Dos compras simultáneas del último producto pueden dejar stock negativo.

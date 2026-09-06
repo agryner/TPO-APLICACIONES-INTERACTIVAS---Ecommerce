@@ -16,9 +16,13 @@ import lombok.RequiredArgsConstructor;
 /**
  * Chequeos de permisos que necesitan varios services.
  *
- * Mientras no haya autenticacion, el id de quien pide la operacion llega como
- * parametro desde el controller. Cuando se sume el token, el idUsuario va a
- * salir de ahi y esta clase no cambia.
+ * El id de quien pide la operacion llega como parametro desde el controller,
+ * que lo saca del token con @AuthenticationPrincipal. Esta clase no se entero
+ * del cambio: sigue recibiendo un Long y decidiendo con las mismas reglas.
+ *
+ * Lo que decide aca es lo que depende del recurso -si sos el duenio, si el
+ * producto es tuyo-. Lo que depende solo de la ruta -si hace falta estar
+ * logueado- lo decide SecurityConfig.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +35,10 @@ public class AutorizacionService {
      *
      * Va antes que cualquier otro chequeo: quien no deberia estar operando no
      * tiene por que llegar a que se le evalue la pertenencia.
+     *
+     * Pre : el id de quien pide la operacion.
+     * Post: nada si la cuenta existe y esta vigente. Tira
+     *       UsuarioNoEncontradoException o CuentaInactivaException si no.
      */
     public void validarActivo(Long idUsuario)
             throws UsuarioNoEncontradoException, CuentaInactivaException {
@@ -47,6 +55,11 @@ public class AutorizacionService {
      * Es el chequeo que impide editar el producto de otro vendedor, entrar al
      * carrito ajeno o dar de baja la cuenta de otro. De paso corta si la cuenta
      * que pide esta dada de baja, y deja pasar al ADMIN, que modera todo.
+     *
+     * Pre : el id de quien pide y el id del duenio del recurso.
+     * Post: nada si es el duenio, o si es ADMIN. Tira OperacionAjenaException
+     *       en cualquier otro caso, y CuentaInactivaException si quien pide
+     *       esta dado de baja.
      */
     public void validarDuenio(Long idSolicitante, Long idDuenio)
             throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
@@ -77,6 +90,11 @@ public class AutorizacionService {
      * operacion prohibida para el resto, esta cuando el rol no prohibe nada
      * sino que amplia lo que se ve, como el listado de ordenes. Un id que no
      * existe no es admin, asi que devuelve false en vez de explotar.
+     *
+     * Pre : el id de un usuario.
+     * Post: true si tiene rol ADMIN. Un id que no existe devuelve false en vez
+     *       de explotar, porque los que lo llaman quieren ramificar y no
+     *       cortar.
      */
     public boolean esAdmin(Long idUsuario) {
         return usuarioRepository.findById(idUsuario)
@@ -92,6 +110,10 @@ public class AutorizacionService {
      * participa en el. Si participara podria aprobarse sus propias fotos,
      * despacharse sus propias ordenes y auditar transacciones en las que es
      * parte.
+     *
+     * Pre : el id de quien pide la operacion.
+     * Post: nada si es un CLIENTE. Tira AdminNoComerciaException si es ADMIN:
+     *       el rol modera el marketplace, no participa de el.
      */
     public void validarQueNoSeaAdmin(Long idSolicitante)
             throws UsuarioNoEncontradoException, AdminNoComerciaException {
@@ -100,6 +122,11 @@ public class AutorizacionService {
     }
 
     /** Corta la operacion si el usuario que la pide no es ADMIN. */
+    /**
+     * Pre : el id de quien pide la operacion.
+     * Post: nada si es ADMIN. Tira AccesoDenegadoException si no lo es, o
+     *       UsuarioNoEncontradoException si el id no existe.
+     */
     public void validarAdmin(Long idUsuario)
             throws UsuarioNoEncontradoException, AccesoDenegadoException {
         Usuario usuario = usuarioRepository.findById(idUsuario)

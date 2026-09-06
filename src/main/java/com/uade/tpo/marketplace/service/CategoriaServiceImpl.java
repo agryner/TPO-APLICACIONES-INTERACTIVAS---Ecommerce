@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.CategoriaRequest;
-import com.uade.tpo.marketplace.entity.dto.CategoriaResponse;
+import com.uade.tpo.marketplace.controllers.categorias.CategoriaRequest;
+import com.uade.tpo.marketplace.controllers.categorias.CategoriaResponse;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -36,18 +36,31 @@ public class CategoriaServiceImpl implements CategoriaService {
     private final ProductoRepository productoRepository;
     private final AutorizacionService autorizacion;
 
+    /**
+     * Pre : nada.
+     * Post: todas las categorias, cada una con su padre resuelto.
+     */
     public List<CategoriaResponse> getCategorias() {
         return categoriaRepository.findAll().stream()
                 .map(CategoriaResponse::from)
                 .toList();
     }
 
+    /**
+     * Pre : nada.
+     * Post: solo las que no tienen padre, o sea el primer nivel del arbol.
+     */
     public List<CategoriaResponse> getCategoriasRaiz() {
         return categoriaRepository.findByCategoriaPadreIsNull().stream()
                 .map(CategoriaResponse::from)
                 .toList();
     }
 
+    /**
+     * Pre : el id del padre.
+     * Post: sus hijas inmediatas, sin nietas. Tira
+     *       CategoriaNoEncontradaException si el padre no existe.
+     */
     public List<CategoriaResponse> getSubcategorias(Long idCategoria) throws CategoriaNoEncontradaException {
         if (!categoriaRepository.existsById(idCategoria))
             throw new CategoriaNoEncontradaException();
@@ -57,12 +70,22 @@ public class CategoriaServiceImpl implements CategoriaService {
                 .toList();
     }
 
+    /**
+     * Pre : el id.
+     * Post: la categoria. Tira CategoriaNoEncontradaException si no esta.
+     */
     public CategoriaResponse getCategoriaById(Long idCategoria) throws CategoriaNoEncontradaException {
         return categoriaRepository.findById(idCategoria)
                 .map(CategoriaResponse::from)
                 .orElseThrow(CategoriaNoEncontradaException::new);
     }
 
+    /**
+     * Pre : el request y el id de quien pide, que tiene que ser ADMIN.
+     * Post: la categoria creada. Tira CategoriaDuplicadaException si ya hay
+     *       una hermana con ese nombre, y CategoriaNoEncontradaException si el
+     *       padre indicado no existe.
+     */
     public CategoriaResponse createCategoria(CategoriaRequest request, Long idSolicitante)
             throws CategoriaDuplicadaException, CategoriaNoEncontradaException,
             UsuarioNoEncontradoException, AccesoDenegadoException {
@@ -76,6 +99,12 @@ public class CategoriaServiceImpl implements CategoriaService {
         return CategoriaResponse.from(categoriaRepository.save(categoria));
     }
 
+    /**
+     * Pre : el id, el request y el id de quien pide.
+     * Post: la categoria actualizada, movida de lugar si el request traia otro
+     *       padre. Tira JerarquiaInvalidaException si el movimiento armaria un
+     *       ciclo.
+     */
     public CategoriaResponse updateCategoria(Long idCategoria, CategoriaRequest request, Long idSolicitante)
             throws CategoriaNoEncontradaException, JerarquiaInvalidaException,
             CategoriaDuplicadaException, UsuarioNoEncontradoException, AccesoDenegadoException {
@@ -94,6 +123,12 @@ public class CategoriaServiceImpl implements CategoriaService {
         return CategoriaResponse.from(categoriaRepository.save(categoria));
     }
 
+    /**
+     * Pre : el id y el id de quien pide.
+     * Post: nada. Es borrado real. Tira CategoriaConSubcategoriasException o
+     *       CategoriaConProductosException si no esta vacia, porque borrarla
+     *       dejaria registros apuntando a la nada.
+     */
     public void deleteCategoria(Long idCategoria, Long idSolicitante)
             throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException,
             CategoriaConProductosException, UsuarioNoEncontradoException,
@@ -114,6 +149,11 @@ public class CategoriaServiceImpl implements CategoriaService {
         categoriaRepository.deleteById(idCategoria);
     }
 
+    /**
+     * Pre : el id del padre, que puede venir en null.
+     * Post: la entidad, o null si no se indico ninguno. Tira
+     *       CategoriaNoEncontradaException si el id no existe.
+     */
     private Categoria buscarPadre(Long idCategoriaPadre) throws CategoriaNoEncontradaException {
         if (idCategoriaPadre == null)
             return null;
@@ -131,6 +171,12 @@ public class CategoriaServiceImpl implements CategoriaService {
      *
      * idActual permite excluirse a si misma al editar: renombrar una categoria
      * dejandole el mismo nombre no puede ser un duplicado.
+     *
+     * Pre : el nombre, el padre y el id de la propia categoria si se esta
+     *       editando.
+     * Post: nada si el nombre esta libre entre sus hermanas. Tira
+     *       CategoriaDuplicadaException si choca. Se excluye a si misma para
+     *       que renombrarla sin cambiarle el nombre no falle.
      */
     private void validarNombreLibre(String nombre, Categoria padre, Long idActual)
             throws CategoriaDuplicadaException {
@@ -145,6 +191,10 @@ public class CategoriaServiceImpl implements CategoriaService {
             throw new CategoriaDuplicadaException();
     }
 
+    /**
+     * Pre : un padre, que puede ser null.
+     * Post: las categorias que cuelgan de el, o las raices si es null.
+     */
     private List<Categoria> hermanas(Categoria padre) {
         return padre == null
                 ? categoriaRepository.findByCategoriaPadreIsNull()
@@ -154,6 +204,11 @@ public class CategoriaServiceImpl implements CategoriaService {
     /**
      * Impide que una categoria termine siendo antepasado de si misma, que
      * dejaria la jerarquia en un ciclo infinito.
+     *
+     * Pre : la categoria y el padre nuevo.
+     * Post: nada si el movimiento es legal. Tira JerarquiaInvalidaException si
+     *       el padre nuevo es la propia categoria o una de sus descendientes:
+     *       recorre toda la cadena de ancestros, no solo el padre directo.
      */
     private void validarJerarquia(Categoria categoria, Categoria nuevoPadre)
             throws JerarquiaInvalidaException {

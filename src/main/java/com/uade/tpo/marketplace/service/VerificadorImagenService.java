@@ -75,6 +75,12 @@ public class VerificadorImagenService {
     @Value("${marketplace.ia.timeout-segundos:20}")
     private int timeoutSegundos;
 
+    /**
+     * Pre : el nombre de la categoria declarada y los bytes de la imagen.
+     * Post: el veredicto con si coincide, cuanta confianza y que vio. Tira
+     *       excepcion si el servicio no responde, y quien llama decide que
+     *       hacer con eso.
+     */
     public Resultado verificar(byte[] imagen, Categoria categoria) throws Exception {
         byte[] jpeg = preparar(imagen);
 
@@ -108,6 +114,11 @@ public class VerificadorImagenService {
                 textoODefault(d, "mensaje_al_vendedor"));
     }
 
+    /**
+     * Pre : nada.
+     * Post: el RestClient apuntado a Gemini, con los timeouts puestos: una
+     *       imagen puede tardar mas de 40 segundos.
+     */
     private RestClient cliente() {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(Duration.ofSeconds(timeoutSegundos));
@@ -122,6 +133,11 @@ public class VerificadorImagenService {
      * El prompt se arma con la rama de la categoria declarada y los nombres del
      * resto, las dos cosas leidas de la base. Por eso no hay taxonomia fija: si
      * el admin crea una categoria, la siguiente verificacion ya la contempla.
+     *
+     * Pre : la categoria declarada.
+     * Post: el texto que se le manda al modelo, armado leyendo las categorias
+     *       de la base y no de una lista fija: cuando el admin crea una
+     *       categoria nueva, la siguiente verificacion ya la contempla.
      */
     private String construirPrompt(Categoria categoria) {
         List<String> rama = new ArrayList<>();
@@ -170,6 +186,11 @@ public class VerificadorImagenService {
              "mensaje_al_vendedor": "explicacion breve y amable, o null si coincide"}""";
 
     /** Baja la resolucion de la foto antes de mandarla y la normaliza a JPEG. */
+    /**
+     * Pre : los bytes originales.
+     * Post: la imagen achicada a 1024 px y recomprimida como JPEG, para no
+     *       mandar megabytes por la red.
+     */
     private byte[] preparar(byte[] original) throws Exception {
         BufferedImage img = ImageIO.read(new ByteArrayInputStream(original));
         if (img == null)
@@ -194,6 +215,10 @@ public class VerificadorImagenService {
     }
 
     /** El modelo manda el literal null como texto cuando el campo no aplica. */
+    /**
+     * Pre : un texto que puede venir vacio y un valor por defecto.
+     * Post: el texto si tiene contenido, o el default.
+     */
     private String textoODefault(JsonNode d, String campo) {
         JsonNode nodo = d.path(campo);
         if (nodo.isMissingNode() || nodo.isNull())
@@ -204,6 +229,11 @@ public class VerificadorImagenService {
     }
 
     /** A veces el modelo envuelve el JSON en un bloque de codigo. */
+    /**
+     * Pre : la respuesta cruda del modelo.
+     * Post: el JSON sin los delimitadores de bloque de codigo con los que a
+     *       veces lo envuelve.
+     */
     private String limpiar(String texto) {
         String limpio = texto.strip();
         if (limpio.startsWith("```json"))

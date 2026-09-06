@@ -1,7 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.CarritoResponse;
-import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
+import com.uade.tpo.marketplace.controllers.carritos.CarritoResponse;
+import com.uade.tpo.marketplace.controllers.carritos.ItemCarritoRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -17,7 +17,6 @@ import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
-import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
@@ -53,10 +52,17 @@ public class CarritoServiceImpl implements CarritoService {
     @Value("${marketplace.carrito.minutos-vigencia:1440}")
     private long minutosVigencia;
 
+    /**
+     * El carrito de un usuario, visto desde afuera.
+     *
+     * Pre : el id del usuario y el id de quien pregunta.
+     * Post: el carrito con sus items y totales. Lo crea vacio si es la primera
+     *       vez y lo vacia si vencio.
+     */
     @Transactional
-    public CarritoResponse obtenerCarrito(Long idUsuario, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+    public CarritoResponse obtenerCarrito(Long idUsuario)
+            throws UsuarioNoEncontradoException, CuentaInactivaException {
+        autorizacion.validarActivo(idUsuario);
         return CarritoResponse.from(obtenerCarritoEntidad(idUsuario));
     }
 
@@ -65,6 +71,11 @@ public class CarritoServiceImpl implements CarritoService {
      *
      * OrdenDeCompraServiceImpl necesita recorrer los items y descontar stock,
      * asi que no le alcanza con la vista de solo lectura.
+     *
+     * Pre : el id del usuario.
+     * Post: la entidad Carrito, no el DTO: la usan otros services que
+     *       necesitan trabajar sobre los items. Lo crea si no existe y lo
+     *       vacia si vencio.
      */
     @Transactional
     public Carrito obtenerCarritoEntidad(Long idUsuario) throws UsuarioNoEncontradoException {
@@ -77,6 +88,11 @@ public class CarritoServiceImpl implements CarritoService {
         return vaciarSiVencio(carrito);
     }
 
+    /**
+     * Pre : el id de un producto que dejo de estar disponible.
+     * Post: nada. Ese producto queda fuera de todos los carritos donde
+     *       estuviera, con los totales recalculados.
+     */
     @Transactional
     public void quitarDeTodosLosCarritos(Long idProducto) {
         for (ItemCarrito item : itemCarritoRepository.findByProductoId(idProducto)) {
@@ -91,23 +107,36 @@ public class CarritoServiceImpl implements CarritoService {
         }
     }
 
+    /**
+     * Pre : el id del usuario.
+     * Post: nada. Version para uso entre services: vacia sin validar
+     *       pertenencia, porque quien la llama ya valido.
+     */
     @Transactional
     public void vaciarEntidad(Long idUsuario) throws UsuarioNoEncontradoException {
         vaciarCarrito(obtenerCarritoEntidad(idUsuario));
     }
 
+    /**
+     * Carga un producto, o le suma cantidad si ya estaba.
+     *
+     * Pre : el id del usuario, el request con idProducto y cantidad, y el id
+     *       de quien pide.
+     * Post: el carrito con el item y los totales recalculados. No descuenta
+     *       stock: eso pasa en el checkout. Tira ProductoNoEncontradoException
+     *       si no esta publicado, StockInsuficienteException si no alcanza,
+     *       CompraPropiaException si el producto es tuyo.
+     */
     @Transactional
-    public CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request,
-            Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException,
+    public CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request)
+            throws UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException,
             CompraPropiaException, CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException {
-        autorizacion.validarActivo(idSolicitante);
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+        autorizacion.validarActivo(idUsuario);
 
         // El admin entra a los carritos ajenos para moderar, pero no arma el
         // suyo: cargar algo es el primer paso de una compra.
-        autorizacion.validarQueNoSeaAdmin(idSolicitante);
+        autorizacion.validarQueNoSeaAdmin(idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
         // Un producto dado de baja o fuera del catalogo no existe para quien
@@ -156,16 +185,21 @@ public class CarritoServiceImpl implements CarritoService {
         return CarritoResponse.from(carritoRepository.save(carrito));
     }
 
+    /**
+     * Pre : el id del usuario, el id del item, el request con la cantidad
+     *       nueva y el id de quien pide.
+     * Post: el carrito actualizado. Con cantidad cero o negativa el item se
+     *       elimina, que es la diferencia con agregarItem.
+     */
     @Transactional
-    public CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad,
-            Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException,
+    public CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
+            throws UsuarioNoEncontradoException,
             ItemCarritoNoEncontradoException, StockInsuficienteException, CuentaInactivaException {
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+        autorizacion.validarActivo(idUsuario);
 
         // Pedir cero o menos es sacarlo del carrito, no dejar un item vacio.
         if (nuevaCantidad == null || nuevaCantidad <= 0)
-            return eliminarItem(idUsuario, idItem, idSolicitante);
+            return eliminarItem(idUsuario, idItem);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
 
@@ -184,11 +218,16 @@ public class CarritoServiceImpl implements CarritoService {
         return CarritoResponse.from(carritoRepository.save(carrito));
     }
 
+    /**
+     * Pre : el id del usuario, el id del item y el id de quien pide.
+     * Post: el carrito sin ese item. Tira ItemCarritoNoEncontradoException si
+     *       ese item no esta en ese carrito.
+     */
     @Transactional
-    public CarritoResponse eliminarItem(Long idUsuario, Long idItem, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException,
+    public CarritoResponse eliminarItem(Long idUsuario, Long idItem)
+            throws UsuarioNoEncontradoException,
             ItemCarritoNoEncontradoException, CuentaInactivaException {
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+        autorizacion.validarActivo(idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
 
@@ -201,13 +240,22 @@ public class CarritoServiceImpl implements CarritoService {
         return CarritoResponse.from(carritoRepository.save(carrito));
     }
 
+    /**
+     * Pre : el id del usuario y el id de quien pide.
+     * Post: el carrito sin items y con los totales en cero.
+     */
     @Transactional
-    public CarritoResponse vaciar(Long idUsuario, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException {
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+    public CarritoResponse vaciar(Long idUsuario)
+            throws UsuarioNoEncontradoException, CuentaInactivaException {
+        autorizacion.validarActivo(idUsuario);
         return CarritoResponse.from(vaciarCarrito(obtenerCarritoEntidad(idUsuario)));
     }
 
+    /**
+     * Pre : el usuario.
+     * Post: un carrito nuevo ya guardado. Hay uno solo por persona, asi que
+     *       esto corre una vez en la vida de cada cuenta.
+     */
     private Carrito crearCarritoVacio(Usuario usuario) {
         Carrito carrito = new Carrito();
         carrito.setUsuario(usuario);
@@ -218,6 +266,11 @@ public class CarritoServiceImpl implements CarritoService {
 
     /**
      * El carrito no se borra: se vacia. El usuario conserva siempre el mismo.
+     *
+     * Pre : el carrito.
+     * Post: el mismo carrito, vacio si su fechaLimite ya paso. El chequeo es
+     *       perezoso: ocurre cuando alguien lo mira, no cuando se cumple el
+     *       plazo, asi que no hace falta ninguna tarea programada.
      */
     private Carrito vaciarSiVencio(Carrito carrito) {
         boolean vencio = carrito.getFechaLimite() != null
@@ -226,6 +279,11 @@ public class CarritoServiceImpl implements CarritoService {
         return vencio ? vaciarCarrito(carrito) : carrito;
     }
 
+    /**
+     * Pre : el carrito.
+     * Post: el mismo carrito sin items, con los totales en cero y sin fecha de
+     *       vencimiento.
+     */
     private Carrito vaciarCarrito(Carrito carrito) {
         carrito.getItems().clear();
         carrito.setFechaLimite(null);
@@ -237,6 +295,11 @@ public class CarritoServiceImpl implements CarritoService {
     /**
      * Cada modificacion corre la fecha limite hacia adelante. Un carrito vacio
      * no vence porque no hay nada que vaciar.
+     *
+     * Pre : el carrito.
+     * Post: nada. Le corre la fechaLimite los minutos configurados, o la deja
+     *       en null si quedo vacio: una lista sin nada no tiene por que
+     *       vencer.
      */
     private void renovarVigencia(Carrito carrito) {
         carrito.setFechaLimite(carrito.getItems().isEmpty()
@@ -247,6 +310,10 @@ public class CarritoServiceImpl implements CarritoService {
     /**
      * subtotal: suma de precio de lista por cantidad.
      * total: lo mismo, pero aplicando el descuento de cada producto.
+     *
+     * Pre : el carrito.
+     * Post: nada. Deja subtotal como la suma de precio por cantidad, y total
+     *       como lo mismo aplicando el descuento de cada producto.
      */
     private void recalcularTotales(Carrito carrito) {
         BigDecimal subtotal = BigDecimal.ZERO;

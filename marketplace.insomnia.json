@@ -107,26 +107,25 @@
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_1",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Semillas\",\n  \"descripcion\": \"Semilla para siembra, a granel o envasada\"\n}"
       },
-      "metaSortKey": 0
+      "metaSortKey": 0,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_categorias_6",
       "_type": "request",
       "parentId": "fld_admin",
       "name": "Crear subcategoria",
-      "description": "Solo ADMIN. Cuelga de Maquinaria (1). Repetir un nombre que ya usa una hermana, o el del propio padre, da 400.",
+      "description": "Solo ADMIN. Cuelga de Maquinaria (1). Ya existe una hija llamada Tractores, asi que repetir ese nombre da 400.",
       "method": "POST",
       "url": "http://localhost:4002/categorias",
       "headers": [
@@ -135,19 +134,18 @@
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_2",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Cosechadoras\",\n  \"descripcion\": \"Cosechadoras y plataformas\",\n  \"idCategoriaPadre\": 1\n}"
       },
-      "metaSortKey": 1
+      "metaSortKey": 1,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_categorias_7",
@@ -163,19 +161,18 @@
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_3",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Maquinaria\",\n  \"descripcion\": \"Maquinaria agricola en general\"\n}"
       },
-      "metaSortKey": 2
+      "metaSortKey": 2,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_categorias_8",
@@ -186,16 +183,15 @@
       "method": "DELETE",
       "url": "http://localhost:4002/categorias/1",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_4",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 3
+      "metaSortKey": 3,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "fld_usuarios",
@@ -216,7 +212,13 @@
       "headers": [],
       "parameters": [],
       "body": {},
-      "metaSortKey": 1
+      "metaSortKey": 1,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_usuarios_2",
@@ -229,7 +231,13 @@
       "headers": [],
       "parameters": [],
       "body": {},
-      "metaSortKey": 2
+      "metaSortKey": 2,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_usuarios_3",
@@ -266,19 +274,18 @@
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_11",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Gomez\",\n  \"nombreUsuario\": \"anagomez\",\n  \"mail\": \"ana@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Ruta 8 km 45\",\n  \"rol\": \"CLIENTE\"\n}"
       },
-      "metaSortKey": 4
+      "metaSortKey": 4,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_usuarios_5",
@@ -289,16 +296,15 @@
       "method": "DELETE",
       "url": "http://localhost:4002/usuarios/1",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_12",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 5
+      "metaSortKey": 5,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "fld_productos",
@@ -376,12 +382,6 @@
       "metaSortKey": 1.5,
       "parameters": [
         {
-          "id": "pair_idSolicitante_19",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        },
-        {
           "id": "pair_estado_20",
           "name": "estado",
           "value": "BORRADOR",
@@ -389,7 +389,13 @@
           "disabled": true
         }
       ],
-      "description": "Las publicaciones propias, borradores y pausadas incluidas. 404 si el id no existe."
+      "description": "Las publicaciones propias, borradores y pausadas incluidas. 404 si el id no existe.",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_productos_2",
@@ -418,19 +424,18 @@
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_21",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Sembradora Brioschi Autotrailer\",\n  \"precio\": 9800000.0,\n  \"stock\": 2,\n  \"descripcion\": \"Sembradora de 16 lineas a 52 cm\",\n  \"ubicacion\": \"Venado Tuerto\",\n  \"descuento\": 0,\n  \"idCategoria\": 2\n}"
+        "text": "{\n  \"nombre\": \"Sembradora Brioschi Autotrailer\",\n  \"precio\": 9800000.0,\n  \"stock\": 2,\n  \"descripcion\": \"Sembradora de 16 lineas a 52 cm\",\n  \"ubicacion\": \"Venado Tuerto\",\n  \"descuento\": 0,\n  \"idCategoria\": 1\n}"
       },
-      "metaSortKey": 3
+      "metaSortKey": 3,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_productos_4",
@@ -446,19 +451,18 @@
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_22",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Tractor John Deere 5090E\",\n  \"precio\": 18500000.0,\n  \"stock\": 3,\n  \"descripcion\": \"Tractor usado, 3200 horas de uso\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 0,\n  \"idCategoria\": 2\n}"
+        "text": "{\n  \"nombre\": \"Tractor John Deere 5090E\",\n  \"precio\": 18500000.0,\n  \"stock\": 3,\n  \"descripcion\": \"Tractor usado, 3200 horas de uso\",\n  \"ubicacion\": \"Pergamino, Buenos Aires\",\n  \"descuento\": 0,\n  \"idCategoria\": 1\n}"
       },
-      "metaSortKey": 4
+      "metaSortKey": 4,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_productos_estado",
@@ -483,15 +487,15 @@
           "value": "PUBLICADO",
           "description": "",
           "disabled": true
-        },
-        {
-          "id": "pair_idSolicitante_25",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
         }
       ],
-      "description": "Pausar lo saca del catalogo y de todos los carritos. Un BORRADOR no se puede pausar ni publicar a mano: 409, la unica salida es subirle una foto."
+      "description": "Pausar lo saca del catalogo y de todos los carritos. Un BORRADOR no se puede pausar ni publicar a mano: 409, la unica salida es subirle una foto.",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_productos_5",
@@ -502,16 +506,15 @@
       "method": "DELETE",
       "url": "http://localhost:4002/productos/1",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_26",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 6
+      "metaSortKey": 6,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "fld_fotos",
@@ -563,14 +566,7 @@
       "method": "POST",
       "url": "http://localhost:4002/fotos",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_28",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "multipart/form-data",
         "params": [
@@ -588,7 +584,13 @@
           }
         ]
       },
-      "metaSortKey": 3
+      "metaSortKey": 3,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_fotos_contenido",
@@ -621,41 +623,41 @@
       "_type": "request",
       "parentId": "fld_admin",
       "name": "Cola de revision de fotos",
-      "description": "Solo ADMIN. Sin estado devuelve lo que espera decision (EN_REVISION). Con estado se mira lo ya resuelto, que es como el admin revisa si se equivoco al aprobar o rechazar.",
+      "description": "Solo ADMIN. Sin estado devuelve las EN_REVISION, que es la cola de trabajo. Con estado=APROBADA se mira lo ya resuelto.\n\nNo existe RECHAZADA: rechazar borra la foto, no la marca, asi que el enum solo tiene APROBADA y EN_REVISION.\n\nCada foto trae su campo url; ese es el que usa el request 'Ver la foto a moderar' de abajo.",
       "method": "GET",
       "url": "http://localhost:4002/fotos/pendientes",
       "headers": [],
       "parameters": [
         {
-          "id": "pf1",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        },
-        {
-          "id": "pf2",
+          "id": "pf_est_rev",
           "name": "estado",
-          "value": "APROBADA",
+          "value": "EN_REVISION",
           "description": "",
           "disabled": true
         },
         {
-          "id": "pf3",
+          "id": "pf_est_apr",
           "name": "estado",
-          "value": "RECHAZADA",
+          "value": "APROBADA",
           "description": "",
           "disabled": true
         }
       ],
       "body": {},
-      "metaSortKey": 4
+      "metaSortKey": 4,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_fotos_revisar",
       "_type": "request",
       "parentId": "fld_admin",
       "name": "Aprobar o rechazar una foto",
-      "description": "Solo ADMIN. Resuelve a mano lo que quedo EN_REVISION.",
+      "description": "Solo ADMIN. Resuelve a mano lo que quedo EN_REVISION.\n\naprobada=true deja la foto visible y la marca APROBADA.\naprobada=false LA BORRA: no queda marcada como rechazada, desaparece. Si era la ultima del producto, este vuelve a BORRADOR y sale del catalogo.",
       "method": "PUT",
       "url": "http://localhost:4002/fotos/1/revision",
       "headers": [],
@@ -672,16 +674,16 @@
           "value": "false",
           "description": "",
           "disabled": true
-        },
-        {
-          "id": "pair_idSolicitante_8",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
         }
       ],
       "body": {},
-      "metaSortKey": 5
+      "metaSortKey": 5,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_fotos_4",
@@ -692,16 +694,15 @@
       "method": "DELETE",
       "url": "http://localhost:4002/fotos/1",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_29",
-          "name": "idSolicitante",
-          "value": "1",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 8
+      "metaSortKey": 8,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "fld_carrito",
@@ -715,117 +716,112 @@
       "_id": "req_carrito_1",
       "_type": "request",
       "parentId": "fld_carrito",
-      "name": "Obtener carrito",
-      "description": "El carrito es del usuario de la URL. Otro CLIENTE recibe 403; el ADMIN entra. Vence al mes de la ultima vez que se toco, y se vacia solo cuando alguien lo mira despues de vencido.",
+      "name": "Ver mi carrito",
+      "description": "Hay un carrito por usuario y quien pide sale del token: la ruta no lleva ningun id de persona. Se crea vacio la primera vez y se vacia solo si pasaron 30 dias sin tocarlo.",
       "method": "GET",
-      "url": "http://localhost:4002/usuarios/2/carrito",
+      "url": "http://localhost:4002/carrito",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_30",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 1
+      "metaSortKey": 1,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_carrito_2",
       "_type": "request",
       "parentId": "fld_carrito",
-      "name": "Agregar item al carrito",
-      "description": "El comprador 2 carga el producto del vendedor 1. Nadie carga lo suyo (409) y un ADMIN no carga nada (403): puede entrar a los carritos ajenos para moderar, pero no arma el suyo.",
+      "name": "Agregar un producto",
+      "description": "El producto tiene que estar activo y PUBLICADO. Nadie carga lo suyo (409) y un ADMIN no carga nada (403). La respuesta trae el carrito entero con el id de cada item.",
       "method": "POST",
-      "url": "http://localhost:4002/usuarios/2/carrito/items",
+      "url": "http://localhost:4002/carrito/items",
       "headers": [
         {
           "name": "Content-Type",
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_31",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"idProducto\": 1,\n  \"cantidad\": 1\n}"
       },
-      "metaSortKey": 2
+      "metaSortKey": 2,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_carrito_modificar",
       "_type": "request",
       "parentId": "fld_carrito",
-      "name": "Modificar cantidad de un item",
-      "description": "El id del item sale de la respuesta de \"Agregar item\", NO es el id del producto, y cambia cada vez que se vacia el carrito. Aca si vale cantidad 0: elimina.",
+      "name": "Modificar la cantidad de un item",
+      "description": "El id de la URL es el del ITEM, no el del producto, y sale de la respuesta de agregar. Cantidad 0 o menos elimina el item.",
       "method": "PUT",
-      "url": "http://localhost:4002/usuarios/2/carrito/items/1",
+      "url": "http://localhost:4002/carrito/items/1",
       "headers": [
         {
           "name": "Content-Type",
           "value": "application/json"
         }
       ],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_32",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"cantidad\": 2\n}"
       },
-      "metaSortKey": 3
+      "metaSortKey": 3,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_carrito_3",
       "_type": "request",
       "parentId": "fld_carrito",
-      "name": "Eliminar item del carrito",
+      "name": "Sacar un item",
       "description": "Mismo id de item que el request anterior.",
       "method": "DELETE",
-      "url": "http://localhost:4002/usuarios/2/carrito/items/1",
+      "url": "http://localhost:4002/carrito/items/1",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_33",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 4
+      "metaSortKey": 4,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_carrito_4",
       "_type": "request",
       "parentId": "fld_carrito",
-      "name": "Vaciar carrito",
+      "name": "Vaciar el carrito",
       "description": "Saca todos los items de una. El carrito en si no se borra.",
       "method": "DELETE",
-      "url": "http://localhost:4002/usuarios/2/carrito/items",
+      "url": "http://localhost:4002/carrito",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_34",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 5
+      "metaSortKey": 5,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "fld_ordenes",
@@ -844,16 +840,15 @@
       "method": "GET",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_35",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 1
+      "metaSortKey": 1,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_ordenes_2",
@@ -865,12 +860,6 @@
       "url": "http://localhost:4002/ordenes",
       "headers": [],
       "parameters": [
-        {
-          "id": "pair_idSolicitante_36",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        },
         {
           "id": "pair_rol_37",
           "name": "rol",
@@ -886,7 +875,13 @@
         }
       ],
       "body": {},
-      "metaSortKey": 2
+      "metaSortKey": 2,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_ordenes_3",
@@ -897,16 +892,15 @@
       "method": "GET",
       "url": "http://localhost:4002/ordenes/1",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_39",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 3
+      "metaSortKey": 3,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_ordenes_4",
@@ -917,49 +911,48 @@
       "method": "POST",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_40",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "body": {},
-      "metaSortKey": 4
+      "metaSortKey": 4,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_ordenes_5",
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Cambiar estado de la orden",
-      "description": "PAGADA y RECIBIDA las pide el comprador, ENVIADA el vendedor, y el ADMIN cualquiera. CANCELADA repone el stock: desde PENDIENTE o PAGADA la piden las partes, y desde ENVIADA solo el ADMIN, que es quien arbitra si el producto no llego o llego roto. 409 si el salto no existe, tambien para el admin.",
+      "description": "La orden 1 esta en PENDIENTE, asi que el paso valido es PAGADA y lo pide el comprador (lucca@test.com). Despues ENVIADA la pide la vendedora (ana@test.com), y RECIBIDA otra vez el comprador. El ADMIN puede cualquiera. 409 si el salto no existe desde el estado actual.",
       "method": "PUT",
       "url": "http://localhost:4002/ordenes/1/estado",
       "headers": [],
       "parameters": [
         {
-          "id": "pair_estado_41",
+          "id": "p_estado_PAGADA",
           "name": "estado",
-          "value": "RECIBIDA",
+          "value": "PAGADA",
           "description": ""
         },
         {
-          "id": "pair_estado_42",
+          "id": "p_estado_CANCELADA",
           "name": "estado",
           "value": "CANCELADA",
           "description": "",
           "disabled": true
-        },
-        {
-          "id": "pair_idSolicitante_43",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
         }
       ],
       "body": {},
-      "metaSortKey": 5
+      "metaSortKey": 5,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      }
     },
     {
       "_id": "req_ordenes_admin",
@@ -972,16 +965,14 @@
       "url": "http://localhost:4002/ordenes",
       "method": "GET",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_9",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 6,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1002,16 +993,14 @@
       "url": "http://localhost:4002/usuarios/3",
       "method": "DELETE",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_idSolicitante_10",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 7,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1032,16 +1021,14 @@
       "url": "http://localhost:4002/usuarios/3/reactivar",
       "method": "PUT",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_req_admin_reactivar_usuario_0",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 8,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1075,16 +1062,15 @@
           "value": "CLIENTE",
           "description": "",
           "disabled": true
-        },
-        {
-          "id": "pair_req_admin_rol_2",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
         }
       ],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 9,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1107,12 +1093,6 @@
       "body": {},
       "parameters": [
         {
-          "id": "pair_req_admin_catalogo_0",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        },
-        {
           "id": "pair_req_admin_catalogo_1",
           "name": "estado",
           "value": "BORRADOR",
@@ -1121,7 +1101,12 @@
         }
       ],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 10,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1142,16 +1127,14 @@
       "url": "http://localhost:4002/productos/1/reactivar",
       "method": "PUT",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_req_admin_reactivar_producto_0",
-          "name": "idSolicitante",
-          "value": "4",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 11,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1179,21 +1162,19 @@
       "parentId": "fld_wishlist",
       "modified": 0,
       "created": 0,
-      "name": "Ver la wishlist",
-      "description": "Es del usuario de la URL: otro CLIENTE recibe 403. Cada item trae disponible, que resume si hoy se puede comprar: la lista conserva los productos pausados, dados de baja o sin stock, asi que el frontend los muestra apagados en vez de esconderlos.",
-      "url": "http://localhost:4002/usuarios/2/wishlist",
+      "name": "Ver mi wishlist",
+      "description": "Igual que el carrito: sin id en la ruta. Cada item trae disponible, que resume si hoy se puede comprar; la lista conserva los productos pausados o sin stock para poder volver a mirarlos.",
+      "url": "http://localhost:4002/wishlist",
       "method": "GET",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_req_wishlist_1_0",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
       "metaSortKey": 0,
       "isPrivate": false,
       "settingStoreCookies": true,
@@ -1210,21 +1191,170 @@
       "modified": 0,
       "created": 0,
       "name": "Guardar un producto",
-      "description": "Solo el id del producto: la wishlist no tiene cantidades. Guardar algo que ya estaba no hace nada, asi que se puede reintentar sin duplicar. Un BORRADOR o un producto pausado no se pueden guardar (404), pero si se pausan despues el item se queda.",
-      "url": "http://localhost:4002/usuarios/2/wishlist/items",
+      "description": "Solo el id del producto: la wishlist no tiene cantidades. Guardar algo que ya estaba no hace nada.",
+      "url": "http://localhost:4002/wishlist/items",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"idProducto\": 1\n}"
       },
-      "parameters": [
+      "parameters": [],
+      "headers": [
         {
-          "id": "pair_req_wishlist_2_0",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
+          "name": "Content-Type",
+          "value": "application/json"
         }
       ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "metaSortKey": 1,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_wishlist_3",
+      "_type": "request",
+      "parentId": "fld_wishlist",
+      "modified": 0,
+      "created": 0,
+      "name": "Sacar un producto",
+      "description": "El id del item sale de la respuesta de guardar.",
+      "url": "http://localhost:4002/wishlist/items/1",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "metaSortKey": 2,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_wishlist_4",
+      "_type": "request",
+      "parentId": "fld_wishlist",
+      "modified": 0,
+      "created": 0,
+      "name": "Vaciar la wishlist",
+      "description": "Saca todo de una. Al quedar vacia deja de vencer.",
+      "url": "http://localhost:4002/wishlist",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "metaSortKey": 3,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "env_marketplace",
+      "_type": "environment",
+      "parentId": "wrk_marketplace",
+      "modified": 0,
+      "created": 0,
+      "name": "Base",
+      "data": {
+        "base": "http://localhost:4002",
+        "token": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base",
+          "token"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 0
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "parentId": "wrk_marketplace",
+      "modified": 0,
+      "created": 0,
+      "name": "AUTENTICACION",
+      "description": "Las dos unicas rutas que funcionan sin token. Copiar el token que devuelven y pegarlo en la variable de entorno 'token': todos los demas requests lo mandan solos en el header Authorization.",
+      "environment": {},
+      "metaSortKey": -2000000000,
+      "authentication": {}
+    },
+    {
+      "_id": "req_auth_registro",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "modified": 0,
+      "created": 0,
+      "name": "Registrarse",
+      "description": "Crea la cuenta y devuelve el token ya emitido, asi registrarse e iniciar sesion son un solo paso. El campo rol se ignora: todos nacen CLIENTE, y un ADMIN se marca a mano en la base.",
+      "url": "http://localhost:4002/auth/registro",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nombre\": \"Pedro\",\n  \"apellido\": \"Diaz\",\n  \"nombreUsuario\": \"pdiaz2\",\n  \"mail\": \"pdiaz2@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Mitre 1200\",\n  \"rol\": \"CLIENTE\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_auth_login",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "modified": 0,
+      "created": 0,
+      "name": "Iniciar sesion",
+      "description": "Mail y contrasena a cambio de un token que dura 24 horas. Devuelve solo el access_token, como el ejemplo de la catedra: para saber quien sos esta GET /usuarios/me.\n\nCopiar el token y pegarlo en la variable de entorno 'token'.\n\nUsuarios de prueba, todos con contrasena 1234:\n  ana@test.com       CLIENTE, vendedora\n  lucca@test.com     CLIENTE, comprador\n  marcos56@test.com  ADMIN",
+      "url": "http://localhost:4002/auth/login",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"mail\": \"marcos56@test.com\",\n  \"contrasena\": \"1234\"\n}"
+      },
+      "parameters": [],
       "headers": [
         {
           "name": "Content-Type",
@@ -1242,27 +1372,25 @@
       "settingFollowRedirects": "global"
     },
     {
-      "_id": "req_wishlist_3",
+      "_id": "req_usuarios_me",
       "_type": "request",
-      "parentId": "fld_wishlist",
+      "parentId": "fld_usuarios",
       "modified": 0,
       "created": 0,
-      "name": "Sacar un producto",
-      "description": "El id del item sale de la respuesta de guardar, no es el id del producto.",
-      "url": "http://localhost:4002/usuarios/2/wishlist/items/1",
-      "method": "DELETE",
+      "name": "Quien soy",
+      "description": "El complemento del login, que devuelve solo el token. Con esto el frontend sabe a quien saludar y si mostrar el panel de administracion, sin decodificar el JWT por su cuenta. No recibe ningun id: saca el usuario del token. Se lee de la base en cada pedido, asi que refleja un cambio de nombre o de rol sin esperar a que el usuario se vuelva a loguear.",
+      "url": "http://localhost:4002/usuarios/me",
+      "method": "GET",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_req_wishlist_3_0",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
-      "authentication": {},
-      "metaSortKey": 2,
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "metaSortKey": -1,
       "isPrivate": false,
       "settingStoreCookies": true,
       "settingSendCookies": true,
@@ -1272,27 +1400,20 @@
       "settingFollowRedirects": "global"
     },
     {
-      "_id": "req_wishlist_4",
+      "_id": "req_admin_ver_foto",
       "_type": "request",
-      "parentId": "fld_wishlist",
+      "parentId": "fld_admin",
       "modified": 0,
       "created": 0,
-      "name": "Vaciar la wishlist",
-      "description": "Saca todo de una. La lista en si no se borra, y al quedar vacia deja de vencer.",
-      "url": "http://localhost:4002/usuarios/2/wishlist/items",
-      "method": "DELETE",
+      "name": "Ver la foto a moderar",
+      "description": "La imagen en si, para poder decidir si se aprueba. El id sale del campo url de la cola de revision.\n\nInsomnia la muestra en el panel de respuesta: el endpoint devuelve los bytes con su Content-Type, no un JSON.\n\nLa ruta es publica, asi que tambien sirve para el frontend del catalogo. Con /base64 en vez de /contenido viene la misma imagen dentro de un JSON.",
+      "url": "http://localhost:4002/fotos/1/contenido",
+      "method": "GET",
       "body": {},
-      "parameters": [
-        {
-          "id": "pair_req_wishlist_4_0",
-          "name": "idSolicitante",
-          "value": "2",
-          "description": ""
-        }
-      ],
+      "parameters": [],
       "headers": [],
       "authentication": {},
-      "metaSortKey": 3,
+      "metaSortKey": 4.5,
       "isPrivate": false,
       "settingStoreCookies": true,
       "settingSendCookies": true,

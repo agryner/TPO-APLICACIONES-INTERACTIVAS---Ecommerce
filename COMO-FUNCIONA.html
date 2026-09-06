@@ -404,14 +404,14 @@
   <header class="masthead">
     <p class="eyebrow">TPO · Aplicaciones Interactivas</p>
     <h1>Arquitectura del Marketplace Agro</h1>
-    <p class="standfirst">Cómo se conectan las tres capas, qué viaja entre ellas, quién puede hacer qué y qué pasa cuando alguien compra o sube una foto. Referencia completa del backend en Spring Boot, clase por clase.</p>
+    <p class="standfirst">Cómo se conectan las tres capas, qué viaja entre ellas, cómo se autentica cada pedido y qué pasa cuando alguien compra o sube una foto. Referencia completa del backend en Spring Boot, clase por clase.</p>
 
     <dl class="facts">
       <div class="fact"><dt>Stack</dt><dd>Spring Boot 4.1</dd></div>
       <div class="fact"><dt>Java</dt><dd>25</dd></div>
       <div class="fact"><dt>Persistencia</dt><dd>MySQL 8</dd></div>
-      <div class="fact"><dt>Endpoints</dt><dd>35</dd></div>
-      <div class="fact"><dt>Clases</dt><dd>78</dd></div>
+      <div class="fact"><dt>Endpoints</dt><dd>46</dd></div>
+      <div class="fact"><dt>Clases</dt><dd>101</dd></div>
     </dl>
   </header>
 
@@ -423,6 +423,7 @@
       <li><a href="#compra">Flujo de compra</a></li>
       <li><a href="#estados">Estados de la orden</a></li>
       <li><a href="#fotos">Fotos y verificación</a></li>
+      <li><a href="#auth">Autenticación</a></li>
       <li><a href="#permisos">Permisos</a></li>
       <li><a href="#endpoints">Endpoints</a></li>
       <li><a href="#decisiones">Decisiones</a></li>
@@ -515,11 +516,11 @@
         <table>
           <thead><tr><th>Paquete</th><th>Clases</th><th>Responsabilidad</th></tr></thead>
           <tbody>
-            <tr><td><code>controllers</code></td><td>6</td><td>Traducir HTTP a llamadas al service. Cero lógica de negocio.</td></tr>
-            <tr><td><code>service</code></td><td>14</td><td>Las reglas: validaciones, cálculos, transacciones. 6 interfaces + 6 impl + 2 sin interfaz.</td></tr>
+            <tr><td><code>controllers/*</code></td><td>34</td><td>8 controllers, sus 22 DTOs y las 4 clases de seguridad, agrupados por dominio.</td></tr>
+            <tr><td><code>service</code></td><td>17</td><td>Las reglas: validaciones, cálculos, transacciones. 7 interfaces + 7 impl + 3 sin interfaz.</td></tr>
             <tr><td><code>repository</code></td><td>7</td><td>Interfaces de Spring Data. La implementación la genera el framework.</td></tr>
-            <tr><td><code>entity</code></td><td>12</td><td>8 entidades JPA y 4 enums que se guardan como texto.</td></tr>
-            <tr><td><code>entity/dto</code></td><td>17</td><td>Lo que entra y lo que sale. No tienen <code>@Entity</code> ni tabla.</td></tr>
+            <tr><td><code>entity</code></td><td>14</td><td>10 entidades JPA y 4 enums que se guardan como texto.</td></tr>
+            
             <tr><td><code>exceptions</code></td><td>21</td><td>Una por regla de negocio, cada una con su código HTTP en <code>@ResponseStatus</code>.</td></tr>
           </tbody>
         </table>
@@ -537,11 +538,11 @@
       <span class="h2-num">02</span>
       <h2>Mapa del código</h2>
 
-      <p>78 clases, 4.129 líneas. Ninguna hace <code>new</code> de otra: todas declaran sus dependencias como campos <code>final</code> y Spring las inyecta por constructor. La lista completa, paquete por paquete.</p>
+      <p>101 clases. Los controllers y sus DTOs estan agrupados por dominio, y <code>controllers/config</code> guarda las cuatro clases de seguridad. Ninguna clase hace <code>new</code> de otra: todas declaran sus dependencias como campos <code>final</code> y Spring las inyecta por constructor.</p>
 
       <div class="pkg-head">
         <h3><code>controllers</code></h3>
-        <span class="pkg-count">6 clases</span>
+        <span class="pkg-count">8 controllers, en una carpeta por dominio</span>
       </div>
       <p class="pkg-rule">Traducen HTTP a llamadas al service y nada más: cero <code>if</code> de negocio, cero acceso a repositorios.</p>
       <div class="table-scroll">
@@ -552,6 +553,8 @@
             <tr><td class="cls">CategoriasController</td><td>Árbol de categorías. Los tres verbos de escritura exigen <span class="pill pill-admin">ADMIN</span>.</td></tr>
             <tr><td class="cls">ProductosController</td><td>Catálogo público, publicaciones propias y el cambio de estado de una publicación.</td></tr>
             <tr><td class="cls">FotosController</td><td>Subida multipart, metadatos, el binario, el base64 y la cola de revisión.</td></tr>
+            <tr><td class="cls">AutenticacionController</td><td>Las dos rutas que funcionan sin token: registro y login.</td></tr>
+            <tr><td class="cls">WishlistsController</td><td>La lista de deseos. Misma forma que el carrito: la ruta no lleva id de persona.</td></tr>
             <tr><td class="cls">CarritosController</td><td>Cuelga de <code>/usuarios/{id}/carrito</code>: el carrito no tiene ruta propia porque hay uno por persona.</td></tr>
             <tr><td class="cls">OrdenesController</td><td>Cierre del carrito, listado de las órdenes propias y avance de estado.</td></tr>
           </tbody>
@@ -560,7 +563,7 @@
 
       <div class="pkg-head">
         <h3><code>service</code></h3>
-        <span class="pkg-count">14 clases · 6 interfaces + 6 impl + 2 sin interfaz</span>
+        <span class="pkg-count">17 clases · 7 interfaces + 7 impl + 3 sin interfaz</span>
       </div>
       <p class="pkg-rule">Donde viven las reglas. Cada dominio expone una interfaz para que el controller dependa del contrato y no de la implementación.</p>
       <div class="table-scroll">
@@ -573,6 +576,8 @@
             <tr><td class="cls">FotoService / Impl</td><td>Valida el archivo, lo manda a verificar y publica el producto si era su primera foto.</td></tr>
             <tr><td class="cls">CarritoService / Impl</td><td>Items, totales y vencimiento. También saca un producto de todos los carritos cuando deja de estar disponible.</td></tr>
             <tr><td class="cls">OrdenDeCompraService / Impl</td><td>Agrupa el carrito por vendedor, valida stock de todo antes de escribir nada y gobierna la máquina de estados.</td></tr>
+            <tr><td class="cls">WishlistService / Impl</td><td>Guardar productos para mas adelante. Conserva los que salen de circulacion, al reves del carrito.</td></tr>
+            <tr><td class="cls">AutenticacionService</td><td>Registro y login: los dos unicos lugares que emiten tokens. Queda al lado de AutorizacionService, su par natural.</td></tr>
             <tr><td class="cls">AutorizacionService</td><td>Los dos chequeos que se repetían en todos lados: pertenencia y rol ADMIN. No tiene interfaz porque no hay dos implementaciones posibles.</td></tr>
             <tr><td class="cls">VerificadorImagenService</td><td>Le pregunta a Gemini si la foto se corresponde con la categoría declarada. Tampoco tiene interfaz.</td></tr>
           </tbody>
@@ -581,7 +586,7 @@
 
       <div class="pkg-head">
         <h3><code>repository</code></h3>
-        <span class="pkg-count">7 interfaces</span>
+        <span class="pkg-count">8 interfaces</span>
       </div>
       <p class="pkg-rule">Sólo declaran métodos; Spring Data escribe la consulta a partir del nombre. No hay una sola línea de SQL en el proyecto.</p>
       <div class="table-scroll">
@@ -601,7 +606,7 @@
 
       <div class="pkg-head">
         <h3><code>entity</code></h3>
-        <span class="pkg-count">8 entidades + 4 enums</span>
+        <span class="pkg-count">10 entidades + 4 enums</span>
       </div>
       <p class="pkg-rule">El mapeo a las tablas. Los enums se guardan como texto con <code>@Enumerated(STRING)</code>, no como números, para que la base se lea sola.</p>
       <div class="table-scroll">
@@ -612,6 +617,8 @@
             <tr><td class="cls">Categoria</td><td>Se referencia a sí misma: una categoría puede tener padre y tener hijas.</td></tr>
             <tr><td class="cls">Producto</td><td>Once atributos, dos de ellos de estado: <code>activo</code> (baja lógica) y <code>estadoPublicacion</code> (ciclo de vida). Son independientes.</td></tr>
             <tr><td class="cls">Foto</td><td>Metadatos más el <code>byte[]</code> de la imagen en la misma tabla, en una columna <code>LONGBLOB</code>.</td></tr>
+            <tr><td class="cls">Wishlist</td><td>Una por usuario, sin cantidades ni totales y con 8 meses de vigencia.</td></tr>
+            <tr><td class="cls">ItemWishlist</td><td>Un producto guardado. Sin cantidad: querer algo dos veces no significa nada.</td></tr>
             <tr><td class="cls">Carrito</td><td>Uno por usuario, con fecha de vencimiento.</td></tr>
             <tr><td class="cls">ItemCarrito</td><td>Un producto y su cantidad dentro de un carrito.</td></tr>
             <tr><td class="cls">OrdenDeCompra</td><td>Guarda comprador y vendedor: una orden es siempre entre dos personas.</td></tr>
@@ -625,8 +632,8 @@
       </div>
 
       <div class="pkg-head">
-        <h3><code>entity/dto</code></h3>
-        <span class="pkg-count">17 clases</span>
+        <h3><code>DTOs</code></h3>
+        <span class="pkg-count">22 clases, junto al controller de su dominio</span>
       </div>
       <p class="pkg-rule">Lo que cruza la frontera HTTP. Los <code>Request</code> no tienen <code>id</code>, así que nadie puede pisar el de otro registro; los <code>Response</code> no tienen <code>contrasena</code>, así que no puede filtrarse en un listado anidado.</p>
       <div class="table-scroll">
@@ -635,7 +642,7 @@
           <tbody>
             <tr><td class="cls">UsuarioRequest / Response</td><td>El request trae <code>contrasena</code>; el response ni siquiera tiene el campo.</td></tr>
             <tr><td class="cls">CategoriaRequest / Response</td><td>El request lleva <code>idCategoriaPadre</code>; el response devuelve el padre ya resuelto.</td></tr>
-            <tr><td class="cls">ProductoRequest</td><td>Sin <code>id</code> y sin vendedor: el vendedor sale de <code>idSolicitante</code>, no del body.</td></tr>
+            <tr><td class="cls">ProductoRequest</td><td>Sin <code>id</code> y sin vendedor: el vendedor sale del token, no del body.</td></tr>
             <tr><td class="cls">ProductoResponse</td><td>Producto con su categoría, su vendedor y sus fotos ya aplanados.</td></tr>
             <tr><td class="cls">ProductoCreadoResponse</td><td>Respuesta del alta. Además del producto trae el aviso de que falta subir la primera foto.</td></tr>
             <tr><td class="cls">FotoUploadRequest</td><td>Se completa desde un formulario <code>multipart/form-data</code>, no desde un JSON.</td></tr>
@@ -653,7 +660,7 @@
 
       <div class="pkg-head">
         <h3><code>exceptions</code></h3>
-        <span class="pkg-count">21 clases</span>
+        <span class="pkg-count">27 clases</span>
       </div>
       <p class="pkg-rule">Una excepción por regla de negocio — 21, una por cada regla — cada una con su código en <code>@ResponseStatus</code>. Ningún service atrapa ninguna: Spring las traduce sola antes de responder.</p>
       <div class="table-scroll">
@@ -670,7 +677,7 @@
 
       <div class="note">
         <p class="note-title">La clase que falta</p>
-        <p>No hay ninguna clase de configuración ni de seguridad. Todo el control de acceso vive en <code>AutorizacionService</code>, que hoy se apoya en el <code>idSolicitante</code> que manda el cliente. El día que entre JWT, ese id sale del token y ese archivo es el único que cambia.</p>
+        <p>La seguridad vive en <code>controllers/config</code>: <code>SecurityConfig</code> decide qué rutas piden token, <code>JwtAuthenticationFilter</code> resuelve la identidad en cada request, <code>JwtService</code> firma y verifica, y <code>ApplicationConfig</code> declara los cuatro beans que Spring Security necesita para autenticar. El control de acceso propiamente dicho sigue en <code>AutorizacionService</code>, que no se enteró de que ahora el id viene de un token.</p>
       </div>
     </section>
 
@@ -956,12 +963,131 @@
       <p>Las que quedan en revisión aparecen en <code>GET /fotos/pendientes</code>, que sólo puede consultar un admin, y se resuelven con <code>PUT /fotos/{id}/revision</code>: aprobarla la deja visible, rechazarla la elimina.</p>
     </section>
 
+
+    <!-- ============ AUTENTICACION ============ -->
+    <section id="auth">
+      <span class="h2-num">07</span>
+      <h2>Cómo se autentica cada pedido</h2>
+
+      <p>Antes, quien pedía una operación se identificaba con un <code>?idSolicitante=4</code> en la URL. No había nada que impidiera mandar el id de otro: era una convención, no una defensa. Ahora esa respuesta la da un <strong>papel firmado por el servidor</strong> que el cliente no puede falsificar.</p>
+
+      <figure>
+        <svg viewBox="0 0 900 300" role="img" aria-label="Diagrama del flujo de autenticación: el login emite un token firmado, y en cada request el filtro lo verifica y deja al usuario en el contexto de seguridad antes de que corra el controller.">
+          <defs>
+            <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--line-strong)"/>
+            </marker>
+          </defs>
+
+          <text class="svg-sub" x="14" y="20">UNA VEZ &mdash; AL LOGUEARSE</text>
+          <line class="svg-tick" x1="14" y1="30" x2="880" y2="30"/>
+
+          <rect class="svg-box" x="14" y="46" width="150" height="46" rx="3"/>
+          <text class="svg-label" x="89" y="66" text-anchor="middle">POST /auth/login</text>
+          <text class="svg-sub" x="89" y="82" text-anchor="middle">mail + contraseña</text>
+
+          <line class="svg-line" x1="166" y1="69" x2="242" y2="69" marker-end="url(#ar3)"/>
+
+          <rect class="svg-box-accent" x="244" y="46" width="176" height="46" rx="3"/>
+          <text class="svg-label" x="332" y="66" text-anchor="middle">AuthenticationManager</text>
+          <text class="svg-sub" x="332" y="82" text-anchor="middle">compara contra el hash BCrypt</text>
+
+          <line class="svg-line" x1="422" y1="69" x2="498" y2="69" marker-end="url(#ar3)"/>
+
+          <rect class="svg-box-accent" x="500" y="46" width="150" height="46" rx="3"/>
+          <text class="svg-label" x="575" y="66" text-anchor="middle">JwtService</text>
+          <text class="svg-sub" x="575" y="82" text-anchor="middle">firma el token</text>
+
+          <line class="svg-line-accent" x1="652" y1="69" x2="728" y2="69" marker-end="url(#ar3)"/>
+
+          <rect class="svg-box" x="730" y="46" width="150" height="46" rx="3"/>
+          <text class="svg-label" x="805" y="66" text-anchor="middle">access_token</text>
+          <text class="svg-sub" x="805" y="82" text-anchor="middle">dura 24 horas</text>
+
+          <text class="svg-sub" x="14" y="140">EN CADA REQUEST</text>
+          <line class="svg-tick" x1="14" y1="150" x2="880" y2="150"/>
+
+          <rect class="svg-box" x="14" y="166" width="150" height="46" rx="3"/>
+          <text class="svg-label" x="89" y="186" text-anchor="middle">GET /ordenes</text>
+          <text class="svg-sub" x="89" y="202" text-anchor="middle">Authorization: Bearer …</text>
+
+          <line class="svg-line" x1="166" y1="189" x2="242" y2="189" marker-end="url(#ar3)"/>
+
+          <rect class="svg-box-accent" x="244" y="166" width="176" height="46" rx="3"/>
+          <text class="svg-label" x="332" y="186" text-anchor="middle">JwtAuthenticationFilter</text>
+          <text class="svg-sub" x="332" y="202" text-anchor="middle">verifica la firma</text>
+
+          <line class="svg-line" x1="422" y1="189" x2="498" y2="189" marker-end="url(#ar3)"/>
+
+          <rect class="svg-box-accent" x="500" y="166" width="150" height="46" rx="3"/>
+          <text class="svg-label" x="575" y="186" text-anchor="middle">SecurityContext</text>
+          <text class="svg-sub" x="575" y="202" text-anchor="middle">queda el Usuario</text>
+
+          <line class="svg-line" x1="652" y1="189" x2="728" y2="189" marker-end="url(#ar3)"/>
+
+          <rect class="svg-box" x="730" y="166" width="150" height="46" rx="3"/>
+          <text class="svg-label" x="805" y="186" text-anchor="middle">el controller</text>
+          <text class="svg-sub" x="805" y="202" text-anchor="middle">ya sabe quién es</text>
+
+          <text class="svg-edge" x="332" y="240">si no hay token, o venció, o la firma no cierra:</text>
+          <text class="svg-edge" x="332" y="256">el contexto queda vacío y decide SecurityConfig</text>
+        </svg>
+        <figcaption>El filtro no rechaza a nadie: sólo resuelve la identidad. Quién puede pasar sin ella lo decide <code>SecurityConfig</code>, y esa división es la que permite que convivan rutas públicas y privadas sin un solo <code>if</code>.</figcaption>
+      </figure>
+
+      <h3>Qué es exactamente un token</h3>
+
+      <p>Tres partes separadas por puntos:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Parte</th><th>Qué es</th></tr></thead>
+          <tbody>
+            <tr><td><code>eyJhbGciOiJIUzUxMiJ9</code></td><td>header: qué algoritmo firma</td></tr>
+            <tr><td><code>eyJzdWIiOiJhbmFAdGVzdC5jb20i…</code></td><td>payload: el mail y las fechas</td></tr>
+            <tr><td><code>s33zCk1Li1puGFXN8COUyik…</code></td><td>firma: <code>HMAC-SHA512(header+payload, clave)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Las dos primeras son <strong>JSON en Base64 y se leen sin ninguna clave</strong>. Pegá un token en jwt.io y vas a ver el mail en texto claro. Un JWT <strong>no oculta: garantiza que no lo tocaron</strong>. Cualquiera puede leerlo, pero sólo el servidor puede fabricar uno o cambiarle una coma sin romper la firma. Por eso adentro va el mail y el vencimiento, y nunca la contraseña.</p>
+
+      <div class="note">
+        <p class="note-title">El token no se guarda en ningún lado</p>
+        <p>El servidor no lleva registro de los emitidos. Que uno sea válido se decide verificando la firma y la fecha, no buscándolo en una tabla — por eso la API no necesita sesión y escala sin estado compartido. La contracara es que <strong>no se puede invalidar un token antes de que venza</strong>: si alguien lo roba, sirve hasta que se cumplan las 24 horas. Resolverlo pediría una lista negra, que es justo el estado que se quiso evitar.</p>
+      </div>
+
+      <h3>Lo que cambió, y lo que no</h3>
+
+      <p>Los 46 endpoints dejaron de recibir <code>idSolicitante</code>. En su lugar los controllers declaran <code>@AuthenticationPrincipal Usuario usuario</code>, que Spring completa con lo que dejó el filtro.</p>
+
+      <p><strong>La capa de servicio no se tocó.</strong> <code>AutorizacionService</code> sigue recibiendo un <code>Long</code> y aplicando las mismas reglas; lo único que cambió es de dónde sale ese número. Era la apuesta que estaba escrita en su comentario desde el principio, y se pudo verificar con un <code>git diff</code>: entre los 17 archivos de <code>service</code>, el único cambio que no fue un import es el hasheo con BCrypt.</p>
+
+      <p>Las contraseñas se guardan con <strong>BCrypt</strong>, que agrega una sal distinta a cada hash y es lento a propósito para que probarlas por fuerza bruta no rinda. Nunca se desencripta: para verificar un login se hashea lo que llega y se comparan los hashes.</p>
+
+      <h3>Dos errores que aparecieron al cerrar la puerta</h3>
+
+      <p><strong>Sin token, la API devolvía 403.</strong> Es el valor por defecto de Spring cuando no hay un <code>AuthenticationEntryPoint</code> declarado, y está mal: 403 significa <em>«sé quién sos y no podés»</em>, mientras que no tener token es <em>«no sé quién sos»</em>, o sea 401.</p>
+
+      <p><strong>Arreglar eso destapó algo peor: todos los errores salían como 401.</strong> Un mail duplicado que debía ser 400, un 403 de pertenencia, un 409 de categoría repetida. La causa es que cuando un controller lanza una excepción, Spring hace un <em>dispatch interno</em> a <code>/error</code>, y esa ruta caía en el <code>anyRequest().authenticated()</code>. Se resuelve con una línea:</p>
+
+      <div class="table-scroll">
+        <table>
+          <tbody>
+            <tr><td><code>.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Con el entry point viejo el bug estaba tapado, porque el 403 que devolvía coincidía por casualidad con lo que varias pruebas esperaban. Sólo apareció al corregir el 401.</p>
+    </section>
+
     <!-- ============ PERMISOS ============ -->
     <section id="permisos">
-      <span class="h2-num">07</span>
+      <span class="h2-num">08</span>
       <h2>Quién puede hacer qué</h2>
 
-      <p>Todavía no hay autenticación, así que el id de quien pide la operación viaja como query param <code>idSolicitante</code>. Es un control de permisos, no una autenticación: cualquiera podría mandar el id de un admin. Cuando se sume JWT, ese id sale del token y ninguna validación cambia.</p>
+      <p>El id de quien pide la operación sale del <strong>token</strong>, no de la URL. Los controllers lo reciben con <code>@AuthenticationPrincipal</code> y se lo pasan a los services, que no se enteraron del cambio: siguen recibiendo un <code>Long</code> y decidiendo con las mismas reglas que cuando venía por query param.</p>
 
       <p>Hay <strong>dos reglas distintas</strong>, y conviene no mezclarlas. La <strong>pertenencia</strong> pregunta si el recurso es tuyo y no mira el rol para nada; el <strong>rol</strong> pregunta si sos ADMIN y no mira de quién es la cosa. Viven en el mismo archivo pero en métodos separados: <code>validarDuenio</code> y <code>validarAdmin</code>.</p>
 
@@ -998,53 +1124,61 @@
 
     <!-- ============ ENDPOINTS ============ -->
     <section id="endpoints">
-      <span class="h2-num">08</span>
-      <h2>Los 35 endpoints</h2>
+      <span class="h2-num">09</span>
+      <h2>Los 46 endpoints</h2>
+
+      <p>Todo lo que no diga <span class="pill">público</span> necesita el header <code>Authorization: Bearer &lt;token&gt;</code>.</p>
 
       <div class="table-scroll">
         <table>
           <thead><tr><th></th><th>Ruta</th><th>Qué hace</th></tr></thead>
           <tbody>
-            <tr><td><span class="verb">GET</span></td><td><code>/categorias</code></td><td>Listar. Con <code>?soloRaices=true</code>, sólo las de primer nivel</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/categorias/{id}</code></td><td>Una categoría</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/categorias/{id}/subcategorias</code></td><td>Sus hijas directas</td></tr>
+            <tr><td><span class="verb verb-post">POST</span></td><td><code>/auth/registro</code></td><td>Crea la cuenta y devuelve el token <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb verb-post">POST</span></td><td><code>/auth/login</code></td><td>Mail y contrasena a cambio del token <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/usuarios/me</code></td><td>Quien soy, segun el token</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/categorias</code></td><td>Listar. Con <code>?soloRaices=true</code>, solo las de primer nivel <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/categorias/{id}</code></td><td>Una categoria <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/categorias/{id}/subcategorias</code></td><td>Sus hijas directas <span class="pill">público</span></td></tr>
             <tr><td><span class="verb verb-post">POST</span></td><td><code>/categorias</code></td><td>Alta <span class="pill pill-admin">ADMIN</span></td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/categorias/{id}</code></td><td>Editar o mover en el árbol <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/categorias/{id}</code></td><td>Editar o mover en el arbol <span class="pill pill-admin">ADMIN</span></td></tr>
             <tr><td><span class="verb verb-del">DEL</span></td><td><code>/categorias/{id}</code></td><td>Baja. 409 si tiene hijas o productos <span class="pill pill-admin">ADMIN</span></td></tr>
-
-            <tr><td><span class="verb">GET</span></td><td><code>/productos</code></td><td>Catálogo público: sólo activos y PUBLICADOS, con filtros combinables y orden por precio</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/productos</code></td><td>Catalogo con filtros; la categoria incluye sus descendientes <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/productos/{id}</code></td><td>Un producto, con categoria, vendedor y fotos <span class="pill">público</span></td></tr>
             <tr><td><span class="verb">GET</span></td><td><code>/productos/mis-publicaciones</code></td><td>Las propias, borradores y pausadas incluidas</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/productos/{id}</code></td><td>Un producto, con categoría, vendedor y fotos</td></tr>
-            <tr><td><span class="verb verb-post">POST</span></td><td><code>/productos</code></td><td>Alta. Nace en BORRADOR: no aparece hasta que tenga una foto</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/productos/todos</code></td><td>El catalogo entero, sin los filtros del comprador <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-post">POST</span></td><td><code>/productos</code></td><td>Alta. Nace en BORRADOR: no aparece hasta tener una foto</td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}</code></td><td>Editar</td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}/estado</code></td><td>Pausar o reanudar. Al pausar sale de todos los carritos</td></tr>
-            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/productos/{id}</code></td><td>Baja lógica: sale del catálogo, la orden lo conserva</td></tr>
-
-            <tr><td><span class="verb">GET</span></td><td><code>/usuarios</code></td><td>Listar los activos, sin contraseña</td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}/estado</code></td><td>Pausar o reanudar. Al pausar sale de los carritos</td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}/reactivar</code></td><td>Devuelve al catalogo uno dado de baja</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/productos/{id}</code></td><td>Baja logica: sale del catalogo, la orden lo conserva</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/usuarios</code></td><td>Listar los activos, sin contrasena</td></tr>
             <tr><td><span class="verb">GET</span></td><td><code>/usuarios/{id}</code></td><td>Un usuario</td></tr>
-            <tr><td><span class="verb verb-post">POST</span></td><td><code>/usuarios</code></td><td>Alta. 400 si el mail o el nombre ya existen</td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}</code></td><td>Editar</td></tr>
-            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/{id}</code></td><td>Baja lógica: el historial de órdenes sobrevive</td></tr>
-
-            <tr><td><span class="verb">GET</span></td><td><code>/usuarios/{id}/carrito</code></td><td>El carrito, vaciado si venció</td></tr>
-            <tr><td><span class="verb verb-post">POST</span></td><td><code>/usuarios/{id}/carrito/items</code></td><td>Agregar. Acumula si ya estaba</td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}/carrito/items/{item}</code></td><td>Cambiar cantidad. Cero o menos lo elimina</td></tr>
-            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/{id}/carrito/items/{item}</code></td><td>Sacar un ítem</td></tr>
-            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/{id}/carrito/items</code></td><td>Vaciar</td></tr>
-
-            <tr><td><span class="verb">GET</span></td><td><code>/ordenes</code></td><td>Sólo las del solicitante. Con <code>?rol=</code> se mira una punta; el ADMIN sin rol las ve todas</td></tr>
+            <tr><td><span class="verb verb-post">POST</span></td><td><code>/usuarios</code></td><td>Alta sin token de vuelta; para eso esta /auth/registro <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}</code></td><td>Editar. El rol no se toca desde el body</td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}/reactivar</code></td><td>Vuelve a poner en circulacion una cuenta <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}/rol</code></td><td>Promueve o degrada <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/{id}</code></td><td>Baja logica: el historial de ordenes sobrevive</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/carrito</code></td><td>Mi carrito, vaciado si vencio</td></tr>
+            <tr><td><span class="verb verb-post">POST</span></td><td><code>/carrito/items</code></td><td>Agregar. Acumula si ya estaba</td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/carrito/items/{item}</code></td><td>Cambiar cantidad. Cero o menos lo elimina</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/carrito/items/{item}</code></td><td>Sacar un item</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/carrito</code></td><td>Vaciar</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/wishlist</code></td><td>Lo guardado para mas adelante</td></tr>
+            <tr><td><span class="verb verb-post">POST</span></td><td><code>/wishlist/items</code></td><td>Guardar un producto. Idempotente</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/wishlist/items/{item}</code></td><td>Sacar uno</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/wishlist</code></td><td>Vaciar</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/ordenes</code></td><td>Solo las del solicitante. El ADMIN las ve todas</td></tr>
             <tr><td><span class="verb">GET</span></td><td><code>/ordenes/{id}</code></td><td>Una orden con sus renglones. 403 si no sos parte</td></tr>
             <tr><td><span class="verb verb-post">POST</span></td><td><code>/ordenes</code></td><td>Cerrar el carrito. Devuelve una orden por vendedor</td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/ordenes/{id}/estado</code></td><td>Avanzar el estado, según quién lo pida</td></tr>
-
-            <tr><td><span class="verb">GET</span></td><td><code>/fotos?idProducto=</code></td><td>Fotos de un producto</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/fotos/{id}</code></td><td>Metadatos de una foto</td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/ordenes/{id}/estado</code></td><td>Avanzar el estado, segun quien lo pida</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/fotos?idProducto=</code></td><td>Fotos de un producto <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/fotos/{id}</code></td><td>Metadatos de una foto <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/fotos/{id}/contenido</code></td><td>La imagen cruda, servible en un <code>&lt;img&gt;</code> <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/fotos/{id}/base64</code></td><td>La misma imagen dentro de un JSON <span class="pill">público</span></td></tr>
             <tr><td><span class="verb verb-post">POST</span></td><td><code>/fotos</code></td><td>Subir. Verifica con IA antes de guardar</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/fotos/{id}/contenido</code></td><td>La imagen cruda, servible en un <code>&lt;img&gt;</code></td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/fotos/{id}/base64</code></td><td>La misma imagen dentro de un JSON</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/fotos/pendientes</code></td><td>Cola de revisión <span class="pill pill-admin">ADMIN</span></td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/fotos/{id}/revision</code></td><td>Aprobar o eliminar <span class="pill pill-admin">ADMIN</span></td></tr>
-            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/fotos/{id}</code></td><td>Borrado real. Si era la última, el producto vuelve a BORRADOR</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/fotos/pendientes</code></td><td>Cola de revision; con <code>?estado=</code> lo ya resuelto <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/fotos/{id}/revision</code></td><td>Aprobar, o rechazar y borrarla <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/fotos/{id}</code></td><td>Borrado real. Si era la ultima, vuelve a BORRADOR</td></tr>
           </tbody>
         </table>
       </div>
@@ -1052,7 +1186,7 @@
 
     <!-- ============ DECISIONES ============ -->
     <section id="decisiones">
-      <span class="h2-num">09</span>
+      <span class="h2-num">10</span>
       <h2>Decisiones y por qué</h2>
 
       <p>Las cosas que alguien podría preguntar en la defensa, con la respuesta corta.</p>
@@ -1102,7 +1236,7 @@
 
       <h3>Lo que queda pendiente</h3>
       <ul>
-        <li><strong>Autenticación.</strong> Todo el control de permisos se apoya en un <code>idSolicitante</code> que el cliente manda a mano. Las reglas ya están escritas; lo que falta es que ese id venga de un token y no del query string.</li>
+        <li><strong>Invalidar un token antes de que venza.</strong> Como no se guardan, no hay forma de revocar uno robado: sirve las 24 horas completas. Haría falta una lista negra, que es justo el estado compartido que la API evita.</li>
         <li><strong>Manejo centralizado de errores.</strong> Sin <code>@RestControllerAdvice</code>, una violación de integridad inesperada expone el SQL y el nombre del constraint.</li>
         <li><strong>Paginación.</strong> Todos los listados devuelven la colección completa.</li>
         <li><strong>Bloqueo pesimista en el stock.</strong> Dos compras simultáneas del último producto pueden dejar stock negativo.</li>

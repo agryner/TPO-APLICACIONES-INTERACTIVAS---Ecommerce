@@ -1,12 +1,11 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.CarritoResponse;
-import com.uade.tpo.marketplace.entity.dto.ItemCarritoRequest;
+import com.uade.tpo.marketplace.controllers.carritos.CarritoResponse;
+import com.uade.tpo.marketplace.controllers.carritos.ItemCarritoRequest;
 import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
-import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
@@ -24,7 +23,7 @@ public interface CarritoService {
      * Devuelve el carrito del usuario. Si nunca tuvo uno, se lo crea vacio.
      * Si el carrito venció, se devuelve vacio.
      */
-    CarritoResponse obtenerCarrito(Long idUsuario, Long idSolicitante) throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException;
+    CarritoResponse obtenerCarrito(Long idUsuario) throws UsuarioNoEncontradoException, CuentaInactivaException;
 
     /**
      * Version para uso entre services: devuelve la entidad en vez del DTO,
@@ -48,8 +47,8 @@ public interface CarritoService {
      */
     void vaciarEntidad(Long idUsuario) throws UsuarioNoEncontradoException;
 
-    CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException,
+    CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request)
+            throws UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException, CompraPropiaException,
             CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException;
 
@@ -57,13 +56,12 @@ public interface CarritoService {
      * Cambia la cantidad de un item ya cargado. Una cantidad nula o menor o
      * igual a cero equivale a sacar el item del carrito.
      */
-    CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad,
-            Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,
+    CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
+            throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,
             StockInsuficienteException, CuentaInactivaException;
 
-    CarritoResponse eliminarItem(Long idUsuario, Long idItem, Long idSolicitante)
-            throws OperacionAjenaException, UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, CuentaInactivaException;
+    CarritoResponse eliminarItem(Long idUsuario, Long idItem)
+            throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, CuentaInactivaException;
 
-    CarritoResponse vaciar(Long idUsuario, Long idSolicitante) throws OperacionAjenaException, UsuarioNoEncontradoException, CuentaInactivaException;
+    CarritoResponse vaciar(Long idUsuario) throws UsuarioNoEncontradoException, CuentaInactivaException;
 }

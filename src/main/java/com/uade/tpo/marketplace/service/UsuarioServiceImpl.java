@@ -1,9 +1,10 @@
 package com.uade.tpo.marketplace.service;
 
-import com.uade.tpo.marketplace.entity.dto.UsuarioRequest;
-import com.uade.tpo.marketplace.entity.dto.UsuarioResponse;
+import com.uade.tpo.marketplace.controllers.usuarios.UsuarioRequest;
+import com.uade.tpo.marketplace.controllers.usuarios.UsuarioResponse;
 import java.util.List;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,9 +35,14 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
+    private final PasswordEncoder passwordEncoder;
     private final ProductoRepository productoRepository;
     private final CarritoService carritoService;
 
+    /**
+     * Pre : nada.
+     * Post: los usuarios activos, sin los dados de baja.
+     */
     public List<UsuarioResponse> getUsuarios() {
         return usuarioRepository.findAll().stream()
                 .filter(Usuario::getActivo)
@@ -44,12 +50,22 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .toList();
     }
 
+    /**
+     * Pre : el id.
+     * Post: el usuario, este activo o no.
+     */
     public UsuarioResponse getUsuarioById(Long idUsuario) throws UsuarioNoEncontradoException {
         return usuarioRepository.findById(idUsuario)
                 .map(UsuarioResponse::from)
                 .orElseThrow(UsuarioNoEncontradoException::new);
     }
 
+    /**
+     * Pre : el request con los datos de la cuenta.
+     * Post: el usuario creado, con la contrasena hasheada y el rol forzado a
+     *       CLIENTE. Tira UsuarioDuplicadoException si el mail o el nombre de
+     *       usuario ya estan tomados.
+     */
     public UsuarioResponse createUsuario(UsuarioRequest request) throws UsuarioDuplicadoException {
         if (usuarioRepository.findByMail(request.getMail()).isPresent()
                 || usuarioRepository.findByNombreUsuario(request.getNombreUsuario()).isPresent())
@@ -65,6 +81,11 @@ public class UsuarioServiceImpl implements UsuarioService {
         return UsuarioResponse.from(usuarioRepository.save(usuario));
     }
 
+    /**
+     * Pre : el id, el request y el id de quien pide.
+     * Post: el usuario actualizado, con la contrasena vuelta a hashear. El rol
+     *       no se toca desde aca.
+     */
     public UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request, Long idSolicitante)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         autorizacion.validarDuenio(idSolicitante, idUsuario);
@@ -94,6 +115,11 @@ public class UsuarioServiceImpl implements UsuarioService {
      * arrastro, pero entre ellas pueden estar las que el vendedor habia dado de
      * baja antes por su cuenta, y resucitarlas seria decidir por el. Cada
      * producto se reactiva por separado.
+     *
+     * Pre : el id y el id de quien pide, que tiene que ser ADMIN.
+     * Post: el usuario activo otra vez. No reactiva sus publicaciones a
+     *       proposito: entre ellas pueden estar las que el mismo habia dado de
+     *       baja.
      */
     @Transactional
     public UsuarioResponse reactivarUsuario(Long idUsuario, Long idSolicitante)
@@ -114,6 +140,12 @@ public class UsuarioServiceImpl implements UsuarioService {
      * El rol no viaja nunca en el body de un alta ni de una edicion: si viajara,
      * cualquiera se haria administrador. Por eso es un endpoint aparte, y solo
      * para ADMIN.
+     *
+     * Pre : el id, el rol destino y el id de quien pide, que tiene que ser
+     *       ADMIN.
+     * Post: el usuario con el rol nuevo. Tira CambioDeRolInvalidoException si
+     *       un admin intenta degradarse a si mismo: si el ultimo se saca el
+     *       rol, no queda quien promueva a nadie.
      */
     @Transactional
     public UsuarioResponse cambiarRol(Long idUsuario, TipoUsuario rol, Long idSolicitante)
@@ -134,6 +166,12 @@ public class UsuarioServiceImpl implements UsuarioService {
         return UsuarioResponse.from(usuarioRepository.save(usuario));
     }
 
+    /**
+     * Pre : el id y el id de quien pide.
+     * Post: nada. Baja logica que arrastra las publicaciones del usuario:
+     *       salen del catalogo y de los carritos ajenos. Las ordenes se
+     *       conservan.
+     */
     public void deleteUsuario(Long idUsuario, Long idSolicitante)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         // Cada uno da de baja su propia cuenta; el ADMIN, la de cualquiera.
@@ -159,12 +197,21 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
     }
 
+    /**
+     * Pre : el usuario y el request.
+     * Post: nada. Vuelca los campos sobre la entidad hasheando la contrasena.
+     *       No copia el rol.
+     */
     private void copiarDatos(Usuario usuario, UsuarioRequest request) {
         usuario.setNombre(request.getNombre());
         usuario.setApellido(request.getApellido());
         usuario.setNombreUsuario(request.getNombreUsuario());
         usuario.setMail(request.getMail());
-        usuario.setContrasena(request.getContrasena());
+        // Se guarda hasheada, nunca en claro. BCrypt no se puede revertir: para
+        // verificar un login se hashea lo que llega y se comparan los hashes.
+        // Vale tanto para el alta como para la edicion, porque en las dos lo que
+        // entra por el body es la contrasena que el usuario escribio.
+        usuario.setContrasena(passwordEncoder.encode(request.getContrasena()));
         usuario.setDireccion(request.getDireccion());
     }
 }
