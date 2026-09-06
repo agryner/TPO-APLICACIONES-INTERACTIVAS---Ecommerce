@@ -1,36 +1,30 @@
 package com.uade.tpo.marketplace.controllers.usuarios;
 
-import com.uade.tpo.marketplace.controllers.common.MensajeResponse;
-import com.uade.tpo.marketplace.controllers.usuarios.UsuarioRequest;
-import com.uade.tpo.marketplace.controllers.usuarios.UsuarioResponse;
-import com.uade.tpo.marketplace.entity.TipoUsuario;
-import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.controllers.common.MensajeResponse;
+import com.uade.tpo.marketplace.entity.TipoUsuario;
+import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CambioDeRolInvalidoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
-import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
+import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.service.UsuarioService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.uade.tpo.marketplace.entity.Usuario;
 
 /**
  * Endpoints REST de usuarios.
@@ -97,12 +91,6 @@ public class UsuariosController {
      *       rol se fuerza a CLIENTE. Hace lo mismo que /auth/registro pero sin
      *       devolver el token.
      */
-    @PostMapping
-    public ResponseEntity<Object> createUsuario(@Valid @RequestBody UsuarioRequest request)
-            throws UsuarioDuplicadoException {
-        UsuarioResponse result = usuarioService.createUsuario(request);
-        return ResponseEntity.created(URI.create("/usuarios/" + result.getId())).body(result);
-    }
 
     /**
      * Cambia los datos de una cuenta.
