@@ -41,6 +41,8 @@ Los controllers están agrupados por dominio, siguiendo el ejemplo de la cátedr
 | `service` | 17 | Las reglas: validaciones, cálculos, transacciones. 7 interfaces + 7 impl + 3 sin interfaz. |
 | `repository` | 8 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
 | `entity` | 14 | 10 entidades JPA y 4 enums, guardados como texto. |
+
+Cada orden guarda **cuándo** se creó y cuándo fue su último cambio de estado. Con eso se puede medir el tiempo de despacho de un vendedor o cuánto lleva una orden trabada, que es la base de cualquier métrica de reputación. Lo que no se puede reconstruir es el camino completo —cuándo pasó a PAGADA y cuándo a ENVIADA por separado—: para eso haría falta una tabla de historial.
 | `exceptions` | 27 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
 
 Adentro de `controllers` hay una carpeta por dominio, y cada una lleva su controller y sus DTOs:

@@ -3,6 +3,7 @@ package com.uade.tpo.marketplace.service;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
 import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -204,6 +205,10 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         orden.setVendedor(vendedor);
         orden.setEstado(ESTADO_INICIAL);
 
+        LocalDateTime ahora = LocalDateTime.now();
+        orden.setFechaCreacion(ahora);
+        orden.setFechaUltimoEstado(ahora);
+
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal total = BigDecimal.ZERO;
 
@@ -276,6 +281,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
             reponerStock(orden);
 
         orden.setEstado(estado);
+        orden.setFechaUltimoEstado(LocalDateTime.now());
         return OrdenDeCompraResponse.from(ordenRepository.save(orden));
     }
 

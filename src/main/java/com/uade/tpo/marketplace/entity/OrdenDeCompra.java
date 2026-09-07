@@ -1,6 +1,7 @@
 package com.uade.tpo.marketplace.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,4 +64,27 @@ public class OrdenDeCompra {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoOrden estado;
+
+    /**
+     * Cuando se cerro la compra. No cambia nunca.
+     *
+     * Es el dato del que cuelga casi todo lo que se puede medir despues:
+     * cuantas ventas tuvo alguien en un mes, si un producto se vende rapido,
+     * como evoluciono el volumen. Si no se guarda en el momento, no hay forma
+     * de reconstruirlo.
+     */
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    /**
+     * Cuando fue el ultimo cambio de estado.
+     *
+     * Con esta y la de creacion alcanza para lo que importa: cuanto tarda un
+     * vendedor en despachar, o cuanto lleva una orden trabada esperando a
+     * alguien. Lo que no se puede es reconstruir el camino completo -cuando
+     * paso a PAGADA y cuando a ENVIADA por separado-; para eso haria falta una
+     * tabla de historial, que por ahora no justifica el costo.
+     */
+    @Column(name = "fecha_ultimo_estado", nullable = false)
+    private LocalDateTime fechaUltimoEstado;
 }

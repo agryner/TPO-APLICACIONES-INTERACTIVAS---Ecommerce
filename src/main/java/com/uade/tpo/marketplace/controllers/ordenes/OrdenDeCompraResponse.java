@@ -1,6 +1,7 @@
 package com.uade.tpo.marketplace.controllers.ordenes;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.uade.tpo.marketplace.entity.EstadoOrden;
@@ -24,6 +25,8 @@ public class OrdenDeCompraResponse {
     private BigDecimal subtotal;
     private BigDecimal total;
     private EstadoOrden estado;
+    private LocalDateTime fechaCreacion;
+    private LocalDateTime fechaUltimoEstado;
     private List<OrderDetailResponse> items;
 
     /**
@@ -43,6 +46,8 @@ public class OrdenDeCompraResponse {
         dto.setSubtotal(orden.getSubtotal());
         dto.setTotal(orden.getTotal());
         dto.setEstado(orden.getEstado());
+        dto.setFechaCreacion(orden.getFechaCreacion());
+        dto.setFechaUltimoEstado(orden.getFechaUltimoEstado());
         dto.setItems(orden.getItems() == null ? List.of()
                 : orden.getItems().stream().map(OrderDetailResponse::from).toList());
         return dto;

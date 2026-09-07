@@ -907,7 +907,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Crear orden desde el carrito",
-      "description": "Cierra el carrito del comprador. Una orden por vendedor. Valida el stock de todo antes de escribir nada. Un ADMIN recibe 403: no compra.",
+      "description": "Cierra el carrito del comprador. Una orden por vendedor. Valida el stock de todo antes de escribir nada. Un ADMIN recibe 403: no compra.\n\nLa respuesta trae fechaCreacion y fechaUltimoEstado: la primera no cambia nunca, la segunda avanza con cada transicion.",
       "method": "POST",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
