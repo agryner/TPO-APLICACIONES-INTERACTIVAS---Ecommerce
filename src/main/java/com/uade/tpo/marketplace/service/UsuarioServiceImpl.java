@@ -86,9 +86,11 @@ public class UsuarioServiceImpl implements UsuarioService {
      * Post: el usuario actualizado, con la contrasena vuelta a hashear. El rol
      *       no se toca desde aca.
      */
-    public UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request, Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
-        autorizacion.validarDuenio(idSolicitante, idUsuario);
+    public UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request)
+            throws UsuarioNoEncontradoException, CuentaInactivaException {
+        // Solo se edita la cuenta propia, y el id sale del token: ya no hay
+        // pertenencia que comparar, solo queda comprobar que siga vigente.
+        autorizacion.validarActivo(idUsuario);
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(UsuarioNoEncontradoException::new);

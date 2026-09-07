@@ -65,9 +65,10 @@ public class SecurityConfig {
                         // que cualquier 400, 403 o 409 termina saliendo como 401.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 
-                        // --- publico: entrar y darse de alta ---
+                        // --- publico: entrar ---
+                        // El alta esta en /auth/registro, que ademas devuelve el
+                        // token: no hay un POST /usuarios que abrir aparte.
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers(POST, "/usuarios").permitAll()
 
                         // --- privado, aunque cuelgue de una ruta publica ---
                         // Van antes que los comodines de abajo o quedarian abiertos.

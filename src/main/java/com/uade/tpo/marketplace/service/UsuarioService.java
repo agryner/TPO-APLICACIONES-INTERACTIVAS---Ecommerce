@@ -27,8 +27,8 @@ public interface UsuarioService {
     UsuarioResponse createUsuario(UsuarioRequest request) throws UsuarioDuplicadoException;
 
     /** Cada uno edita solo su propia cuenta. */
-    UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request, Long idSolicitante)
-            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException;
+    UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request)
+            throws UsuarioNoEncontradoException, CuentaInactivaException;
 
     /** Cada uno da de baja solo su propia cuenta. */
     /** Vuelve a poner en circulacion una cuenta dada de baja. Solo ADMIN. */

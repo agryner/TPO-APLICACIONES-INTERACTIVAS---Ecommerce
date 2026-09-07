@@ -84,27 +84,21 @@ public class UsuariosController {
     }
 
     /**
-     * Alta de cuenta sin emitir token.
+     * Cambia los datos de mi cuenta.
      *
-     * Pre : el body con los datos del usuario. Es publico.
-     * Post: 201 con el usuario creado. La contrasena se guarda hasheada y el
-     *       rol se fuerza a CLIENTE. Hace lo mismo que /auth/registro pero sin
-     *       devolver el token.
-     */
-
-    /**
-     * Cambia los datos de una cuenta.
+     * No recibe ningun id: se edita siempre la del token. El ADMIN no entra
+     * aca, porque moderar no incluye reescribir los datos personales de otro;
+     * para lo suyo tiene reactivar, cambiar el rol y dar de baja.
      *
-     * Pre : el id en la ruta, el body completo, y el token de esa misma cuenta
-     *       o de un ADMIN.
+     * Pre : el body completo y el token.
      * Post: el usuario actualizado. La contrasena se vuelve a hashear. El rol
      *       no se toca desde aca: para eso esta el endpoint de rol.
      */
-    @PutMapping("/{idUsuario}")
-    public ResponseEntity<UsuarioResponse> updateUsuario(@PathVariable Long idUsuario,
+    @PutMapping("/me")
+    public ResponseEntity<UsuarioResponse> updateUsuario(
             @Valid @RequestBody UsuarioRequest request, @AuthenticationPrincipal Usuario usuario)
-            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
-        return ResponseEntity.ok(usuarioService.updateUsuario(idUsuario, request, usuario.getId()));
+            throws UsuarioNoEncontradoException, CuentaInactivaException {
+        return ResponseEntity.ok(usuarioService.updateUsuario(usuario.getId(), request));
     }
 
     /** Solo ADMIN: devuelve al ruedo una cuenta dada de baja. */
@@ -137,13 +131,28 @@ public class UsuariosController {
     }
 
     /**
-     * Da de baja una cuenta.
+     * Da de baja la cuenta de otro. Para la propia esta /usuarios/me.
      *
-     * Pre : el id en la ruta y el token de esa misma cuenta o de un ADMIN.
+     * Pre : el id en la ruta y un token de ADMIN.
      * Post: un mensaje de confirmacion. Es baja logica y arrastra las
      *       publicaciones del usuario, que salen del catalogo y de los
      *       carritos ajenos. Las ordenes se conservan.
      */
+    /**
+     * Darme de baja a mi mismo.
+     *
+     * Pre : solo el token.
+     * Post: un mensaje de confirmacion. Es baja logica y arrastra las
+     *       publicaciones propias: salen del catalogo y de los carritos
+     *       ajenos. Las ordenes se conservan.
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<MensajeResponse> bajaPropia(@AuthenticationPrincipal Usuario usuario)
+            throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
+        usuarioService.deleteUsuario(usuario.getId(), usuario.getId());
+        return ResponseEntity.ok(new MensajeResponse("Usuario dado de baja correctamente"));
+    }
+
     @DeleteMapping("/{idUsuario}")
     public ResponseEntity<MensajeResponse> deleteUsuario(@PathVariable Long idUsuario,
             @AuthenticationPrincipal Usuario usuario)
