@@ -105,10 +105,13 @@ public class OrdenesController {
      * que no exista sin que haya que validarlo a mano.
      *
      * Pre : el id en la ruta, el estado destino como enum, y el token.
-     * Post: la orden en el estado nuevo. PAGADA la pide el comprador, CANCELADA
-     *       cualquiera de las dos partes, y el ADMIN puede las dos. Cancelar
-     *       repone el stock. 403 si no te toca ese paso, 409 si el salto no
-     *       existe desde el estado actual, 400 si el estado no existe.
+     * Post: la orden en el estado nuevo. PAGADA solo la marca el ADMIN, porque
+     *       sin pasarela ninguna de las partes puede probar que el dinero
+     *       entro. CANCELADA la piden comprador o vendedor, pero solo sobre una
+     *       orden PENDIENTE: una vez pagada la orden esta cerrada y no se
+     *       cancela ni para el ADMIN. Cancelar repone el stock. 403 si no te
+     *       toca ese paso, 409 si el salto no existe desde el estado actual,
+     *       400 si el estado no existe.
      */
     @PutMapping("/{idOrden}/estado")
     public ResponseEntity<OrdenDeCompraResponse> actualizarEstado(@PathVariable Long idOrden,

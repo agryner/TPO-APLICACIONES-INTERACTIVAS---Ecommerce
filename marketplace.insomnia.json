@@ -926,7 +926,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Cambiar estado de la orden",
-      "description": "La orden 1 esta en PENDIENTE. La orden modela el COBRO, no el envio: los unicos estados son PENDIENTE, PAGADA y CANCELADA. PAGADA la pide el comprador (lucca@test.com); CANCELADA cualquiera de las dos partes. El ADMIN puede cualquiera. Las dos son finales: 409 si se intenta salir. 400 si se manda un estado que no existe en el enum.",
+      "description": "La orden modela el COBRO, no el envio: PENDIENTE, PAGADA y CANCELADA. PAGADA la marca SOLO EL ADMIN (marcos56@test.com), porque sin pasarela de pago ninguna de las partes puede probar que el dinero entro: 403 si la pide el comprador o el vendedor. CANCELADA la piden comprador o vendedor, pero solo sobre una orden PENDIENTE. Una orden PAGADA no se cancela ni siendo ADMIN: da 409. 400 si el estado no existe en el enum.",
       "method": "PUT",
       "url": "http://localhost:4002/ordenes/1/estado",
       "headers": [],

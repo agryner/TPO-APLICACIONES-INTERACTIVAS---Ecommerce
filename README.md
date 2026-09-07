@@ -98,11 +98,18 @@ Nadie puede comprar lo que él mismo publica: la regla se chequea al agregar al 
 La orden representa **la plata, no la logística**. Por eso tiene sólo los estados del cobro: que la mercadería se despachó, está en tránsito o llegó son hechos del envío, que tiene otro responsable y se modela aparte.
 
 ```
-PENDIENTE ──▶ PAGADA
-    └──────┴───▶ CANCELADA
+              ┌──▶ PAGADA        (solo ADMIN)
+PENDIENTE ────┤
+              └──▶ CANCELADA     (comprador o vendedor)
 ```
 
-**PAGADA** la pide el comprador; **CANCELADA**, cualquiera de los dos. `PAGADA` y `CANCELADA` son finales: de ahí no se sale. Si la transición existe pero le toca a la otra parte, 403. Si no existe desde el estado actual, 409.
+Las dos salidas arrancan en `PENDIENTE`, y son finales.
+
+**PAGADA la marca sólo el ADMIN.** Que el dinero entró es un hecho de un tercero, no de las partes: el comprador tiene motivo para decir que pagó sin haber pagado, y el vendedor no tiene cómo probarlo dentro del sistema. Hasta que haya una pasarela que lo confirme por webhook, lo declara quien puede mirar el comprobante. Cuando esa pasarela exista, `PAGADA` deja de ser algo que alguien pide y pasa a ser algo que el sistema escribe solo.
+
+**CANCELADA la piden comprador o vendedor**, pero sólo sobre una orden `PENDIENTE`. Una orden ya pagada no se cancela **ni siendo ADMIN**: cancelar un cobro que ya ocurrió no es un cambio de estado sino una devolución, y eso todavía no existe. Esa regla vive en la máquina de estados, no en los permisos, y por eso alcanza a todos.
+
+Si la transición no existe desde el estado actual, 409. Si existe pero no te toca, 403. El 409 se chequea primero.
 
 ### Subir una foto
 
@@ -169,8 +176,9 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
-| Pagar una orden | sólo el comprador · ADMIN |
-| Cancelar una orden | comprador · vendedor · ADMIN |
+| Pagar una orden | **sólo ADMIN** — sin pasarela, nadie más puede probarlo |
+| Cancelar una orden PENDIENTE | comprador · vendedor · ADMIN |
+| Cancelar una orden PAGADA | nadie, tampoco el ADMIN |
 | Reactivar una cuenta o cambiar un rol | sólo ADMIN |
 | Crear, editar o borrar categorías | ADMIN |
 | Moderar fotos | ADMIN |

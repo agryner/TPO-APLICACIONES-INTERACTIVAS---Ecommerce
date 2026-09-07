@@ -848,7 +848,7 @@
       <p>El estado tampoco es texto libre: es el enum <code>EstadoOrden</code>, así que un valor inexistente lo rechaza Spring con un 400 antes de llegar al service.</p>
 
       <figure>
-        <svg viewBox="0 0 900 250" role="img" aria-label="Máquina de estados de la orden: de PENDIENTE a PAGADA por el comprador. Desde PENDIENTE o PAGADA se puede CANCELAR, y lo puede pedir cualquiera de las dos partes. PAGADA y CANCELADA son estados finales.">
+        <svg viewBox="0 0 900 250" role="img" aria-label="Máquina de estados de la orden: desde PENDIENTE sale a PAGADA, que solo puede marcar el ADMIN, o a CANCELADA, que pueden pedir el comprador o el vendedor. PAGADA y CANCELADA son estados finales y no tienen salida.">
           <defs>
             <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
@@ -865,19 +865,22 @@
           <text class="svg-label" x="465" y="209" text-anchor="middle">CANCELADA</text>
 
           <line class="svg-line-accent" x1="232" y1="84" x2="377" y2="84" marker-end="url(#ar4)"/>
-          <text class="svg-edge" x="304" y="76" text-anchor="middle">comprador</text>
+          <text class="svg-edge" x="304" y="76" text-anchor="middle">solo ADMIN</text>
 
           <path class="svg-line-danger" d="M 145 110 L 145 204 L 377 204" marker-end="url(#ar4)"/>
-          <path class="svg-line-danger" d="M 465 110 L 465 177" marker-end="url(#ar4)"/>
-          <text class="svg-edge" x="155" y="150" fill="var(--danger)">cualquiera de los dos</text>
+          <text class="svg-edge" x="155" y="150" fill="var(--danger)">comprador o vendedor</text>
 
           <text class="svg-sub" x="562" y="90">estado final</text>
           <text class="svg-sub" x="562" y="209">estado final</text>
         </svg>
-        <figcaption>Dos transiciones y una salida. Pagar sólo lo declara quien paga; cancelar lo puede pedir cualquiera de las dos partes mientras no haya despacho. De <code>PAGADA</code> y <code>CANCELADA</code> no se sale: cualquier intento devuelve 409.</figcaption>
+        <figcaption>Las dos salidas arrancan en <code>PENDIENTE</code> y no vuelven. Pagar lo declara el ADMIN, porque sin pasarela ninguna de las partes puede probarlo; cancelar lo piden comprador o vendedor, pero sólo antes del pago.</figcaption>
       </figure>
 
-      <p>Un tercero ajeno a la orden recibe 403 en cualquier intento. Si la transición existe pero le toca a la otra parte —el vendedor tratando de marcar <code>PAGADA</code>— también es 403. Si la transición directamente no existe desde el estado actual, es 409, y ese chequeo corre primero: pedir un salto imposible da 409 aunque además no seas quien corresponde.</p>
+      <p><strong><code>PAGADA</code> la marca sólo el ADMIN.</strong> Que el dinero entró es un hecho de un tercero, no de las partes: el comprador tiene motivo para decir que pagó sin haber pagado, y el vendedor no tiene cómo probarlo dentro del sistema. Hasta que exista una pasarela que lo confirme por webhook, lo declara quien puede mirar el comprobante. Después deja de ser un endpoint que alguien llama y pasa a ser algo que el sistema escribe solo.</p>
+
+      <p><strong>Una orden pagada no se cancela, tampoco siendo ADMIN.</strong> Esa regla vive en la máquina de estados y no en los permisos, y por eso no tiene excepción: cancelar un cobro que ya ocurrió no es un cambio de estado sino una devolución, que todavía no existe en el sistema. El ADMIN atraviesa la pertenencia, no la coherencia.</p>
+
+      <p>Un tercero ajeno a la orden recibe 403 en cualquier intento. Si la transición directamente no existe desde el estado actual, es 409, y ese chequeo corre primero: pedir un salto imposible da 409 aunque además no seas quien corresponde.</p>
 
       <p>Cancelar <strong>repone el stock y descuenta el contador de vendidos</strong> del producto, en las mismas dos líneas donde se habían movido al armar la orden.</p>
 
@@ -1099,8 +1102,8 @@
             <tr><td>Ver las publicaciones en borrador</td><td><span class="pill">su vendedor</span></td><td>—</td></tr>
             <tr><td>Ver una orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span> <span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Listar órdenes</td><td><span class="pill">las propias</span> — <span class="pill pill-admin">ADMIN</span> ve todas</td><td>—</td></tr>
-            <tr><td>Marcar la orden PAGADA</td><td><span class="pill">comprador</span></td><td>403</td></tr>
-            <tr><td>Cancelar la orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
+            <tr><td>Marcar la orden PAGADA</td><td><span class="pill">solo ADMIN</span></td><td>403</td></tr>
+            <tr><td>Cancelar una orden PENDIENTE</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
             <tr><td>Cancelar la orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
             <tr><td>Crear, editar o borrar categorías</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Ver la cola de fotos pendientes</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>

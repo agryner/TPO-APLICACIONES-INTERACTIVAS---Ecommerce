@@ -270,8 +270,8 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         validarTransicion(orden.getEstado(), estado);
 
         // Quien pide, en cambio, si es cuestion de permisos, y ahi el ADMIN
-        // pasa: puede destrabar una orden que quedo esperando a una de las dos
-        // partes.
+        // pasa. Es el unico que puede marcar PAGADA: sin pasarela de pago,
+        // ninguna de las dos partes puede demostrar que el dinero entro.
         if (!esAdmin)
             validarQuienPuede(estado, esComprador, esVendedor);
 
@@ -286,12 +286,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         return OrdenDeCompraResponse.from(ordenRepository.save(orden));
     }
 
-    /**
-     * El flujo es PENDIENTE -> PAGADA, y se puede cancelar desde cualquiera de
-     * los dos. La orden no sigue a la mercaderia: despachar y entregar son
-     * hechos del envio. PAGADA y CANCELADA no tienen
-     * salida: una vez ahi la orden esta cerrada.
-     */
     /**
      * Devuelve al producto las unidades que la orden habia descontado.
      *
@@ -313,15 +307,23 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * Pre : el estado actual, el destino y si quien pide es ADMIN.
+     * El flujo es PENDIENTE -> PAGADA, y desde PENDIENTE tambien se puede
+     * CANCELAR. La orden no sigue a la mercaderia: despachar y entregar son
+     * hechos del envio.
+     *
+     * PAGADA y CANCELADA son finales. Que de PAGADA no se salga es una regla
+     * de la maquina, no de permisos, asi que alcanza tambien al ADMIN: cancelar
+     * un cobro que ya ocurrio no es un cambio de estado sino una devolucion, y
+     * eso todavia no existe en el sistema.
+     *
+     * Pre : el estado actual y el destino.
      * Post: nada si el salto existe.
      */
     private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo)
             throws TransicionInvalidaException {
         boolean permitida = switch (actual) {
             case PENDIENTE -> nuevo == EstadoOrden.PAGADA || nuevo == EstadoOrden.CANCELADA;
-            case PAGADA -> nuevo == EstadoOrden.CANCELADA;
-            case CANCELADA -> false;
+            case PAGADA, CANCELADA -> false;
         };
 
         if (!permitida)
@@ -329,20 +331,27 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * Cada paso lo declara quien puede saberlo de verdad: el vendedor es el que
-     * despacha y el comprador el que paga y el que recibe. Cancelar lo puede
-     * pedir cualquiera de los dos.
+     * Lo unico que puede declarar una de las partes es CANCELADA, y solo llega
+     * aca si la orden estaba PENDIENTE, porque la transicion desde PAGADA ya la
+     * corto validarTransicion.
+     *
+     * PAGADA no es de nadie. Que el dinero entro es un hecho de un tercero, no
+     * de las partes: el comprador tiene motivo para decir que pago sin haber
+     * pagado, y el vendedor no tiene forma de probarlo dentro del sistema.
+     * Hasta que exista una pasarela que lo confirme por webhook, la marca el
+     * ADMIN a mano, que es quien puede mirar el comprobante. Cuando esa
+     * pasarela exista, PAGADA deja de ser algo que alguien pide y pasa a ser
+     * algo que el sistema escribe solo.
      *
      * Pre : el estado destino y si quien pide es el comprador o el vendedor.
-     * Post: nada si le toca. PAGADA es del comprador, porque es quien paga.
-     *       CANCELADA, de cualquiera de los dos.
+     *       No se llama para el ADMIN.
+     * Post: nada si le toca. Solo CANCELADA es de las partes.
      */
     private void validarQuienPuede(EstadoOrden nuevo, boolean esComprador, boolean esVendedor)
             throws CambioDeEstadoNoPermitidoException {
         boolean autorizado = switch (nuevo) {
-            case PAGADA -> esComprador;
             case CANCELADA -> esComprador || esVendedor;
-            case PENDIENTE -> false;
+            case PAGADA, PENDIENTE -> false;
         };
 
         if (!autorizado)
