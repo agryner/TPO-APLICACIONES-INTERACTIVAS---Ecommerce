@@ -42,7 +42,7 @@ Los controllers están agrupados por dominio, siguiendo el ejemplo de la cátedr
 | `repository` | 8 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
 | `entity` | 14 | 10 entidades JPA y 4 enums, guardados como texto. |
 
-Cada orden guarda **cuándo** se creó y cuándo fue su último cambio de estado. Con eso se puede medir el tiempo de despacho de un vendedor o cuánto lleva una orden trabada, que es la base de cualquier métrica de reputación. Lo que no se puede reconstruir es el camino completo —cuándo pasó a PAGADA y cuándo a ENVIADA por separado—: para eso haría falta una tabla de historial.
+Cada orden guarda **cuándo** se creó y cuándo fue su último cambio de estado. Con eso se puede medir el tiempo de despacho de un vendedor o cuánto lleva una orden trabada, que es la base de cualquier métrica de reputación. Lo que no se puede reconstruir es el camino completo —cuándo pasó a PAGADA y cuándo se canceló, por separado—: para eso haría falta una tabla de historial.
 | `exceptions` | 27 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
 
 Adentro de `controllers` hay una carpeta por dominio, y cada una lleva su controller y sus DTOs:
@@ -95,13 +95,14 @@ Nadie puede comprar lo que él mismo publica: la regla se chequea al agregar al 
 
 `POST /ordenes` cierra el carrito. Si mezcla productos de varios vendedores genera **una orden por vendedor**, porque una orden es una transacción entre dos personas: con una sola no se podría representar que un vendedor ya despachó y el otro no. Valida el stock de todo antes de escribir nada, así un ítem sin stock no deja órdenes a medio crear.
 
+La orden representa **la plata, no la logística**. Por eso tiene sólo los estados del cobro: que la mercadería se despachó, está en tránsito o llegó son hechos del envío, que tiene otro responsable y se modela aparte.
+
 ```
-PENDIENTE ──▶ PAGADA ──▶ ENVIADA ──▶ RECIBIDA
-    └──────────┴──────────┘
-            CANCELADA
+PENDIENTE ──▶ PAGADA
+    └──────┴───▶ CANCELADA
 ```
 
-Cada paso lo pide una parte distinta: **PAGADA** y **RECIBIDA** el comprador, **ENVIADA** el vendedor, **CANCELADA** cualquiera de los dos. Si la transición existe pero le toca a la otra parte, 403. Si no existe desde el estado actual, 409.
+**PAGADA** la pide el comprador; **CANCELADA**, cualquiera de los dos. `PAGADA` y `CANCELADA` son finales: de ahí no se sale. Si la transición existe pero le toca a la otra parte, 403. Si no existe desde el estado actual, 409.
 
 ### Subir una foto
 
@@ -168,8 +169,8 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
-| Avanzar el estado de una orden | la parte que corresponde · ADMIN |
-| Cancelar una orden ya enviada | sólo ADMIN |
+| Pagar una orden | sólo el comprador · ADMIN |
+| Cancelar una orden | comprador · vendedor · ADMIN |
 | Reactivar una cuenta o cambiar un rol | sólo ADMIN |
 | Crear, editar o borrar categorías | ADMIN |
 | Moderar fotos | ADMIN |

@@ -926,7 +926,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Cambiar estado de la orden",
-      "description": "La orden 1 esta en PENDIENTE, asi que el paso valido es PAGADA y lo pide el comprador (lucca@test.com). Despues ENVIADA la pide la vendedora (ana@test.com), y RECIBIDA otra vez el comprador. El ADMIN puede cualquiera. 409 si el salto no existe desde el estado actual.",
+      "description": "La orden 1 esta en PENDIENTE. La orden modela el COBRO, no el envio: los unicos estados son PENDIENTE, PAGADA y CANCELADA. PAGADA la pide el comprador (lucca@test.com); CANCELADA cualquiera de las dos partes. El ADMIN puede cualquiera. Las dos son finales: 409 si se intenta salir. 400 si se manda un estado que no existe en el enum.",
       "method": "PUT",
       "url": "http://localhost:4002/ordenes/1/estado",
       "headers": [],

@@ -105,8 +105,8 @@ public class OrdenesController {
      * que no exista sin que haya que validarlo a mano.
      *
      * Pre : el id en la ruta, el estado destino como enum, y el token.
-     * Post: la orden en el estado nuevo. PAGADA y RECIBIDA las pide el
-     *       comprador, ENVIADA el vendedor, y el ADMIN cualquiera. CANCELADA
+     * Post: la orden en el estado nuevo. PAGADA la pide el comprador, CANCELADA
+     *       cualquiera de las dos partes, y el ADMIN puede las dos. Cancelar
      *       repone el stock. 403 si no te toca ese paso, 409 si el salto no
      *       existe desde el estado actual, 400 si el estado no existe.
      */

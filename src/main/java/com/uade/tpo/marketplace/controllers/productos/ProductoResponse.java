@@ -25,6 +25,7 @@ public class ProductoResponse {
     private String nombre;
     private BigDecimal precio;
     private Integer stock;
+    private Integer vendidos;
     private String descripcion;
     private String ubicacion;
     private Integer descuento;
@@ -54,6 +55,7 @@ public class ProductoResponse {
         dto.setNombre(producto.getNombre());
         dto.setPrecio(producto.getPrecio());
         dto.setStock(producto.getStock());
+        dto.setVendidos(producto.getVendidos());
         dto.setDescripcion(producto.getDescripcion());
         dto.setUbicacion(producto.getUbicacion());
         dto.setDescuento(producto.getDescuento());

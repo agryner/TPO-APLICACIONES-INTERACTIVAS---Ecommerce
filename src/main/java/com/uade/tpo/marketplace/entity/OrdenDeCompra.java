@@ -82,8 +82,8 @@ public class OrdenDeCompra {
      * Con esta y la de creacion alcanza para lo que importa: cuanto tarda un
      * vendedor en despachar, o cuanto lleva una orden trabada esperando a
      * alguien. Lo que no se puede es reconstruir el camino completo -cuando
-     * paso a PAGADA y cuando a ENVIADA por separado-; para eso haria falta una
-     * tabla de historial, que por ahora no justifica el costo.
+     * paso por cada estado por separado-; para eso haria falta una tabla de
+     * historial, que por ahora no justifica el costo.
      */
     @Column(name = "fecha_ultimo_estado", nullable = false)
     private LocalDateTime fechaUltimoEstado;

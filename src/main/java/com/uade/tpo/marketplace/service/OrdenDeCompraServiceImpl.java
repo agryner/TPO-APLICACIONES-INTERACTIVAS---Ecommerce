@@ -230,6 +230,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
             total = total.add(renglon.getTotal());
 
             producto.setStock(producto.getStock() - item.getCantidad());
+            producto.setVendidos(producto.getVendidos() + item.getCantidad());
             productoRepository.save(producto);
         }
 
@@ -266,7 +267,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         // La transicion se valida siempre, incluso para el ADMIN: que un salto
         // no exista no es una cuestion de permisos sino de que la orden quedaria
         // en un estado que no significa nada.
-        validarTransicion(orden.getEstado(), estado, esAdmin);
+        validarTransicion(orden.getEstado(), estado);
 
         // Quien pide, en cambio, si es cuestion de permisos, y ahi el ADMIN
         // pasa: puede destrabar una orden que quedo esperando a una de las dos
@@ -286,8 +287,9 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * El flujo es PENDIENTE -> PAGADA -> ENVIADA -> RECIBIDA, y se puede
-     * cancelar mientras no haya salido el envio. RECIBIDA y CANCELADA no tienen
+     * El flujo es PENDIENTE -> PAGADA, y se puede cancelar desde cualquiera de
+     * los dos. La orden no sigue a la mercaderia: despachar y entregar son
+     * hechos del envio. PAGADA y CANCELADA no tienen
      * salida: una vez ahi la orden esta cerrada.
      */
     /**
@@ -305,27 +307,21 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
             if (producto == null)
                 continue;
             producto.setStock(producto.getStock() + item.getCantidad());
+            producto.setVendidos(Math.max(0, producto.getVendidos() - item.getCantidad()));
             productoRepository.save(producto);
         }
     }
 
     /**
      * Pre : el estado actual, el destino y si quien pide es ADMIN.
-     * Post: nada si el salto existe. Cancelar una orden ya ENVIADA solo lo
-     *       puede el ADMIN, que es quien arbitra si el producto no llego o
-     *       llego roto.
+     * Post: nada si el salto existe.
      */
-    private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo, boolean esAdmin)
+    private void validarTransicion(EstadoOrden actual, EstadoOrden nuevo)
             throws TransicionInvalidaException {
         boolean permitida = switch (actual) {
             case PENDIENTE -> nuevo == EstadoOrden.PAGADA || nuevo == EstadoOrden.CANCELADA;
-            case PAGADA -> nuevo == EstadoOrden.ENVIADA || nuevo == EstadoOrden.CANCELADA;
-            // Despachado, ninguna de las dos partes puede arrepentirse sola. El
-            // ADMIN si, porque es quien arbitra cuando el producto no llego o
-            // llego roto: cancelar repone el stock.
-            case ENVIADA -> nuevo == EstadoOrden.RECIBIDA
-                    || (esAdmin && nuevo == EstadoOrden.CANCELADA);
-            case RECIBIDA, CANCELADA -> false;
+            case PAGADA -> nuevo == EstadoOrden.CANCELADA;
+            case CANCELADA -> false;
         };
 
         if (!permitida)
@@ -338,14 +334,13 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * pedir cualquiera de los dos.
      *
      * Pre : el estado destino y si quien pide es el comprador o el vendedor.
-     * Post: nada si le toca. PAGADA y RECIBIDA son del comprador, ENVIADA del
-     *       vendedor, CANCELADA de cualquiera de los dos.
+     * Post: nada si le toca. PAGADA es del comprador, porque es quien paga.
+     *       CANCELADA, de cualquiera de los dos.
      */
     private void validarQuienPuede(EstadoOrden nuevo, boolean esComprador, boolean esVendedor)
             throws CambioDeEstadoNoPermitidoException {
         boolean autorizado = switch (nuevo) {
-            case PAGADA, RECIBIDA -> esComprador;
-            case ENVIADA -> esVendedor;
+            case PAGADA -> esComprador;
             case CANCELADA -> esComprador || esVendedor;
             case PENDIENTE -> false;
         };

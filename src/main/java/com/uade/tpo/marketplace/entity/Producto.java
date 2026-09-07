@@ -46,6 +46,22 @@ public class Producto {
     @Column(nullable = false)
     private Integer stock;
 
+    /**
+     * Cuantas unidades se vendieron en total.
+     *
+     * Se mueve en los mismos dos lugares que el stock: sube al cerrar una
+     * compra y baja al cancelarla. Esa simetria es lo que lo mantiene
+     * consistente sin ningun recalculo.
+     *
+     * Se guarda en vez de contarlo desde las ordenes porque el catalogo
+     * devuelve listas: calcularlo seria una consulta por producto. Y cuenta
+     * desde el checkout, no desde la entrega, por coherencia con el stock: si
+     * una venta es lo bastante real como para descontar unidades, tambien lo
+     * es para contarla.
+     */
+    @Column(nullable = false)
+    private Integer vendidos = 0;
+
     @Column
     private String descripcion;
 

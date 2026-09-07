@@ -625,7 +625,7 @@
             <tr><td class="cls">OrderDetail</td><td>Renglón de una orden ya cerrada. Copia el precio del momento para que una edición posterior del producto no reescriba la historia.</td></tr>
             <tr><td class="cls">TipoUsuario</td><td><code>CLIENTE</code> · <code>ADMIN</code></td></tr>
             <tr><td class="cls">EstadoPublicacion</td><td><code>BORRADOR</code> · <code>PUBLICADO</code> · <code>PAUSADO</code></td></tr>
-            <tr><td class="cls">EstadoOrden</td><td><code>PENDIENTE</code> · <code>PAGADA</code> · <code>ENVIADA</code> · <code>RECIBIDA</code> · <code>CANCELADA</code></td></tr>
+            <tr><td class="cls">EstadoOrden</td><td><code>PENDIENTE</code> · <code>PAGADA</code> · <code>CANCELADA</code></td></tr>
             <tr><td class="cls">EstadoVerificacion</td><td><code>APROBADA</code> · <code>EN_REVISION</code> · <code>RECHAZADA</code></td></tr>
           </tbody>
         </table>
@@ -843,51 +843,48 @@
       <span class="h2-num">05</span>
       <h2>Estados de la orden</h2>
 
-      <p>El estado no es texto libre: es el enum <code>EstadoOrden</code>, así que un valor inexistente lo rechaza Spring con un 400 antes de llegar al service. Y cada paso lo declara quien puede saberlo de verdad — el vendedor es el que despacha, el comprador el que paga y el que recibe.</p>
+      <p>Una orden representa <strong>la plata, no la logística</strong>. Por eso sus estados son los del cobro y nada más: que la mercadería se despachó, está en tránsito o llegó al domicilio son hechos del envío, que tiene otro responsable, otro ciclo de vida y otra gente autorizada a moverlo. Meterlos en el mismo enum obligaba a que el vendedor declarara por su cuenta que entregó —justo el dato que más le conviene inflar— y ataba dos cosas que fallan por separado.</p>
+
+      <p>El estado tampoco es texto libre: es el enum <code>EstadoOrden</code>, así que un valor inexistente lo rechaza Spring con un 400 antes de llegar al service.</p>
 
       <figure>
-        <svg viewBox="0 0 900 250" role="img" aria-label="Máquina de estados de la orden: de PENDIENTE a PAGADA por el comprador, a ENVIADA por el vendedor, a RECIBIDA por el comprador. Desde PENDIENTE o PAGADA se puede CANCELAR. RECIBIDA y CANCELADA son estados finales.">
+        <svg viewBox="0 0 900 250" role="img" aria-label="Máquina de estados de la orden: de PENDIENTE a PAGADA por el comprador. Desde PENDIENTE o PAGADA se puede CANCELAR, y lo puede pedir cualquiera de las dos partes. PAGADA y CANCELADA son estados finales.">
           <defs>
             <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
             </marker>
           </defs>
 
-          <rect class="svg-box" x="20" y="60" width="150" height="48" rx="24"/>
-          <text class="svg-label" x="95" y="89" text-anchor="middle">PENDIENTE</text>
+          <rect class="svg-box" x="60" y="60" width="170" height="48" rx="24"/>
+          <text class="svg-label" x="145" y="89" text-anchor="middle">PENDIENTE</text>
 
-          <rect class="svg-box" x="240" y="60" width="150" height="48" rx="24"/>
-          <text class="svg-label" x="315" y="89" text-anchor="middle">PAGADA</text>
+          <rect class="svg-box-accent" x="380" y="60" width="170" height="48" rx="24"/>
+          <text class="svg-label" x="465" y="89" text-anchor="middle">PAGADA</text>
 
-          <rect class="svg-box" x="460" y="60" width="150" height="48" rx="24"/>
-          <text class="svg-label" x="535" y="89" text-anchor="middle">ENVIADA</text>
+          <rect class="svg-box" x="380" y="180" width="170" height="48" rx="24" stroke="var(--danger)"/>
+          <text class="svg-label" x="465" y="209" text-anchor="middle">CANCELADA</text>
 
-          <rect class="svg-box-accent" x="680" y="60" width="150" height="48" rx="24"/>
-          <text class="svg-label" x="755" y="89" text-anchor="middle">RECIBIDA</text>
+          <line class="svg-line-accent" x1="232" y1="84" x2="377" y2="84" marker-end="url(#ar4)"/>
+          <text class="svg-edge" x="304" y="76" text-anchor="middle">comprador</text>
 
-          <rect class="svg-box" x="240" y="180" width="150" height="48" rx="24" stroke="var(--danger)"/>
-          <text class="svg-label" x="315" y="209" text-anchor="middle">CANCELADA</text>
+          <path class="svg-line-danger" d="M 145 110 L 145 204 L 377 204" marker-end="url(#ar4)"/>
+          <path class="svg-line-danger" d="M 465 110 L 465 177" marker-end="url(#ar4)"/>
+          <text class="svg-edge" x="155" y="150" fill="var(--danger)">cualquiera de los dos</text>
 
-          <line class="svg-line-accent" x1="172" y1="84" x2="237" y2="84" marker-end="url(#ar4)"/>
-          <text class="svg-edge" x="204" y="76" text-anchor="middle">comprador</text>
-
-          <line class="svg-line-accent" x1="392" y1="84" x2="457" y2="84" marker-end="url(#ar4)"/>
-          <text class="svg-edge" x="424" y="76" text-anchor="middle">vendedor</text>
-
-          <line class="svg-line-accent" x1="612" y1="84" x2="677" y2="84" marker-end="url(#ar4)"/>
-          <text class="svg-edge" x="644" y="76" text-anchor="middle">comprador</text>
-
-          <path class="svg-line-danger" d="M 95 110 L 95 204 L 237 204" marker-end="url(#ar4)"/>
-          <path class="svg-line-danger" d="M 315 110 L 315 177" marker-end="url(#ar4)"/>
-          <text class="svg-edge" x="105" y="150" fill="var(--danger)">cualquiera de los dos</text>
-
-          <text class="svg-sub" x="680" y="130">estado final</text>
-          <text class="svg-sub" x="404" y="209">estado final</text>
+          <text class="svg-sub" x="562" y="90">estado final</text>
+          <text class="svg-sub" x="562" y="209">estado final</text>
         </svg>
-        <figcaption>Quién puede hacer cada transición. Una orden ya enviada no se cancela, y desde <code>RECIBIDA</code> o <code>CANCELADA</code> no se sale: cualquier intento devuelve 409.</figcaption>
+        <figcaption>Dos transiciones y una salida. Pagar sólo lo declara quien paga; cancelar lo puede pedir cualquiera de las dos partes mientras no haya despacho. De <code>PAGADA</code> y <code>CANCELADA</code> no se sale: cualquier intento devuelve 409.</figcaption>
       </figure>
 
-      <p>Un tercero ajeno a la orden recibe 403 en cualquier intento. Si la transición existe pero le toca a la otra parte —el comprador tratando de marcar <code>ENVIADA</code>— también es 403. Si la transición directamente no existe desde el estado actual, es 409.</p>
+      <p>Un tercero ajeno a la orden recibe 403 en cualquier intento. Si la transición existe pero le toca a la otra parte —el vendedor tratando de marcar <code>PAGADA</code>— también es 403. Si la transición directamente no existe desde el estado actual, es 409, y ese chequeo corre primero: pedir un salto imposible da 409 aunque además no seas quien corresponde.</p>
+
+      <p>Cancelar <strong>repone el stock y descuenta el contador de vendidos</strong> del producto, en las mismas dos líneas donde se habían movido al armar la orden.</p>
+
+      <div class="note">
+        <p class="note-title">Lo que sigue: el envío como entidad aparte</p>
+        <p>Los estados que salieron de acá no desaparecen, se mudan. La idea es un <code>Envio</code> con su propio ciclo —despachado, en tránsito, entregado— y un rol <code>DESPACHANTE</code> que sea el único que puede declarar la entrega. Así el dato que después alimenta la reputación del vendedor no lo escribe el vendedor.</p>
+      </div>
     </section>
 
     <!-- ============ FOTOS ============ -->
@@ -1102,8 +1099,8 @@
             <tr><td>Ver las publicaciones en borrador</td><td><span class="pill">su vendedor</span></td><td>—</td></tr>
             <tr><td>Ver una orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span> <span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Listar órdenes</td><td><span class="pill">las propias</span> — <span class="pill pill-admin">ADMIN</span> ve todas</td><td>—</td></tr>
-            <tr><td>Marcar la orden PAGADA o RECIBIDA</td><td><span class="pill">comprador</span></td><td>403</td></tr>
-            <tr><td>Marcar la orden ENVIADA</td><td><span class="pill">vendedor</span></td><td>403</td></tr>
+            <tr><td>Marcar la orden PAGADA</td><td><span class="pill">comprador</span></td><td>403</td></tr>
+            <tr><td>Cancelar la orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
             <tr><td>Cancelar la orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
             <tr><td>Crear, editar o borrar categorías</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Ver la cola de fotos pendientes</td><td><span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
