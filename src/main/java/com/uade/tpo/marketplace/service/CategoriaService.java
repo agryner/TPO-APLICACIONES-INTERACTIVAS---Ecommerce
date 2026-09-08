@@ -12,14 +12,7 @@ import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.JerarquiaInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
-/**
- * Contrato de la logica de categorias.
- *
- * Lo consume CategoriasController y lo implementa CategoriaServiceImpl. La
- * interfaz existe para que el controller no dependa de la implementacion.
- */
 public interface CategoriaService {
-
     List<CategoriaResponse> getCategorias();
 
     List<CategoriaResponse> getCategoriasRaiz();

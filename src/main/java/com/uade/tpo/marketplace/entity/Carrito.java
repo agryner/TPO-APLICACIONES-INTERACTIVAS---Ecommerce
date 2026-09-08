@@ -20,24 +20,15 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Carrito de compras, uno por usuario.
- *
- * Agrupa sus ItemCarrito en cascade ALL y guarda una fechaLimite: si se
- * vence, CarritoServiceImpl lo vacia antes de operar. OrdenDeCompraServiceImpl
- * lo lee para armar los renglones de la orden.
- */
 @Data
 @NoArgsConstructor
 @Entity
 public class Carrito {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_carrito")
     private Long id;
 
-    // Un usuario tiene exactamente un carrito.
     @OneToOne
     @JoinColumn(name = "id_usuario", nullable = false, unique = true)
     private Usuario usuario;

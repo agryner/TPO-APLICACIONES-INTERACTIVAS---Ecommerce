@@ -8,19 +8,8 @@ import jakarta.validation.constraints.Size;
 
 import lombok.Data;
 
-/**
- * Datos que entran por el body al crear o editar un usuario.
- *
- * Spring lo arma desde el JSON y viaja del controller al service, que copia
- * sus campos a la entidad Usuario.
- *
- * El campo rol se ignora en el alta publica: UsuarioServiceImpl fuerza CLIENTE.
- * Queda declarado porque la edicion si lo usa, pero nadie se puede hacer
- * administrador mandandolo en el body.
- */
 @Data
 public class UsuarioRequest {
-
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 50, message = "El nombre no puede superar los 50 caracteres")
     private String nombre;

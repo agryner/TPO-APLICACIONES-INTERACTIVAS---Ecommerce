@@ -18,25 +18,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Traduce el header Authorization en una identidad, en cada request.
- *
- * Corre antes que cualquier controller. Si hay un token valido deja al usuario
- * en el SecurityContext, y a partir de ahi todo el resto de la aplicacion puede
- * preguntar quien esta pidiendo sin que nadie lo mande como parametro.
- *
- * Si no hay token, o esta vencido, o la firma no cierra, no rechaza nada: deja
- * el contexto vacio y sigue. Quien decide si eso alcanza es SecurityConfig, no
- * este filtro. Esa division es lo que permite que convivan rutas publicas y
- * privadas sin escribir un if aca adentro.
- *
- * Extiende OncePerRequestFilter para no ejecutarse dos veces cuando el request
- * se despacha internamente, por ejemplo al resolver un error.
- */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     private static final String PREFIJO = "Bearer ";
 
     private final JwtService jwtService;
@@ -54,7 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
-
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith(PREFIJO)) {
@@ -66,8 +49,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(PREFIJO.length());
             String mail = jwtService.extraerUsuario(token);
 
-            // Si ya hay alguien autenticado no se pisa: otro filtro pudo haberlo
-            // resuelto antes por otra via.
             if (mail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails usuario = userDetailsService.loadUserByUsername(mail);
 
@@ -79,9 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Un token roto, vencido o de un usuario que ya no existe no es un
-            // error del servidor: simplemente no autentica. Se sigue sin
-            // identidad y responde 401 o 403 quien corresponda.
             SecurityContextHolder.clearContext();
         }
 

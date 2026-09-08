@@ -17,13 +17,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
-/**
- * Contrato de la logica de productos.
- *
- * Lo consume ProductosController y lo implementa ProductoServiceImpl.
- */
 public interface ProductoService {
-
     List<ProductoResponse> getProductos(Long idCategoria, String nombre,
             BigDecimal precioMin, BigDecimal precioMax, String ordenPrecio)
             throws OrdenamientoInvalidoException;

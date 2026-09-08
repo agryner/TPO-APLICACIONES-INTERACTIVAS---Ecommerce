@@ -17,22 +17,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Representa un producto dentro de esa compra. Hay uno por cada producto distinto que el comprador se llevó.
- *
- * Guarda una copia del nombre, el precio y el descuento que tenia el producto
- * en el momento de la compra. Si despues el vendedor cambia el precio, esta
- * orden sigue mostrando lo que el comprador efectivamente pago.
- *
- * Lo crea OrdenDeCompraServiceImpl al cerrar la compra y se guarda en
- * cascada junto con su OrdenDeCompra.
- */
 @Data
 @NoArgsConstructor
 @Entity
 @Table(name = "order_detail")
 public class OrderDetail {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_order_detail")
@@ -45,7 +34,6 @@ public class OrderDetail {
     @JoinColumn(name = "id_orden", nullable = false)
     private OrdenDeCompra orden;
 
-    // Referencia al producto, solo para trazabilidad: los datos de abajo son los que valen.
     @ManyToOne
     @JoinColumn(name = "id_producto", nullable = false)
     private Producto producto;
@@ -56,15 +44,12 @@ public class OrderDetail {
     @Column(nullable = false)
     private Integer cantidad;
 
-    /** Precio de lista al momento de la compra. */
     @Column(name = "precio_unitario", nullable = false, precision = 12, scale = 2)
     private BigDecimal precioUnitario;
 
-    /** Descuento vigente al momento de la compra, en porcentaje. */
     @Column(nullable = false)
     private Integer descuento;
 
-    /** precioUnitario con el descuento aplicado, por unidad. */
     public BigDecimal getPrecioFinal() {
         return precioUnitario
                 .multiply(BigDecimal.valueOf(100 - descuento))

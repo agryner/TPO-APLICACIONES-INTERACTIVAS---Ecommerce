@@ -11,21 +11,8 @@ import com.uade.tpo.marketplace.controllers.categorias.CategoriaResponse;
 import com.uade.tpo.marketplace.controllers.fotos.FotoResponse;
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioPublicoResponse;
 
-/**
- * Vista publica de un producto, con su categoria, su vendedor y sus fotos ya
- * convertidos a DTO.
- *
- * El vendedor viaja como UsuarioPublicoResponse, que solo lleva el nombre y el
- * nombre de usuario. No es lo mismo que anidar UsuarioResponse: el catalogo es
- * publico, asi que con el DTO completo cualquier visitante sin cuenta podia
- * recorrerlo y quedarse con el mail y el domicilio de todos los que venden.
- *
- * Con el nombre de usuario alcanza para llegar al resto: la vidriera de ese
- * vendedor esta en GET /productos/vendedor/{nombreUsuario}.
- */
 @Data
 public class ProductoResponse {
-
     private Long id;
     private String nombre;
     private BigDecimal precio;
@@ -36,10 +23,8 @@ public class ProductoResponse {
     private Integer descuento;
     private CategoriaResponse categoria;
     private UsuarioPublicoResponse vendedor;
-    /** false = dado de baja: no aparece en el catalogo ni se puede comprar. */
     private Boolean activo;
 
-    /** BORRADOR mientras no tenga fotos; PUBLICADO cuando tiene al menos una. */
     private EstadoPublicacion estadoPublicacion;
 
     private List<FotoResponse> fotos;

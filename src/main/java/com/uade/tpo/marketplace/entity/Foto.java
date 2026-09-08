@@ -17,28 +17,15 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Una foto de producto. El archivo se guarda en la propia tabla, como byte[]
- * en vez de java.sql.Blob: Hibernate lo mapea igual a un LONGBLOB y evita
- * tener que envolver los bytes en un SerialBlob para escribirlos.
- *
- * Persistida por FotoRepository. Producto la trae en cascade ALL, asi
- * que borrar el producto se lleva tambien sus fotos y sus archivos.
- */
 @Data
 @NoArgsConstructor
 @Entity
 public class Foto {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_foto")
     private Long id;
 
-    /**
-     * JsonIgnore para que las respuestas no arrastren la imagen entera: quien
-     * quiera los bytes los pide en /fotos/{id}/contenido o /fotos/{id}/base64.
-     */
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -55,19 +42,13 @@ public class Foto {
     @Column
     private Long tamanio;
 
-    /**
-     * Resultado de la verificacion automatica contra la categoria del producto.
-     * Las que quedan EN_REVISION esperan que un admin las mire.
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_verificacion", nullable = false)
     private EstadoVerificacion estadoVerificacion = EstadoVerificacion.EN_REVISION;
 
-    /** Puntaje de 0 a 1 que devolvio la IA. Null si no se pudo consultar. */
     @Column(name = "confianza_ia")
     private Double confianzaIa;
 
-    /** Que dijo la IA que vio en la foto, para que el admin no tenga que abrirla. */
     @Column(name = "que_ve_ia")
     private String queVeIa;
 

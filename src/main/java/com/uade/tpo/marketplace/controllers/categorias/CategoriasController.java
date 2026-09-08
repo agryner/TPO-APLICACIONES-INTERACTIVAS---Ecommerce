@@ -31,26 +31,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.uade.tpo.marketplace.entity.Usuario;
 
-/**
- * Endpoints REST del arbol de categorias.
- *
- * Recibe CategoriaRequest desde el body, delega todo en CategoriaService y
- * devuelve CategoriaResponse o MensajeResponse. No tiene logica propia:
- * solo traduce HTTP a llamadas al service.
- *
- * El alta, la edicion y la baja estan restringidas a administradores: el id
- * quien las pide sale del token y el service valida que sea ADMIN.
- */
 @RestController
 @RequestMapping("categorias")
 @RequiredArgsConstructor
 public class CategoriasController {
-
     private final CategoriaService categoriaService;
 
     /**
-     * El arbol de categorias.
-     *
      * Pre : nada, es publico. Con ?soloRaices=true se piden unicamente las que
      *       no tienen padre.
      * Post: la lista de categorias, cada una con su padre resuelto.
@@ -64,8 +51,6 @@ public class CategoriasController {
     }
 
     /**
-     * Una categoria puntual.
-     *
      * Pre : el id en la ruta. Es publico.
      * Post: la categoria con su padre. 404 si no existe.
      */
@@ -76,8 +61,6 @@ public class CategoriasController {
     }
 
     /**
-     * Las hijas directas de una categoria.
-     *
      * Pre : el id del padre en la ruta. Es publico.
      * Post: sus hijas inmediatas, sin nietas. 404 si el padre no existe.
      */
@@ -88,8 +71,6 @@ public class CategoriasController {
     }
 
     /**
-     * Crea una categoria, raiz o colgando de otra.
-     *
      * Pre : el body con nombre y, opcionalmente, descripcion e
      *       idCategoriaPadre. El token tiene que ser de un ADMIN.
      * Post: 201 con la categoria creada y su Location. 403 si no sos ADMIN,
@@ -106,8 +87,6 @@ public class CategoriasController {
     }
 
     /**
-     * Renombra una categoria, o la mueve de lugar en el arbol.
-     *
      * Pre : el id en la ruta y el body con los datos nuevos. Mandar
      *       idCategoriaPadre la mueve. El token tiene que ser de un ADMIN.
      * Post: la categoria actualizada. 400 si el movimiento armaria un ciclo
@@ -123,8 +102,6 @@ public class CategoriasController {
     }
 
     /**
-     * Borra una categoria. Es borrado real, no baja logica.
-     *
      * Pre : el id en la ruta y un token de ADMIN. La categoria tiene que estar
      *       vacia: sin subcategorias y sin productos.
      * Post: un mensaje de confirmacion. 409 si tiene hijas o productos, porque

@@ -15,13 +15,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
-/**
- * Contrato de la logica de fotos.
- *
- * Lo consume FotosController y lo implementa FotoServiceImpl.
- */
 public interface FotoService {
-
     List<FotoResponse> getFotosByProducto(Long idProducto)
             throws ProductoNoEncontradoException;
 

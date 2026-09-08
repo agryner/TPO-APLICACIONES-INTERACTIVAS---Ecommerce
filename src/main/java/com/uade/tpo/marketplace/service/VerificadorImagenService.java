@@ -26,31 +26,11 @@ import com.uade.tpo.marketplace.repository.CategoriaRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Le pregunta a Gemini si una foto se corresponde con la categoria que declaro
- * el vendedor.
- *
- * Lo llama FotoServiceImpl antes de guardar la imagen. De la base solo lee las
- * categorias con las que arma el prompt: como salen de ahi y no de una lista
- * fija en el codigo, una categoria nueva queda cubierta sola.
- */
 @Service
 @RequiredArgsConstructor
 public class VerificadorImagenService {
-
-    /** Lo que contesta el modelo, con los mismos campos del verificador original. */
     public record Resultado(boolean coincide, double confianza, String queVeo,
             String categoriaSugerida, String mensajeAlVendedor) {
-
-        /**
-         * Puntaje unico de 0 a 1: que tan probable es que la foto corresponda.
-         *
-         * El modelo devuelve la confianza en SU veredicto, no la probabilidad de
-         * que coincida: un "no corresponde" con confianza 0.99 significa que
-         * esta segurisimo de que la foto esta mal. Invirtiendolo cuando coincide
-         * es false, el numero se lee siempre igual y los umbrales tienen sentido
-         * en las dos direcciones.
-         */
         public double puntaje() {
             return coincide ? confianza : 1 - confianza;
         }
@@ -60,7 +40,6 @@ public class VerificadorImagenService {
             + "moto particular, captura de pantalla, comida, ropa, celular o notebook, mascota, "
             + "documento escaneado, o imagen tan borrosa que no se reconozca nada";
 
-    /** Las APIs reescalan igual: mandarla en 12MP solo agrega latencia. */
     private static final int LADO_MAX = 1024;
 
     private final CategoriaRepository categoriaRepository;
@@ -130,10 +109,6 @@ public class VerificadorImagenService {
     }
 
     /**
-     * El prompt se arma con la rama de la categoria declarada y los nombres del
-     * resto, las dos cosas leidas de la base. Por eso no hay taxonomia fija: si
-     * el admin crea una categoria, la siguiente verificacion ya la contempla.
-     *
      * Pre : la categoria declarada.
      * Post: el texto que se le manda al modelo, armado leyendo las categorias
      *       de la base y no de una lista fija: cuando el admin crea una
@@ -186,8 +161,6 @@ public class VerificadorImagenService {
              "mensaje_al_vendedor": "explicacion breve y amable, o null si coincide"}""";
 
     /**
-     * Baja la resolucion de la foto antes de mandarla y la normaliza a JPEG.
-     *
      * Pre : los bytes originales.
      * Post: la imagen achicada a 1024 px y recomprimida como JPEG, para no
      *       mandar megabytes por la red.
@@ -216,8 +189,6 @@ public class VerificadorImagenService {
     }
 
     /**
-     * El modelo manda el literal null como texto cuando el campo no aplica.
-     *
      * Pre : un texto que puede venir vacio y un valor por defecto.
      * Post: el texto si tiene contenido, o el default.
      */
@@ -231,8 +202,6 @@ public class VerificadorImagenService {
     }
 
     /**
-     * A veces el modelo envuelve el JSON en un bloque de codigo.
-     *
      * Pre : la respuesta cruda del modelo.
      * Post: el JSON sin los delimitadores de bloque de codigo con los que a
      *       veces lo envuelve.

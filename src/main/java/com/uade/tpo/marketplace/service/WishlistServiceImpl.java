@@ -24,28 +24,14 @@ import com.uade.tpo.marketplace.repository.WishlistRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Logica de la wishlist: guardar productos para mas adelante.
- *
- * Lo llama WishlistsController y usa WishlistRepository, ProductoRepository y
- * UsuarioRepository. Los items no tienen repositorio propio: se manejan por la
- * coleccion de la Wishlist, que los persiste en cascada.
- *
- * Sigue el mismo patron de vencimiento perezoso que el carrito: antes de cada
- * operacion vacia la lista si paso su fechaLimite. No hay ninguna tarea
- * programada, asi que una lista vencida sigue en la base hasta que su duenio la
- * abre.
- */
 @Service
 @RequiredArgsConstructor
 public class WishlistServiceImpl implements WishlistService {
-
     private final WishlistRepository wishlistRepository;
     private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
 
-    /** Cuanto vive la wishlist desde la ultima vez que se toco. */
     @Value("${marketplace.wishlist.meses-vigencia:8}")
     private long mesesVigencia;
 
@@ -63,12 +49,6 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     /**
-     * Guarda un producto. Si ya estaba, no hace nada.
-     *
-     * A diferencia del carrito no acumula: querer algo dos veces no significa
-     * nada, asi que la operacion es idempotente y el cliente puede reintentarla
-     * sin miedo a duplicar.
-     *
      * Pre : el id del usuario, el request con idProducto y el id de quien
      *       pide.
      * Post: la wishlist con el producto adentro. Si ya estaba no hace nada,
@@ -82,15 +62,10 @@ public class WishlistServiceImpl implements WishlistService {
             ProductoNoEncontradoException, CuentaInactivaException, AdminNoComerciaException {
         autorizacion.validarActivo(idUsuario);
 
-        // Guardar algo para comprarlo despues sigue siendo comerciar, y el
-        // admin no comercia: modera a los que lo hacen.
         autorizacion.validarQueNoSeaAdmin(idUsuario);
 
         Wishlist wishlist = obtenerEntidad(idUsuario);
 
-        // Al momento de guardarlo tiene que estar a la venta, igual que en el
-        // carrito. Lo que cambia es despues: si mas tarde se pausa o se agota,
-        // el item se queda, porque para eso existe la lista.
         Producto producto = productoRepository.findById(request.getIdProducto())
                 .filter(Producto::getActivo)
                 .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
@@ -150,13 +125,6 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     /**
-     * Trae la wishlist del usuario, creandola si es la primera vez, y la vacia
-     * si vencio.
-     *
-     * El chequeo es perezoso: pasa cuando alguien mira la lista, no cuando se
-     * cumple el plazo. Es la misma decision que en el carrito, y evita tener
-     * una tarea programada barriendo tablas.
-     *
      * Pre : el id del usuario.
      * Post: la entidad Wishlist, creada si es la primera vez y vaciada si
      *       vencio.
@@ -196,11 +164,6 @@ public class WishlistServiceImpl implements WishlistService {
         return wishlistRepository.save(wishlist);
     }
 
-    /**
-     * Empuja el vencimiento hacia adelante cada vez que se toca la lista.
-     *
-     * Una lista vacia no vence: sin nada adentro no hay nada que limpiar.
-     */
     private void renovarVigencia(Wishlist wishlist) {
         wishlist.setFechaLimite(wishlist.getItems().isEmpty()
                 ? null

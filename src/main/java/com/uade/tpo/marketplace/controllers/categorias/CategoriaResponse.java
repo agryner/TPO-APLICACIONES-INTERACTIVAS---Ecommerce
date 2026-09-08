@@ -4,16 +4,8 @@ import com.uade.tpo.marketplace.entity.Categoria;
 
 import lombok.Data;
 
-/**
- * Vista publica de una categoria.
- *
- * Del padre expone solo id y nombre en vez de anidar la categoria entera: la
- * jerarquia no tiene profundidad limitada y anidarla haria crecer el JSON sin
- * control. Las subcategorias se piden aparte, en /categorias/{id}/subcategorias.
- */
 @Data
 public class CategoriaResponse {
-
     private Long id;
     private String nombre;
     private String descripcion;

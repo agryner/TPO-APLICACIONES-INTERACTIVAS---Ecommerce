@@ -15,33 +15,15 @@ import com.uade.tpo.marketplace.controllers.config.JwtService;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Registro y login: los dos unicos lugares donde se emite un token.
- *
- * Va al lado de AutorizacionService porque son el par natural. Este responde
- * "quien sos" comprobandolo contra la base; el otro responde "que podes"
- * una vez que ya se sabe quien sos.
- *
- * No repite la logica de alta: se la pide a UsuarioService, que ya sabe
- * rechazar mails repetidos y forzar el rol CLIENTE. Aca solo se agrega el
- * token.
- */
 @Service
 @RequiredArgsConstructor
 public class AutenticacionService {
-
     private final UsuarioService usuarioService;
     private final UsuarioRepository usuarioRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
     /**
-     * Crea la cuenta y devuelve el token ya emitido.
-     *
-     * Se devuelve el token directamente para que registrarse e iniciar sesion
-     * sean un solo paso: si no, el frontend tendria que encadenar dos pedidos
-     * con los mismos datos.
-     *
      * Pre : el request con los datos de la cuenta nueva.
      * Post: el token ya emitido. Tira UsuarioDuplicadoException si el mail o el
      *       nombre de usuario ya estan tomados.
@@ -55,15 +37,6 @@ public class AutenticacionService {
     }
 
     /**
-     * Verifica mail y contrasena, y devuelve un token si cierran.
-     *
-     * authenticate es quien compara: busca al usuario por mail con el
-     * UserDetailsService y le pasa la contrasena al PasswordEncoder. Si algo no
-     * da, tira una AuthenticationException y no se llega a emitir nada.
-     *
-     * Tambien rechaza a las cuentas dadas de baja, porque Usuario.isEnabled
-     * devuelve el campo activo.
-     *
      * Pre : el request con mail y contrasena.
      * Post: el token y los datos basicos. Tira AuthenticationException -que
      *       sale como 401- si el mail no existe, la contrasena no coincide o
@@ -79,9 +52,6 @@ public class AutenticacionService {
         return TokenResponse.from(jwtService.generarToken(usuario));
     }
 
-    /**
-     * Trae el usuario recien creado para poder firmarle el token.
-     */
     private Usuario buscar(Long id) throws UsuarioNoEncontradoException {
         return usuarioRepository.findById(id).orElseThrow(UsuarioNoEncontradoException::new);
     }

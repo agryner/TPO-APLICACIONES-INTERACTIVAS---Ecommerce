@@ -17,23 +17,13 @@ import com.uade.tpo.marketplace.service.AutenticacionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Las dos unicas rutas que se pueden usar sin token.
- *
- * Todo lo demas de la API va a exigir el header Authorization: Bearer <token>
- * con lo que devuelvan estos dos endpoints.
- */
 @RestController
 @RequestMapping("auth")
 @RequiredArgsConstructor
 public class AutenticacionController {
-
     private final AutenticacionService autenticacionService;
 
     /**
-     * Alta de cuenta. Devuelve el token ya emitido, asi registrarse e iniciar
-     * sesion son un solo paso.
-     *
      * Pre : el body con nombre, apellido, nombreUsuario, mail, contrasena y
      *       direccion. El campo rol se acepta pero se ignora: todos nacen
      *       CLIENTE.
@@ -48,8 +38,6 @@ public class AutenticacionController {
     }
 
     /**
-     * Mail y contrasena a cambio de un token.
-     *
      * Pre : el body con mail y contrasena.
      * Post: 200 con el token en access_token. 401 si el mail no existe, si la
      *       contrasena no coincide o si la cuenta esta dada de baja, con el

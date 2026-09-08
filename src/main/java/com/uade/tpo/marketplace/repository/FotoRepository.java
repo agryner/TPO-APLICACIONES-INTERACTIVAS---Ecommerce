@@ -8,17 +8,9 @@ import org.springframework.stereotype.Repository;
 import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.Foto;
 
-/**
- * Acceso a datos de Foto, incluido el binario de la imagen.
- *
- * Lo usa FotoServiceImpl. findByProductoId es el que alimenta el listado de
- * fotos de un producto.
- */
 @Repository
 public interface FotoRepository extends JpaRepository<Foto, Long> {
-
     List<Foto> findByProductoId(Long idProducto);
 
-    /** Cola de revision: lo que la verificacion automatica no pudo resolver sola. */
     List<Foto> findByEstadoVerificacion(EstadoVerificacion estadoVerificacion);
 }

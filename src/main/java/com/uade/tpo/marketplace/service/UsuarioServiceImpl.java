@@ -23,16 +23,9 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
-/**
- * Logica de usuarios: altas, ediciones y control de duplicados.
- *
- * Lo llama UsuariosController y se apoya en UsuarioRepository para verificar
- * que el mail y el nombre de usuario no esten tomados.
- */
 @Service
 @RequiredArgsConstructor
 public class UsuarioServiceImpl implements UsuarioService {
-
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
     private final PasswordEncoder passwordEncoder;
@@ -40,11 +33,6 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final CarritoService carritoService;
 
     /**
-     * El padron entero es del ADMIN. Un cliente no tiene por que poder
-     * enumerar a los demas: el mail y la direccion de todo el mundo son datos
-     * personales, y juntarlos en una sola respuesta es armarle a cualquiera la
-     * lista de contactos de la plataforma. Para comprar no hace falta.
-     *
      * Pre : el id de quien pide, que tiene que ser ADMIN.
      * Post: los usuarios activos, sin los dados de baja. 403 si no es ADMIN.
      */
@@ -59,12 +47,6 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     /**
-     * Los datos de una cuenta ajena tambien son del ADMIN, por lo mismo que el
-     * listado: aca salen el mail y la direccion, que no son asunto de quien
-     * compra. Para su propia cuenta cada uno tiene /usuarios/me, y para saber
-     * quien vende algo alcanza con el nombre de usuario que ya viaja dentro de
-     * cada producto.
-     *
      * Pre : el id buscado y el de quien pide, que tiene que ser ADMIN.
      * Post: el usuario, este activo o no. 403 si no es ADMIN, 404 si no existe.
      */
@@ -91,9 +73,6 @@ public class UsuarioServiceImpl implements UsuarioService {
         Usuario usuario = new Usuario();
         copiarDatos(usuario, request);
 
-        // El rol NO sale del body. Mandando "rol": "ADMIN" en el alta publica
-        // cualquiera se hacia administrador, y por la edicion cualquiera se
-        // ascendia a si mismo. Un ADMIN se crea a mano en la base.
         usuario.setRol(TipoUsuario.CLIENTE);
         return UsuarioResponse.from(usuarioRepository.save(usuario));
     }
@@ -105,8 +84,6 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     public UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request)
             throws UsuarioNoEncontradoException, CuentaInactivaException {
-        // Solo se edita la cuenta propia, y el id sale del token: ya no hay
-        // pertenencia que comparar, solo queda comprobar que siga vigente.
         autorizacion.validarActivo(idUsuario);
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
@@ -117,23 +94,6 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     /**
-     * Baja logica: el usuario se marca inactivo en vez de borrarse.
-     *
-     * Sus ordenes son el registro de operaciones que ocurrieron y siguen
-     * apuntando a el, asi que un DELETE real las arrastraria, incluidas las
-     * ventas de los vendedores que le vendieron.
-     *
-     * Vuelve a poner en circulacion una cuenta dada de baja.
-     *
-     * Es la contracara de la baja logica: si se guarda el registro justamente
-     * para poder revertir, tiene que haber por donde. Solo ADMIN, porque una
-     * cuenta dada de baja no puede pedir nada por si misma.
-     *
-     * No reactiva las publicaciones del usuario a proposito. La baja las
-     * arrastro, pero entre ellas pueden estar las que el vendedor habia dado de
-     * baja antes por su cuenta, y resucitarlas seria decidir por el. Cada
-     * producto se reactiva por separado.
-     *
      * Pre : el id y el id de quien pide, que tiene que ser ADMIN.
      * Post: el usuario activo otra vez. No reactiva sus publicaciones a
      *       proposito: entre ellas pueden estar las que el mismo habia dado de
@@ -153,12 +113,6 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     /**
-     * Promueve o degrada a un usuario.
-     *
-     * El rol no viaja nunca en el body de un alta ni de una edicion: si viajara,
-     * cualquiera se haria administrador. Por eso es un endpoint aparte, y solo
-     * para ADMIN.
-     *
      * Pre : el id, el rol destino y el id de quien pide, que tiene que ser
      *       ADMIN.
      * Post: el usuario con el rol nuevo. Tira CambioDeRolInvalidoException si
@@ -172,8 +126,6 @@ public class UsuarioServiceImpl implements UsuarioService {
         autorizacion.validarAdmin(idSolicitante);
         autorizacion.validarActivo(idSolicitante);
 
-        // Si el unico admin se degrada, no queda nadie que pueda promover a
-        // nadie y el sistema se cierra por fuera de la base.
         if (idUsuario.equals(idSolicitante) && rol != TipoUsuario.ADMIN)
             throw new CambioDeRolInvalidoException();
 
@@ -192,7 +144,6 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     public void deleteUsuario(Long idUsuario, Long idSolicitante)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
-        // Cada uno da de baja su propia cuenta; el ADMIN, la de cualquiera.
         autorizacion.validarDuenio(idSolicitante, idUsuario);
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
@@ -201,9 +152,6 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
 
-        // Sin esto la baja quedaba a medias: el vendedor desaparecia de los
-        // listados pero sus publicaciones seguian en el catalogo y se compraban
-        // igual. Se dan de baja tambien, y salen de los carritos ajenos.
         for (Producto producto : productoRepository.findAll()) {
             if (producto.getVendedor() != null
                     && producto.getVendedor().getId().equals(idUsuario)
@@ -225,10 +173,6 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setApellido(request.getApellido());
         usuario.setNombreUsuario(request.getNombreUsuario());
         usuario.setMail(request.getMail());
-        // Se guarda hasheada, nunca en claro. BCrypt no se puede revertir: para
-        // verificar un login se hashea lo que llega y se comparan los hashes.
-        // Vale tanto para el alta como para la edicion, porque en las dos lo que
-        // entra por el body es la contrasena que el usuario escribio.
         usuario.setContrasena(passwordEncoder.encode(request.getContrasena()));
         usuario.setDireccion(request.getDireccion());
     }

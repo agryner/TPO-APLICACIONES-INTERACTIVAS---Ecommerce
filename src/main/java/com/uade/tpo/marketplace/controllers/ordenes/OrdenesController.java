@@ -32,28 +32,13 @@ import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.uade.tpo.marketplace.entity.Usuario;
 
-/**
- * Endpoints REST de ordenes de compra.
- *
- * Delega en OrdenDeCompraService y devuelve OrdenDeCompraResponse. Todo lo
- * que se lee pasa por el usuario del token: cada uno ve unicamente las ordenes
- * en las que participa. El alta toma el contenido del carrito del usuario, asi que el
- * body solo trae de quien es la orden.
- */
 @RestController
 @RequestMapping("ordenes")
 @RequiredArgsConstructor
 public class OrdenesController {
-
     private final OrdenDeCompraService ordenService;
 
     /**
-     * Quien pregunta sale del token, asi que no hay forma de pedir las ordenes
-     * de otro. rol es opcional y elige que punta mirar; si no viene, un cliente recibe
-     * sus compras y sus ventas juntas y un ADMIN todas las del sistema. Al ser
-     * enum, Spring rechaza con 400 cualquier valor que no sea COMPRADOR o
-     * VENDEDOR.
-     *
      * Pre : el token, y opcionalmente rol para mirar una sola punta.
      * Post: las ordenes donde el usuario participa. Sin rol, las compras y las
      *       ventas juntas; un ADMIN sin rol recibe todas las del sistema. 400
@@ -68,8 +53,6 @@ public class OrdenesController {
     }
 
     /**
-     * Una orden puntual con sus renglones.
-     *
      * Pre : el id en la ruta y el token.
      * Post: la orden con comprador, vendedor, estado y renglones. 403 si no
      *       sos parte de esa orden ni ADMIN, 404 si no existe.
@@ -82,9 +65,6 @@ public class OrdenesController {
     }
 
     /**
-     * Devuelve una lista porque un carrito con productos de varios vendedores
-     * se cierra como varias ordenes, una por cada uno.
-     *
      * Pre : solo el token: el contenido sale del carrito de quien pide.
      * Post: 201 con una orden por cada vendedor involucrado, y el carrito
      *       vacio. Descuenta el stock. Valida todo antes de escribir, asi que
@@ -99,11 +79,7 @@ public class OrdenesController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.createOrden(usuario.getId()));
     }
 
-
     /**
-     * El estado llega como enum, asi que Spring rechaza con 400 cualquier valor
-     * que no exista sin que haya que validarlo a mano.
-     *
      * Pre : el id en la ruta, el estado destino como enum, y el token.
      * Post: la orden en el estado nuevo. PAGADA solo la marca el ADMIN, porque
      *       sin pasarela ninguna de las partes puede probar que el dinero

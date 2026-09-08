@@ -17,13 +17,7 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
-/**
- * Contrato de la logica de ordenes.
- *
- * Lo consume OrdenesController y lo implementa OrdenDeCompraServiceImpl.
- */
 public interface OrdenDeCompraService {
-
     List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
             throws UsuarioNoEncontradoException;
 

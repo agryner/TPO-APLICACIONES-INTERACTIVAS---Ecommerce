@@ -18,21 +18,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Un producto guardado en la wishlist de alguien.
- *
- * No lleva cantidad: querer algo dos veces no significa nada. Por eso agregar
- * un producto que ya estaba no hace nada en vez de acumular, que es lo que si
- * hace el carrito.
- *
- * Guarda cuando se agrego para poder ordenar la lista por lo mas reciente.
- */
 @Data
 @NoArgsConstructor
 @Entity
 @Table(name = "item_wishlist")
 public class ItemWishlist {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_item")

@@ -8,15 +8,8 @@ import com.uade.tpo.marketplace.entity.Carrito;
 
 import lombok.Data;
 
-/**
- * Vista publica del carrito de un usuario.
- *
- * Del duenio expone solo el id, porque el carrito siempre se pide dentro de
- * /usuarios/{idUsuario}/carrito y el cliente ya sabe de quien es.
- */
 @Data
 public class CarritoResponse {
-
     private Long id;
     private Long idUsuario;
     private BigDecimal subtotal;

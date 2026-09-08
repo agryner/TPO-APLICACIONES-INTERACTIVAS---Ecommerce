@@ -7,16 +7,8 @@ import com.uade.tpo.marketplace.entity.Wishlist;
 
 import lombok.Data;
 
-/**
- * Vista publica de la wishlist de un usuario.
- *
- * No trae subtotal ni total, a diferencia del carrito: guardar algo para mas
- * adelante no es una compra en curso, y sumar precios que van a cambiar antes
- * de que alguien compre seria inventar un numero.
- */
 @Data
 public class WishlistResponse {
-
     private Long id;
     private Long idUsuario;
     private LocalDateTime fechaLimite;
@@ -40,7 +32,6 @@ public class WishlistResponse {
 
         List<ItemWishlistResponse> items = wishlist.getItems() == null ? List.of()
                 : wishlist.getItems().stream()
-                        // lo ultimo guardado primero, que es como se mira una wishlist
                         .sorted((a, b) -> b.getFechaAgregado().compareTo(a.getFechaAgregado()))
                         .map(ItemWishlistResponse::from)
                         .toList();

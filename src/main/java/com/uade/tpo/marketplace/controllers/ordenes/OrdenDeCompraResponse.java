@@ -10,22 +10,8 @@ import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 import lombok.Data;
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioPublicoResponse;
 
-/**
- * Vista publica de una orden de compra.
- *
- * Trae las dos puntas de la transaccion, comprador y vendedor, mas los
- * renglones con la copia de lo que se compro.
- *
- * Las dos puntas viajan como UsuarioPublicoResponse: solo el nombre y el nombre
- * de usuario. Ni el mail ni la direccion, aunque sea la contraparte de la
- * compra, porque la orden es el pago y no la entrega. Cuando exista la entidad
- * Envio, la direccion de destino va a vivir ahi, que ademas es su lugar: es un
- * dato de ese envio puntual y no el domicilio que el usuario tenga cargado en
- * la cuenta el dia que alguien mire la orden.
- */
 @Data
 public class OrdenDeCompraResponse {
-
     private Long id;
     private UsuarioPublicoResponse comprador;
     private UsuarioPublicoResponse vendedor;

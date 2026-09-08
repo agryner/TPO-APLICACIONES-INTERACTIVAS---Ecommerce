@@ -13,13 +13,7 @@ import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
-/**
- * Contrato de la logica de usuarios.
- *
- * Lo consume UsuariosController y lo implementa UsuarioServiceImpl.
- */
 public interface UsuarioService {
-
     List<UsuarioResponse> getUsuarios(Long idSolicitante)
             throws UsuarioNoEncontradoException, AccesoDenegadoException;
 

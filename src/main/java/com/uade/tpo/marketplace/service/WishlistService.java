@@ -8,13 +8,7 @@ import com.uade.tpo.marketplace.exceptions.ItemWishlistNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 
-/**
- * Contrato de la logica de la wishlist.
- *
- * Lo consume WishlistsController y lo implementa WishlistServiceImpl.
- */
 public interface WishlistService {
-
     WishlistResponse obtenerWishlist(Long idUsuario)
             throws UsuarioNoEncontradoException, CuentaInactivaException;
 

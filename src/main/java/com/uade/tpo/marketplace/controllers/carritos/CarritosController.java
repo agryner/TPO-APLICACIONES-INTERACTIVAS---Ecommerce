@@ -25,31 +25,13 @@ import com.uade.tpo.marketplace.service.CarritoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/**
- * El carrito del usuario logueado.
- *
- * La ruta no lleva ningun id de persona: hay un carrito por usuario y quien
- * pide sale del token. Antes colgaba de /usuarios/{idUsuario}/carrito, que
- * obligaba al frontend a conocer el id propio y dejaba abierta la puerta a
- * pedir el de otro. Ahora esa puerta no existe: no hay donde escribir un id
- * ajeno.
- *
- * Los unicos @PathVariable que quedan son de cosas, no de personas: el id del
- * item del carrito.
- *
- * Delega todo en CarritoService y devuelve un CarritoResponse ya con sus
- * totales recalculados.
- */
 @RestController
 @RequestMapping("carrito")
 @RequiredArgsConstructor
 public class CarritosController {
-
     private final CarritoService carritoService;
 
     /**
-     * Mi carrito.
-     *
      * Pre : solo el token.
      * Post: el carrito con sus items, el subtotal y el total. Se crea vacio si
      *       es la primera vez, y se vacia solo si pasaron los 30 dias sin que
@@ -62,8 +44,6 @@ public class CarritosController {
     }
 
     /**
-     * Carga un producto, o le suma cantidad si ya estaba.
-     *
      * Pre : el body con idProducto y cantidad, y el token. La cantidad tiene
      *       que ser al menos 1 y, sumada a lo que ya hubiera, no superar el
      *       stock.
@@ -82,8 +62,6 @@ public class CarritosController {
     }
 
     /**
-     * Cambia cuantas unidades de un item hay en el carrito.
-     *
      * Pre : el id del item en la ruta, el body con la cantidad nueva, y el
      *       token. El id del item sale de la respuesta de agregar, no es el id
      *       del producto.
@@ -102,8 +80,6 @@ public class CarritosController {
     }
 
     /**
-     * Saca un item del carrito.
-     *
      * Pre : el id del item en la ruta y el token.
      * Post: el carrito sin ese item y con los totales recalculados. 404 si ese
      *       item no esta en tu carrito.
@@ -117,8 +93,6 @@ public class CarritosController {
     }
 
     /**
-     * Saca todos los items de una.
-     *
      * Pre : solo el token.
      * Post: el carrito vacio, con los totales en cero. El carrito en si no se
      *       borra, y al quedar sin items deja de vencer.

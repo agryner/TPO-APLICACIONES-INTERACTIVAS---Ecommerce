@@ -21,26 +21,13 @@ import com.uade.tpo.marketplace.service.WishlistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/**
- * La lista de deseos del usuario logueado.
- *
- * Misma forma que el carrito: la ruta no lleva id de persona, porque hay una
- * wishlist por usuario y quien pide sale del token. El unico @PathVariable es
- * el id del item.
- *
- * Delega en WishlistService y devuelve siempre la lista completa, para que el
- * cliente no tenga que volver a pedirla despues de cada cambio.
- */
 @RestController
 @RequestMapping("wishlist")
 @RequiredArgsConstructor
 public class WishlistsController {
-
     private final WishlistService wishlistService;
 
     /**
-     * Lo que guarde para mas adelante.
-     *
      * Pre : solo el token.
      * Post: la wishlist con sus items, cada uno con el producto y si hoy esta
      *       disponible. Se crea vacia si es la primera vez, y se vacia sola si
@@ -53,8 +40,6 @@ public class WishlistsController {
     }
 
     /**
-     * Guarda un producto para mas adelante.
-     *
      * Pre : el body con idProducto y el token. El producto tiene que estar a la
      *       venta en este momento.
      * Post: la wishlist completa con el producto adentro. Si ya estaba no hace
@@ -71,8 +56,6 @@ public class WishlistsController {
     }
 
     /**
-     * Saca un producto de la lista.
-     *
      * Pre : el id del item en la ruta y el token. El id del item sale de la
      *       respuesta de agregar, no es el del producto.
      * Post: la wishlist sin ese item. 404 si ese item no esta en tu lista.
@@ -86,8 +69,6 @@ public class WishlistsController {
     }
 
     /**
-     * Saca todo de una.
-     *
      * Pre : solo el token.
      * Post: la wishlist vacia. La lista en si no se borra, y al quedar sin
      *       items deja de vencer.

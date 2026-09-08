@@ -18,20 +18,10 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Categoria de productos, con jerarquia propia.
- *
- * Una categoria sin padre es una categoria raiz; si tiene padre, es una
- * subcategoria. La profundidad no esta limitada.
- *
- * La persiste CategoriaRepository y la maneja CategoriaServiceImpl,
- * que es quien valida la jerarquia.
- */
 @Data
 @NoArgsConstructor
 @Entity
 public class Categoria {
-
     public Categoria(String nombre, String descripcion) {
         this.nombre = nombre;
         this.descripcion = descripcion;
@@ -48,15 +38,12 @@ public class Categoria {
     @Column
     private String descripcion;
 
-    /** Null en las categorias raiz. */
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "id_categoria_padre")
     private Categoria categoriaPadre;
 
-    // Se consulta por GET /categorias/{id}/subcategorias. No se serializa para
-    // no entrar en un ciclo con categoriaPadre.
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

@@ -11,23 +11,8 @@ import jakarta.validation.constraints.Size;
 
 import lombok.Data;
 
-/**
- * Datos que entran por el body al crear o editar un producto.
- *
- * Trae idCategoria en vez del objeto completo; el service lo resuelve contra
- * su repository antes de armar la entidad Producto.
- *
- * No trae vendedor a proposito: se publica siempre a nombre de quien hace el
- * pedido, asi que sale del token y no puede falsearse desde el body.
- *
- * Las anotaciones se chequean antes de que el controller llame al service. Son
- * reglas de forma, no de negocio: que el precio sea positivo se puede decidir
- * mirando solo este objeto, mientras que "la categoria existe" necesita la base
- * y por eso sigue viviendo en ProductoServiceImpl.
- */
 @Data
 public class ProductoRequest {
-
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
     private String nombre;
@@ -46,7 +31,6 @@ public class ProductoRequest {
     @Size(max = 150, message = "La ubicacion no puede superar los 150 caracteres")
     private String ubicacion;
 
-    // Sin tope, un descuento de 150 deja el total de la orden en negativo.
     @Min(value = 0, message = "El descuento no puede ser negativo")
     @Max(value = 100, message = "El descuento no puede superar el 100 por ciento")
     private Integer descuento;

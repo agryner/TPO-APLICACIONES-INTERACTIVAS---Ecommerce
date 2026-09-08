@@ -37,23 +37,13 @@ import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.uade.tpo.marketplace.entity.Usuario;
 
-/**
- * Endpoints REST de las fotos de un producto.
- *
- * El alta entra como multipart/form-data en FotoUploadRequest y se delega en
- * FotoService. Para leer la imagen hay dos salidas: /contenido devuelve los
- * bytes con su Content-Type y /base64 los envuelve en un FotoResponse.
- */
 @RestController
 @RequestMapping("fotos")
 @RequiredArgsConstructor
 public class FotosController {
-
     private final FotoService fotoService;
 
     /**
-     * Las fotos de un producto.
-     *
      * Pre : el idProducto como query param. Es publico.
      * Post: la lista de metadatos, sin los bytes: cada una trae la URL para
      *       pedir la imagen. 404 si el producto no existe, lista vacia si
@@ -66,8 +56,6 @@ public class FotosController {
     }
 
     /**
-     * Los metadatos de una foto.
-     *
      * Pre : el id en la ruta. Es publico.
      * Post: nombre de archivo, tipo, tamanio, estado de verificacion y la URL
      *       del contenido. 404 si no existe.
@@ -79,10 +67,6 @@ public class FotosController {
     }
 
     /**
-     * Unica forma de dar de alta una foto: subiendo el archivo. Se manda como
-     * multipart/form-data con dos campos, 'file' con la imagen y 'idProducto'
-     * con el producto al que pertenece.
-     *
      * Pre : un multipart con el archivo en el campo file y el idProducto, mas
      *       el token del vendedor de ese producto.
      * Post: 201 con los metadatos de la foto. Si el producto estaba en
@@ -100,9 +84,6 @@ public class FotosController {
     }
 
     /**
-     * Devuelve la imagen tal cual, con su Content-Type original, asi que sirve
-     * directo en un <img src="...">.
-     *
      * Pre : el id de la foto en la ruta. Es publico.
      * Post: los bytes con su Content-Type, listos para el src de un img. 404
      *       si no existe.
@@ -120,8 +101,6 @@ public class FotosController {
     }
 
     /**
-     * La misma imagen pero en Base64 dentro de un JSON.
-     *
      * Pre : el id de la foto en la ruta. Es publico.
      * Post: la misma imagen dentro de un JSON, para clientes que no pueden
      *       pedir binario.
@@ -135,8 +114,6 @@ public class FotosController {
     }
 
     /**
-     * Cola de revision del admin: las fotos que la IA no pudo resolver sola.
-     *
      * Pre : un token de ADMIN y, opcionalmente, el estado a filtrar.
      * Post: las fotos en ese estado. Sin estado devuelve las EN_REVISION, que
      *       es la cola de trabajo. 403 si no sos ADMIN.
@@ -149,8 +126,6 @@ public class FotosController {
     }
 
     /**
-     * Aprobar deja la foto visible; rechazar la elimina.
-     *
      * Pre : el id de la foto, el flag aprobada y un token de ADMIN.
      * Post: la foto con su estado resuelto. Aprobar la deja visible; rechazar
      *       la elimina.
@@ -164,8 +139,6 @@ public class FotosController {
     }
 
     /**
-     * Borra una foto. Es borrado real, no baja logica.
-     *
      * Pre : el id en la ruta y el token del vendedor del producto.
      * Post: un mensaje de confirmacion. Si era la ultima foto, el producto
      *       vuelve a BORRADOR y sale del catalogo y de los carritos.

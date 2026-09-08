@@ -23,37 +23,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-/**
- * Ultima red antes de que un error salga por HTTP.
- *
- * Extiende ResponseEntityExceptionHandler para no pisar el trabajo que Spring
- * ya hace con sus propias excepciones: un JSON malformado, un enum invalido o
- * un metodo equivocado siguen saliendo con 400 y 405 como corresponde.
- *
- * Las excepciones de dominio tampoco pasan por aca: cada una lleva su
- * @ResponseStatus y Spring las traduce sola. Esto atrapa lo que quedaba
- * afuera, que es lo que salia como 500 con el SQL adentro.
- *
- * La regla es siempre la misma: al cliente se le dice que paso en su idioma, y
- * el detalle tecnico va al log del servidor y no al JSON.
- */
 @RestControllerAdvice
 public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
-
     private static final Logger log = LoggerFactory.getLogger(ManejadorDeErrores.class);
 
-    /**
-     * Body que no cumple las anotaciones de los Request.
-     *
-     * Se sobreescribe el metodo de Spring para agregar la lista de campos con
-     * su motivo: un "400 Bad Request" pelado obliga a adivinar cual de los
-     * siete campos estaba mal.
-     */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpHeaders headers,
             HttpStatusCode status, WebRequest request) {
-
         Map<String, String> campos = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(e -> campos.putIfAbsent(
                 e.getField(),
@@ -64,12 +41,6 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
         return ResponseEntity.badRequest().body(cuerpo);
     }
 
-    /**
-     * Choques con la base: un unique repetido, un dato mas largo que la columna.
-     *
-     * El mensaje de Hibernate nombra tablas, columnas y constraints, asi que no
-     * se reenvia nunca: queda en el log y el cliente recibe un texto neutro.
-     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> integridad(DataIntegrityViolationException ex) {
         log.warn("Violacion de integridad", ex);
@@ -78,13 +49,6 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
                         "Los datos enviados chocan con algo que ya existe o no entran en el campo"));
     }
 
-    /**
-     * Dos operaciones que se pisaron sobre las mismas filas.
-     *
-     * Con los candados del checkout deberia ser raro, pero si igual pasa no es
-     * culpa de quien pidio: es un choque momentaneo y reintentar alcanza. Por
-     * eso 409 y no 500.
-     */
     @ExceptionHandler({ CannotAcquireLockException.class, PessimisticLockingFailureException.class })
     public ResponseEntity<Object> choqueDeConcurrencia(Exception ex) {
         log.warn("Choque de concurrencia", ex);
@@ -93,16 +57,6 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
                         "Otra operacion esta usando esos datos en este momento, volve a intentar"));
     }
 
-    /**
-     * Mail o contrasena que no cierran, o cuenta dada de baja.
-     *
-     * Sin esto caeria en el catch-all de abajo y saldria como 500, porque las
-     * excepciones de Spring Security no llevan @ResponseStatus. Es 401 y no
-     * 403: 401 es "no se quien sos", 403 es "se quien sos y no podes".
-     *
-     * El mensaje no distingue si fallo el mail o la contrasena a proposito: si
-     * lo hiciera, serviria para averiguar que mails estan registrados.
-     */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Object> credencialesInvalidas(AuthenticationException ex) {
         log.debug("Autenticacion fallida", ex);
@@ -110,7 +64,6 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
                 .body(base(HttpStatus.UNAUTHORIZED, "Mail o contrasena incorrectos"));
     }
 
-    /** Autenticado, pero sin permiso para eso. */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> sinPermiso(AccessDeniedException ex) {
         log.debug("Acceso denegado", ex);
@@ -118,12 +71,8 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
                 .body(base(HttpStatus.FORBIDDEN, "No tenes permiso para hacer eso"));
     }
 
-    /** Lo que no previo nadie. Nunca sale con detalle al cliente. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> inesperado(Exception ex) throws Exception {
-        // Guarda imprescindible: sin esto, este metodo se come tambien las 21
-        // excepciones de dominio y las devuelve como 500, tirando a la basura
-        // los 403, 404 y 409 que cada una declara en su @ResponseStatus.
         if (AnnotatedElementUtils.hasAnnotation(ex.getClass(), ResponseStatus.class))
             throw ex;
 

@@ -6,15 +6,8 @@ import com.uade.tpo.marketplace.entity.OrderDetail;
 
 import lombok.Data;
 
-/**
- * Renglon de una orden ya cerrada.
- *
- * Expone los importes calculados de la entidad (precio final y total) para que
- * el cliente no tenga que rehacer la cuenta del descuento por su lado.
- */
 @Data
 public class OrderDetailResponse {
-
     private Long id;
     private Long idProducto;
     private String nombre;

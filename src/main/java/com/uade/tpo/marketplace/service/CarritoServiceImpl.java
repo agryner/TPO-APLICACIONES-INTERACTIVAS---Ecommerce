@@ -29,32 +29,19 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Logica del carrito: items, totales y vencimiento.
- *
- * Lo llama CarritosController y usa CarritoRepository, ProductoRepository y
- * UsuarioRepository. Los items no tienen repositorio propio: se manejan a
- * traves de la coleccion del Carrito, que los persiste en cascada. Antes de
- * cada operacion vacia el carrito si paso su fechaLimite, y despues recalcula
- * subtotal y total.
- */
 @Service
 @RequiredArgsConstructor
 public class CarritoServiceImpl implements CarritoService {
-
     private final CarritoRepository carritoRepository;
     private final ProductoRepository productoRepository;
     private final ItemCarritoRepository itemCarritoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
 
-    /** Cuanto vive el carrito desde la ultima vez que se modifico. */
     @Value("${marketplace.carrito.minutos-vigencia:1440}")
     private long minutosVigencia;
 
     /**
-     * El carrito de un usuario, visto desde afuera.
-     *
      * Pre : el id del usuario y el id de quien pregunta.
      * Post: el carrito con sus items y totales. Lo crea vacio si es la primera
      *       vez y lo vacia si vencio.
@@ -67,11 +54,6 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     /**
-     * Version para uso entre services: devuelve la entidad, no el DTO.
-     *
-     * OrdenDeCompraServiceImpl necesita recorrer los items y descontar stock,
-     * asi que no le alcanza con la vista de solo lectura.
-     *
      * Pre : el id del usuario.
      * Post: la entidad Carrito, no el DTO: la usan otros services que
      *       necesitan trabajar sobre los items. Lo crea si no existe y lo
@@ -89,10 +71,6 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     /**
-     * La llaman los otros services cuando un producto deja de estar
-     * disponible: se pausa, se da de baja, o se queda sin fotos y vuelve a
-     * borrador. Sin esto el comprador se entera recien al intentar pagar.
-     *
      * Pre : el id de un producto que dejo de estar disponible.
      * Post: nada. Ese producto queda fuera de todos los carritos donde
      *       estuviera, con los totales recalculados.
@@ -117,8 +95,6 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     /**
-     * Carga un producto, o le suma cantidad si ya estaba.
-     *
      * Pre : el id del usuario, el request con idProducto y cantidad, y el id
      *       de quien pide.
      * Post: el carrito con el item y los totales recalculados. No descuenta
@@ -133,26 +109,17 @@ public class CarritoServiceImpl implements CarritoService {
             CompraPropiaException, CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException {
         autorizacion.validarActivo(idUsuario);
 
-        // El admin entra a los carritos ajenos para moderar, pero no arma el
-        // suyo: cargar algo es el primer paso de una compra.
         autorizacion.validarQueNoSeaAdmin(idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
-        // Un producto dado de baja o fuera del catalogo no existe para quien
-        // compra, asi que se trata igual que uno inexistente.
         Producto producto = productoRepository.findById(request.getIdProducto())
                 .filter(Producto::getActivo)
                 .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
                 .orElseThrow(ProductoNoEncontradoException::new);
 
-        // Cortar aca y no en el checkout: el comprador se entera al tocar el
-        // boton de agregar y no despues de armar todo el carrito.
         if (producto.getVendedor().getId().equals(idUsuario))
             throw new CompraPropiaException(producto);
 
-        // Null significa "una unidad", pero cero o negativo no significan nada:
-        // dejaban el carrito con cantidades y totales negativos. Para sacar un
-        // item esta el delete.
         int cantidad = request.getCantidad() == null ? 1 : request.getCantidad();
         if (cantidad < 1)
             throw new CantidadInvalidaException();
@@ -160,7 +127,6 @@ public class CarritoServiceImpl implements CarritoService {
         if (producto.getStock() < cantidad)
             throw new StockInsuficienteException(producto, cantidad);
 
-        // Si el producto ya estaba en el carrito, se acumula la cantidad.
         ItemCarrito item = carrito.getItems().stream()
                 .filter(i -> i.getProducto().getId().equals(producto.getId()))
                 .findFirst()
@@ -173,7 +139,6 @@ public class CarritoServiceImpl implements CarritoService {
             item.setCantidad(cantidad);
             carrito.getItems().add(item);
         } else {
-            // Lo que ya habia en el carrito mas lo que se suma ahora.
             if (producto.getStock() < item.getCantidad() + cantidad)
                 throw new StockInsuficienteException(producto, item.getCantidad() + cantidad);
             item.setCantidad(item.getCantidad() + cantidad);
@@ -196,7 +161,6 @@ public class CarritoServiceImpl implements CarritoService {
             ItemCarritoNoEncontradoException, StockInsuficienteException, CuentaInactivaException {
         autorizacion.validarActivo(idUsuario);
 
-        // Pedir cero o menos es sacarlo del carrito, no dejar un item vacio.
         if (nuevaCantidad == null || nuevaCantidad <= 0)
             return eliminarItem(idUsuario, idItem);
 
@@ -264,8 +228,6 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     /**
-     * El carrito no se borra: se vacia. El usuario conserva siempre el mismo.
-     *
      * Pre : el carrito.
      * Post: el mismo carrito, vacio si su fechaLimite ya paso. El chequeo es
      *       perezoso: ocurre cuando alguien lo mira, no cuando se cumple el
@@ -291,10 +253,6 @@ public class CarritoServiceImpl implements CarritoService {
         return carritoRepository.save(carrito);
     }
 
-    /**
-     * Cada modificacion corre la fecha limite hacia adelante. Un carrito vacio
-     * no vence porque no hay nada que vaciar.
-     */
     private void renovarVigencia(Carrito carrito) {
         carrito.setFechaLimite(carrito.getItems().isEmpty()
                 ? null
@@ -302,9 +260,6 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     /**
-     * subtotal: suma de precio de lista por cantidad.
-     * total: lo mismo, pero aplicando el descuento de cada producto.
-     *
      * Pre : el carrito.
      * Post: nada. Deja subtotal como la suma de precio por cantidad, y total
      *       como lo mismo aplicando el descuento de cada producto.

@@ -15,38 +15,17 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Las piezas que Spring Security necesita para autenticar.
- *
- * Son cuatro y encajan asi: el UserDetailsService sabe traer un usuario por su
- * mail, el PasswordEncoder sabe comparar una contrasena contra su hash, el
- * AuthenticationProvider combina los dos, y el AuthenticationManager es lo que
- * el login termina llamando.
- */
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
-
     private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Como se busca un usuario a partir de lo que dice el token.
-     *
-     * Devuelve la entidad Usuario directamente, porque implementa UserDetails.
-     */
     @Bean
     public UserDetailsService userDetailsService() {
         return mail -> usuarioRepository.findByMail(mail)
                 .orElseThrow(() -> new UsernameNotFoundException("No existe un usuario con ese mail"));
     }
 
-    /**
-     * BCrypt: incluye una sal distinta en cada hash, asi que dos usuarios con la
-     * misma contrasena tienen hashes distintos, y es lento a proposito para que
-     * probar contrasenas por fuerza bruta no rinda.
-     *
-     * Nunca se desencripta: para verificar, se hashea lo que llega y se compara.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

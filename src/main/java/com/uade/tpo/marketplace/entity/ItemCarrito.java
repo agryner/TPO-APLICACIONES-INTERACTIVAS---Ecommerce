@@ -15,18 +15,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Renglon del carrito: un producto y su cantidad.
- *
- * Lo maneja CarritoServiceImpl, que al agregar o quitar items recalcula los
- * totales del Carrito que lo contiene.
- */
 @Data
 @NoArgsConstructor
 @Entity
 @Table(name = "item_carrito")
 public class ItemCarrito {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_item")

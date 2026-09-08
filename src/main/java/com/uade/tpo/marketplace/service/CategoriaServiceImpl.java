@@ -19,19 +19,9 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Logica de categorias: altas, jerarquia y validaciones.
- *
- * Lo llama CategoriasController y se apoya en CategoriaRepository. Valida que
- * no haya dos hermanas con el mismo nombre, que una categoria no quede como
- * descendiente de si misma y que no se borre una que tenga subcategorias.
- * Se apoya en AutorizacionService, porque solo un ADMIN puede crear, editar
- * o borrar categorias.
- */
 @Service
 @RequiredArgsConstructor
 public class CategoriaServiceImpl implements CategoriaService {
-
     private final CategoriaRepository categoriaRepository;
     private final ProductoRepository productoRepository;
     private final AutorizacionService autorizacion;
@@ -129,8 +119,6 @@ public class CategoriaServiceImpl implements CategoriaService {
         if (!categoriaRepository.findByCategoriaPadreId(idCategoria).isEmpty())
             throw new CategoriaConSubcategoriasException();
 
-        // Sin este control la baja la termina rechazando la foreign key de
-        // producto.id_categoria, y eso sale como un 500 con el SQL adentro.
         if (productoRepository.existsByCategoriaId(idCategoria))
             throw new CategoriaConProductosException();
 
@@ -151,15 +139,6 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     /**
-     * Rechaza el nombre si ya esta usado en esa rama del arbol.
-     *
-     * Son dos colisiones distintas: contra una hermana, y contra el propio
-     * padre. La segunda no la detecta la busqueda de hermanas, porque el padre
-     * no es hija de si mismo, y dejaba pasar arboles como "Semillas > Semillas".
-     *
-     * idActual permite excluirse a si misma al editar: renombrar una categoria
-     * dejandole el mismo nombre no puede ser un duplicado.
-     *
      * Pre : el nombre, el padre y el id de la propia categoria si se esta
      *       editando.
      * Post: nada si el nombre esta libre entre sus hermanas. Tira
@@ -186,9 +165,6 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     /**
-     * Impide que una categoria termine siendo antepasado de si misma, que
-     * dejaria la jerarquia en un ciclo infinito.
-     *
      * Pre : la categoria y el padre nuevo.
      * Post: nada si el movimiento es legal. Tira JerarquiaInvalidaException si
      *       el padre nuevo es la propia categoria o una de sus descendientes:
@@ -204,7 +180,4 @@ public class CategoriaServiceImpl implements CategoriaService {
             actual = actual.getCategoriaPadre();
         }
     }
-
-
-
 }

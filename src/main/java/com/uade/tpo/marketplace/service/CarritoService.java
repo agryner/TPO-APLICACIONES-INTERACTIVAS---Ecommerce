@@ -12,13 +12,7 @@ import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 
-/**
- * Contrato de la logica del carrito.
- *
- * Lo consume CarritosController y lo implementa CarritoServiceImpl.
- */
 public interface CarritoService {
-
     CarritoResponse obtenerCarrito(Long idUsuario) throws UsuarioNoEncontradoException, CuentaInactivaException;
 
     Carrito obtenerCarritoEntidad(Long idUsuario) throws UsuarioNoEncontradoException;

@@ -9,18 +9,8 @@ import com.uade.tpo.marketplace.entity.Producto;
 import lombok.Data;
 import com.uade.tpo.marketplace.controllers.productos.ProductoResponse;
 
-/**
- * Un renglon de la wishlist visto desde afuera.
- *
- * Ademas del producto lleva disponible, que resume en un booleano si hoy se
- * puede comprar. La wishlist conserva los productos que salieron de
- * circulacion, asi que el frontend necesita saber cuales mostrar apagados sin
- * tener que interpretar por su cuenta la combinacion de activo y
- * estadoPublicacion.
- */
 @Data
 public class ItemWishlistResponse {
-
     private Long id;
     private LocalDateTime fechaAgregado;
     private boolean disponible;
@@ -43,9 +33,6 @@ public class ItemWishlistResponse {
         return dto;
     }
 
-    /**
-     * Resume en un booleano si el producto se puede comprar ahora.
-     */
     private static boolean estaDisponible(Producto producto) {
         return producto != null
                 && Boolean.TRUE.equals(producto.getActivo())

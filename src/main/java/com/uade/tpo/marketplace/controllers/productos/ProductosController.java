@@ -36,27 +36,13 @@ import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.uade.tpo.marketplace.entity.Usuario;
 
-/**
- * Endpoints REST del catalogo de productos.
- *
- * Recibe ProductoRequest, delega en ProductoService y devuelve
- * ProductoResponse o MensajeResponse. Los filtros de busqueda llegan como query
- * params y se pasan tal cual al service.
- */
 @RestController
 @RequestMapping("productos")
 @RequiredArgsConstructor
 public class ProductosController {
-
     private final ProductoService productoService;
 
     /**
-     * El catalogo publico.
-     *
-     * No filtra por vendedor: para eso esta /productos/vendedor/{nombreUsuario},
-     * que busca por nombre exacto. El filtro que habia aca era por coincidencia
-     * parcial y mezclaba vendedores distintos.
-     *
      * Pre : todos los filtros son opcionales y se combinan: idCategoria,
      *       nombre, precioMin, precioMax y ordenPrecio.
      * Post: los productos activos, PUBLICADOS y de vendedores vigentes.
@@ -76,14 +62,6 @@ public class ProductosController {
     }
 
     /**
-     * Las publicaciones propias, incluidos borradores y pausadas.
-     *
-     * Va antes que /{idProducto} porque Spring resuelve primero los segmentos
-     * literales, pero conviene tenerlas juntas para que se vea el orden.
-     *
-     * El ADMIN no entra: no publica, asi que no tiene publicaciones propias.
-     * Para mirar lo ajeno tiene /productos/todos.
-     *
      * Pre : el token y, opcionalmente, el estado a filtrar.
      * Post: las publicaciones propias, incluidos borradores y pausados, que el
      *       catalogo esconde. 403 si quien pide es ADMIN.
@@ -97,12 +75,6 @@ public class ProductosController {
     }
 
     /**
-     * La vidriera de un vendedor, por nombre de usuario.
-     *
-     * El cliente no conoce ningun id, pero si el nombre de usuario: viene
-     * dentro de cada producto que mira. Va antes que /{idProducto} por
-     * prolijidad, aunque no chocarian: aquella es de un solo segmento.
-     *
      * Pre : el nombre de usuario en la ruta. Es publico.
      * Post: las publicaciones visibles de ese vendedor, con las mismas reglas
      *       que el catalogo. 404 si no existe o esta dado de baja.
@@ -114,8 +86,6 @@ public class ProductosController {
     }
 
     /**
-     * Un producto puntual.
-     *
      * Pre : el id en la ruta. Es publico.
      * Post: el producto con su categoria, su vendedor y sus fotos. 404 si no
      *       existe.
@@ -127,8 +97,6 @@ public class ProductosController {
     }
 
     /**
-     * Publica un producto.
-     *
      * Pre : el body con nombre, precio, stock, descripcion, ubicacion,
      *       descuento e idCategoria, mas el token. El vendedor sale del token
      *       y no del body.
@@ -147,8 +115,6 @@ public class ProductosController {
     }
 
     /**
-     * Cambia los datos de un producto.
-     *
      * Pre : el id en la ruta, el body completo, y el token de su vendedor o de
      *       un ADMIN.
      * Post: el producto actualizado. No toca el estado de publicacion ni las
@@ -164,11 +130,6 @@ public class ProductosController {
     }
 
     /**
-     * Pausar o reanudar la publicacion, como en los marketplaces conocidos.
-     *
-     * El estado llega como enum, asi que Spring rechaza con 400 cualquier valor
-     * que no exista sin que haya que validarlo a mano.
-     *
      * Pre : el id en la ruta, el estado destino, y el token de su vendedor o
      *       de un ADMIN.
      * Post: el producto en el estado nuevo. Pausar lo saca del catalogo y de
@@ -186,8 +147,6 @@ public class ProductosController {
     }
 
     /**
-     * Su vendedor o el ADMIN: devuelve al catalogo un producto dado de baja.
-     *
      * Pre : el id en la ruta y el token de su vendedor o de un ADMIN.
      * Post: el producto activo otra vez, en el estado de publicacion que tenia
      *       antes de la baja.
@@ -201,9 +160,6 @@ public class ProductosController {
     }
 
     /**
-     * Solo ADMIN: el catalogo entero, incluidos los inactivos, los borradores y
-     * los pausados, que el listado publico esconde.
-     *
      * Pre : un token de ADMIN y, opcionalmente, el estado a filtrar.
      * Post: todo el catalogo sin los filtros del comprador: incluye inactivos,
      *       borradores y pausados. 403 si no sos ADMIN.
@@ -216,8 +172,6 @@ public class ProductosController {
     }
 
     /**
-     * Da de baja un producto.
-     *
      * Pre : el id en la ruta y el token de su vendedor o de un ADMIN.
      * Post: un mensaje de confirmacion. Es baja logica: sale del catalogo y de
      *       los carritos, pero las ordenes que lo referencian lo siguen

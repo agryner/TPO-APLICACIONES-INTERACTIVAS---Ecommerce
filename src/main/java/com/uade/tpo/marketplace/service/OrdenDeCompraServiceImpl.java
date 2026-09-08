@@ -39,17 +39,9 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 
-/**
- * Logica de ordenes: convierte un carrito en una compra cerrada.
- *
- * Lo llama OrdenesController. Lee el carrito, valida que tenga items y stock,
- * copia cada linea a un OrderDetail con el precio del momento, descuenta el
- * stock del producto y vacia el carrito.
- */
 @Service
 @RequiredArgsConstructor
 public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
-
     private static final EstadoOrden ESTADO_INICIAL = EstadoOrden.PENDIENTE;
 
     private final OrdenDeCompraRepository ordenRepository;
@@ -60,12 +52,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     private final EntityManager entityManager;
 
     /**
-     * Un cliente no ve las ordenes de otros: una orden es una transaccion
-     * entre dos personas y a nadie mas le incumbe. El ADMIN es la excepcion,
-     * para poder auditarlas, pero si manda rol vuelve a mirarse como
-     * participante y salen sus propias compras o ventas, que es lo unico que
-     * ese filtro puede querer decir.
-     *
      * Pre : el id de quien pregunta y, opcionalmente, desde que lado mirar.
      * Post: las ordenes donde participa. Sin rol, las dos puntas; un ADMIN sin
      *       rol recibe todas las del sistema. Tira 404 si el usuario no
@@ -102,8 +88,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         OrdenDeCompra orden = ordenRepository.findById(idOrden)
                 .orElseThrow(OrdenNoEncontradaException::new);
 
-        // Sin esto filtrar el listado no serviria de nada: bastaria con pedir
-        // las ordenes de a una por id para leer las de cualquier otro.
         boolean esParte = orden.getComprador().getId().equals(idSolicitante)
                 || orden.getVendedor().getId().equals(idSolicitante);
         if (!esParte && !autorizacion.esAdmin(idSolicitante))
@@ -112,24 +96,12 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         return OrdenDeCompraResponse.from(orden);
     }
 
-    /**
-     * Sin esto, filtrar por un id que no existe devuelve una lista vacia, igual
-     * que un usuario real sin movimientos. Son dos situaciones distintas y el
-     * cliente no tiene como distinguirlas.
-     */
     private void validarQueExista(Long idUsuario) throws UsuarioNoEncontradoException {
         if (!usuarioRepository.existsById(idUsuario))
             throw new UsuarioNoEncontradoException();
     }
 
     /**
-     * Cierra el carrito y lo convierte en ordenes.
-     *
-     * Una orden es una transaccion entre dos personas, asi que si el carrito
-     * mezcla productos de varios vendedores se genera una orden por cada uno.
-     * Primero se valida todo y recien despues se escribe: si un solo item falla,
-     * no queda ninguna orden a medio crear.
-     *
      * Pre : el id de quien compra; el contenido sale de su carrito.
      * Post: una orden por cada vendedor involucrado, con el stock ya
      *       descontado y el carrito vacio. Valida todo antes de escribir, asi
@@ -147,15 +119,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         if (carrito.getItems().isEmpty())
             throw new CarritoVacioException();
 
-        // Se toman los candados antes de mirar nada, y siempre en el mismo
-        // orden: si dos compras coinciden en varios productos, ordenarlos por
-        // id evita que cada una se quede con la mitad de lo que la otra
-        // necesita, que es como se armaba el interbloqueo.
-        //
-        // Va un refresh y no un find: al cargar el carrito los productos ya
-        // quedaron en memoria, y pedirlos de nuevo devolveria esa copia con el
-        // stock de antes de esperar el candado. Asi cada compra vuelve a leer
-        // la fila recien liberada por la anterior.
         for (Long idProducto : carrito.getItems().stream()
                 .map(item -> item.getProducto().getId())
                 .distinct().sorted().toList()) {
@@ -166,21 +129,15 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
 
         for (ItemCarrito item : carrito.getItems()) {
             Producto producto = item.getProducto();
-            // El producto pudo darse de baja o pausarse despues de entrar al carrito.
             if (!producto.getActivo()
                     || producto.getEstadoPublicacion() != EstadoPublicacion.PUBLICADO)
                 throw new ProductoNoEncontradoException();
-            // Se repite el chequeo del carrito porque este es el punto donde se
-            // descuenta el stock y se escribe la orden: un item cargado antes de
-            // que existiera la regla llegaria hasta aca sin que nadie lo mire.
             if (producto.getVendedor().getId().equals(idSolicitante))
                 throw new CompraPropiaException(producto);
             if (producto.getStock() < item.getCantidad())
                 throw new StockInsuficienteException(producto, item.getCantidad());
         }
 
-        // LinkedHashMap para que las ordenes salgan en el mismo orden en que el
-        // comprador fue cargando los productos.
         Map<Usuario, List<ItemCarrito>> porVendedor = new LinkedHashMap<>();
         for (ItemCarrito item : carrito.getItems())
             porVendedor.computeIfAbsent(item.getProducto().getVendedor(), v -> new ArrayList<>())
@@ -191,14 +148,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
             ordenes.add(OrdenDeCompraResponse.from(
                     armarOrden(carrito.getUsuario(), entrada.getKey(), entrada.getValue())));
 
-        // El carrito es unico por usuario y se reutiliza: se vacia tras la compra.
         carritoService.vaciarEntidad(idSolicitante);
         return ordenes;
     }
 
     /**
-     * Arma y guarda la orden de un vendedor con los items que le corresponden.
-     *
      * Pre : el comprador, el vendedor y los items que le corresponden.
      * Post: la orden guardada, con cada renglon copiando el precio del momento
      *       para que una edicion posterior no reescriba la historia.
@@ -219,8 +173,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         for (ItemCarrito item : items) {
             Producto producto = item.getProducto();
 
-            // Copia de los datos del producto tal como estan ahora. A partir de
-            // aca la orden es independiente: cambiar el producto no la altera.
             OrderDetail renglon = new OrderDetail();
             renglon.setOrden(orden);
             renglon.setProducto(producto);
@@ -244,12 +196,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * Avanza el estado de una orden.
-     *
-     * Mientras no haya autenticacion, quien pide el cambio llega como parametro
-     * desde el controller. Cuando se sume el token, el idSolicitante sale de ahi y
-     * las validaciones no cambian.
-     *
      * Pre : el id de la orden, el estado destino y el id de quien pide.
      * Post: la orden en el estado nuevo. Cancelar repone el stock. Tira
      *       CambioDeEstadoNoPermitidoException si el paso no le toca a quien
@@ -268,20 +214,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         if (!esComprador && !esVendedor && !esAdmin)
             throw new CambioDeEstadoNoPermitidoException();
 
-        // La transicion se valida siempre, incluso para el ADMIN: que un salto
-        // no exista no es una cuestion de permisos sino de que la orden quedaria
-        // en un estado que no significa nada.
         validarTransicion(orden.getEstado(), estado);
 
-        // Quien pide, en cambio, si es cuestion de permisos, y ahi el ADMIN
-        // pasa. Es el unico que puede marcar PAGADA: sin pasarela de pago,
-        // ninguna de las dos partes puede demostrar que el dinero entro.
         if (!esAdmin)
             validarQuienPuede(estado, esComprador, esVendedor);
 
-        // Cancelar tiene que devolver lo que la compra habia reservado. Sin
-        // esto, cancelar una orden dejaba el stock descontado para siempre y el
-        // vendedor perdia unidades que nunca vendio.
         if (estado == EstadoOrden.CANCELADA)
             reponerStock(orden);
 
@@ -291,11 +228,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * Devuelve al producto las unidades que la orden habia descontado.
-     *
-     * Usa la cantidad guardada en el OrderDetail, no la del carrito: el carrito
-     * ya se vacio cuando se cerro la compra.
-     *
      * Pre : la orden que se esta cancelando.
      * Post: nada. Devuelve al producto las unidades de cada renglon.
      */
@@ -311,15 +243,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * El flujo es PENDIENTE -> PAGADA, y desde PENDIENTE tambien se puede
-     * CANCELAR. La orden no sigue a la mercaderia: despachar y entregar son
-     * hechos del envio.
-     *
-     * PAGADA y CANCELADA son finales. Que de PAGADA no se salga es una regla
-     * de la maquina, no de permisos, asi que alcanza tambien al ADMIN: cancelar
-     * un cobro que ya ocurrio no es un cambio de estado sino una devolucion, y
-     * eso todavia no existe en el sistema.
-     *
      * Pre : el estado actual y el destino.
      * Post: nada si el salto existe.
      */
@@ -335,18 +258,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * Lo unico que puede declarar una de las partes es CANCELADA, y solo llega
-     * aca si la orden estaba PENDIENTE, porque la transicion desde PAGADA ya la
-     * corto validarTransicion.
-     *
-     * PAGADA no es de nadie. Que el dinero entro es un hecho de un tercero, no
-     * de las partes: el comprador tiene motivo para decir que pago sin haber
-     * pagado, y el vendedor no tiene forma de probarlo dentro del sistema.
-     * Hasta que exista una pasarela que lo confirme por webhook, la marca el
-     * ADMIN a mano, que es quien puede mirar el comprobante. Cuando esa
-     * pasarela exista, PAGADA deja de ser algo que alguien pide y pasa a ser
-     * algo que el sistema escribe solo.
-     *
      * Pre : el estado destino y si quien pide es el comprador o el vendedor.
      *       No se llama para el ADMIN.
      * Post: nada si le toca. Solo CANCELADA es de las partes.
