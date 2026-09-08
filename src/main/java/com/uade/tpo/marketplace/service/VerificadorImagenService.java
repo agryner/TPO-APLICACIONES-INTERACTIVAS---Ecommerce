@@ -185,8 +185,9 @@ public class VerificadorImagenService {
              "categoria_sugerida": "nombre de categoria o null",
              "mensaje_al_vendedor": "explicacion breve y amable, o null si coincide"}""";
 
-    /** Baja la resolucion de la foto antes de mandarla y la normaliza a JPEG. */
     /**
+     * Baja la resolucion de la foto antes de mandarla y la normaliza a JPEG.
+     *
      * Pre : los bytes originales.
      * Post: la imagen achicada a 1024 px y recomprimida como JPEG, para no
      *       mandar megabytes por la red.
@@ -214,8 +215,9 @@ public class VerificadorImagenService {
         return buffer.toByteArray();
     }
 
-    /** El modelo manda el literal null como texto cuando el campo no aplica. */
     /**
+     * El modelo manda el literal null como texto cuando el campo no aplica.
+     *
      * Pre : un texto que puede venir vacio y un valor por defecto.
      * Post: el texto si tiene contenido, o el default.
      */
@@ -228,8 +230,9 @@ public class VerificadorImagenService {
         return valor == null || valor.isBlank() || "null".equals(valor) ? null : valor;
     }
 
-    /** A veces el modelo envuelve el JSON en un bloque de codigo. */
     /**
+     * A veces el modelo envuelve el JSON en un bloque de codigo.
+     *
      * Pre : la respuesta cruda del modelo.
      * Post: el JSON sin los delimitadores de bloque de codigo con los que a
      *       veces lo envuelve.

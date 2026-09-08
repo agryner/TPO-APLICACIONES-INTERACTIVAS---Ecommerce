@@ -89,6 +89,10 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     /**
+     * La llaman los otros services cuando un producto deja de estar
+     * disponible: se pausa, se da de baja, o se queda sin fotos y vuelve a
+     * borrador. Sin esto el comprador se entera recien al intentar pagar.
+     *
      * Pre : el id de un producto que dejo de estar disponible.
      * Post: nada. Ese producto queda fuera de todos los carritos donde
      *       estuviera, con los totales recalculados.
@@ -107,11 +111,6 @@ public class CarritoServiceImpl implements CarritoService {
         }
     }
 
-    /**
-     * Pre : el id del usuario.
-     * Post: nada. Version para uso entre services: vacia sin validar
-     *       pertenencia, porque quien la llama ya valido.
-     */
     @Transactional
     public void vaciarEntidad(Long idUsuario) throws UsuarioNoEncontradoException {
         vaciarCarrito(obtenerCarritoEntidad(idUsuario));
@@ -295,11 +294,6 @@ public class CarritoServiceImpl implements CarritoService {
     /**
      * Cada modificacion corre la fecha limite hacia adelante. Un carrito vacio
      * no vence porque no hay nada que vaciar.
-     *
-     * Pre : el carrito.
-     * Post: nada. Le corre la fechaLimite los minutos configurados, o la deja
-     *       en null si quedo vacio: una lista sin nada no tiene por que
-     *       vencer.
      */
     private void renovarVigencia(Carrito carrito) {
         carrito.setFechaLimite(carrito.getItems().isEmpty()

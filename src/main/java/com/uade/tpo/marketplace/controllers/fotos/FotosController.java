@@ -119,8 +119,9 @@ public class FotosController {
                 .body(fotoService.getContenidoById(idFoto));
     }
 
-    /** La misma imagen pero en Base64 dentro de un JSON. */
     /**
+     * La misma imagen pero en Base64 dentro de un JSON.
+     *
      * Pre : el id de la foto en la ruta. Es publico.
      * Post: la misma imagen dentro de un JSON, para clientes que no pueden
      *       pedir binario.
@@ -133,8 +134,9 @@ public class FotosController {
                 Base64.getEncoder().encodeToString(contenido)));
     }
 
-    /** Cola de revision del admin: las fotos que la IA no pudo resolver sola. */
     /**
+     * Cola de revision del admin: las fotos que la IA no pudo resolver sola.
+     *
      * Pre : un token de ADMIN y, opcionalmente, el estado a filtrar.
      * Post: las fotos en ese estado. Sin estado devuelve las EN_REVISION, que
      *       es la cola de trabajo. 403 si no sos ADMIN.
@@ -146,8 +148,9 @@ public class FotosController {
         return ResponseEntity.ok(fotoService.getPendientesDeRevision(usuario.getId(), estado));
     }
 
-    /** Aprobar deja la foto visible; rechazar la elimina. */
     /**
+     * Aprobar deja la foto visible; rechazar la elimina.
+     *
      * Pre : el id de la foto, el flag aprobada y un token de ADMIN.
      * Post: la foto con su estado resuelto. Aprobar la deja visible; rechazar
      *       la elimina.

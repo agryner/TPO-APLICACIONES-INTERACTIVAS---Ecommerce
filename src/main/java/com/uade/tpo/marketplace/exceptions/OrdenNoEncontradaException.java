@@ -5,9 +5,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * La tira OrdenDeCompraServiceImpl cuando no existe una orden con ese id.
- *
- * No la atrapa nadie: el @ResponseStatus de abajo hace que Spring la
- * traduzca sola al codigo HTTP correspondiente antes de responder.
  */
 @ResponseStatus(code = HttpStatus.NOT_FOUND, reason = "No existe una orden de compra con ese id")
 public class OrdenNoEncontradaException extends Exception {

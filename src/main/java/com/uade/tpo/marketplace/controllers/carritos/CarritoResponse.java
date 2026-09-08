@@ -25,8 +25,6 @@ public class CarritoResponse {
     private List<ItemCarritoResponse> items;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad Carrito, o null.
      * Post: el DTO con los items ordenados, el subtotal, el total y la fecha
      *       de vencimiento. Devuelve null si entra null.

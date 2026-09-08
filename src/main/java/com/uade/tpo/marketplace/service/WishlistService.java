@@ -15,14 +15,9 @@ import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
  */
 public interface WishlistService {
 
-    /** La wishlist del usuario, creada vacia si es la primera vez. */
     WishlistResponse obtenerWishlist(Long idUsuario)
             throws UsuarioNoEncontradoException, CuentaInactivaException;
 
-    /**
-     * Guarda un producto para mas adelante. Si ya estaba, no hace nada: la
-     * wishlist no tiene cantidades, asi que la operacion es idempotente.
-     */
     WishlistResponse agregarItem(Long idUsuario, ItemWishlistRequest request)
             throws UsuarioNoEncontradoException,
             ProductoNoEncontradoException, CuentaInactivaException, AdminNoComerciaException;

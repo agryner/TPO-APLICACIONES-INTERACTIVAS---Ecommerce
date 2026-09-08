@@ -81,10 +81,6 @@ public class AutenticacionService {
 
     /**
      * Trae el usuario recien creado para poder firmarle el token.
-     *
-     * Pre : el id.
-     * Post: la entidad. Tira UsuarioNoEncontradoException si no esta, que no
-     *       deberia pasar porque se acaba de guardar.
      */
     private Usuario buscar(Long id) throws UsuarioNoEncontradoException {
         return usuarioRepository.findById(id).orElseThrow(UsuarioNoEncontradoException::new);

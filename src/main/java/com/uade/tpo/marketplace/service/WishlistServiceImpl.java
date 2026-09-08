@@ -200,10 +200,6 @@ public class WishlistServiceImpl implements WishlistService {
      * Empuja el vencimiento hacia adelante cada vez que se toca la lista.
      *
      * Una lista vacia no vence: sin nada adentro no hay nada que limpiar.
-     *
-     * Pre : la wishlist.
-     * Post: nada. Le corre la fechaLimite los meses configurados, o la deja en
-     *       null si quedo vacia.
      */
     private void renovarVigencia(Wishlist wishlist) {
         wishlist.setFechaLimite(wishlist.getItems().isEmpty()

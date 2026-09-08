@@ -21,8 +21,6 @@ public class CategoriaResponse {
     private String nombreCategoriaPadre;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad Categoria, o null.
      * Post: el DTO con el id y el nombre del padre resueltos, en vez del
      *       objeto anidado.

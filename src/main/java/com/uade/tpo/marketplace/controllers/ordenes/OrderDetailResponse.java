@@ -26,8 +26,6 @@ public class OrderDetailResponse {
     private BigDecimal total;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad OrderDetail, o null.
      * Post: el renglon con el nombre y el precio que tenia el producto al
      *       momento de la compra, no los actuales.

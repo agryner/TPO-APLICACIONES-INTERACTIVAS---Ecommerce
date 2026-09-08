@@ -27,8 +27,6 @@ public class UsuarioResponse {
     private Boolean activo;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad Usuario, o null.
      * Post: los datos publicos. La contrasena no aparece porque este DTO ni
      *       siquiera tiene el campo: no es que se filtre, es que no existe.

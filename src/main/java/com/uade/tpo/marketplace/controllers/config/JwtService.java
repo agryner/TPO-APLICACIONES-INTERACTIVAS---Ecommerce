@@ -26,6 +26,10 @@ import io.jsonwebtoken.security.Keys;
  * dos primeras son JSON en Base64 y se leen sin ninguna clave, asi que el token
  * no oculta nada: lo que garantiza es que nadie lo modifico. Por eso adentro va
  * el mail y la fecha de vencimiento, y nunca la contrasena.
+ *
+ * Los emitidos no se guardan en ningun lado. Que uno sea valido se decide
+ * verificando la firma y la fecha, no buscandolo en una tabla, y esa es la
+ * razon por la que no se puede invalidar uno antes de que venza.
  */
 @Service
 public class JwtService {
@@ -58,12 +62,6 @@ public class JwtService {
     }
 
     /** El mail que viaja en el token, o sea de quien es. */
-    /**
-     * Pre : el token.
-     * Post: el mail que viaja adentro. Verifica la firma antes de leerlo, asi
-     *       que si el token fue tocado explota en vez de devolver algo en lo
-     *       que no se puede confiar.
-     */
     public String extraerUsuario(String token) {
         return extraerClaim(token, Claims::getSubject);
     }
@@ -73,27 +71,15 @@ public class JwtService {
      *
      * Que la firma sea valida ya se comprobo al parsearlo: si estuviera
      * adulterado, extraerClaim habria explotado antes de llegar aca.
-     *
-     * Pre : el token y el usuario contra el que compararlo.
-     * Post: si el token es de ese usuario y todavia no vencio.
      */
     public boolean esValido(String token, UserDetails usuario) {
         return extraerUsuario(token).equals(usuario.getUsername()) && !estaVencido(token);
     }
 
-    /**
-     * Pre : el token.
-     * Post: si la fecha de expiracion ya paso.
-     */
     private boolean estaVencido(String token) {
         return extraerClaim(token, Claims::getExpiration).before(new Date());
     }
 
-    /**
-     * Pre : el token y una funcion que dice que campo sacar.
-     * Post: ese campo. Es el metodo generico del que salen extraerUsuario y
-     *       estaVencido.
-     */
     private <T> T extraerClaim(String token, Function<Claims, T> queSaco) {
         return queSaco.apply(extraerTodos(token));
     }
@@ -104,11 +90,6 @@ public class JwtService {
      * verifyWith es lo que hace que esto sea seguro: si el payload fue tocado,
      * la firma deja de coincidir y tira una excepcion en vez de devolver datos
      * en los que no se puede confiar.
-     *
-     * Pre : el token.
-     * Post: todos los claims, despues de verificar la firma con verifyWith.
-     *       Ahi es donde esto se vuelve seguro: si el payload no coincide con
-     *       la firma, tira excepcion.
      */
     private Claims extraerTodos(String token) {
         return Jwts.parser()
@@ -118,10 +99,6 @@ public class JwtService {
                 .getPayload();
     }
 
-    /**
-     * Pre : nada; usa la clave de application.properties.
-     * Post: la clave secreta en el formato que espera HMAC.
-     */
     private SecretKey getClave() {
         return Keys.hmacShaKeyFor(clave.getBytes(StandardCharsets.UTF_8));
     }

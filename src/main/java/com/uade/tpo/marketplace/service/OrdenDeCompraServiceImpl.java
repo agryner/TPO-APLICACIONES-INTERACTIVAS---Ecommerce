@@ -60,9 +60,17 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     private final EntityManager entityManager;
 
     /**
+     * Un cliente no ve las ordenes de otros: una orden es una transaccion
+     * entre dos personas y a nadie mas le incumbe. El ADMIN es la excepcion,
+     * para poder auditarlas, pero si manda rol vuelve a mirarse como
+     * participante y salen sus propias compras o ventas, que es lo unico que
+     * ese filtro puede querer decir.
+     *
      * Pre : el id de quien pregunta y, opcionalmente, desde que lado mirar.
      * Post: las ordenes donde participa. Sin rol, las dos puntas; un ADMIN sin
-     *       rol recibe todas las del sistema.
+     *       rol recibe todas las del sistema. Tira 404 si el usuario no
+     *       existe, para no confundirlo con uno real que todavia no tiene
+     *       movimientos: los dos casos darian una lista vacia.
      */
     public List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
             throws UsuarioNoEncontradoException {
@@ -108,11 +116,6 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * Sin esto, filtrar por un id que no existe devuelve una lista vacia, igual
      * que un usuario real sin movimientos. Son dos situaciones distintas y el
      * cliente no tiene como distinguirlas.
-     *
-     * Pre : el id de un usuario.
-     * Post: nada si existe. Sin esto, filtrar por un id inexistente devolveria
-     *       una lista vacia igual que un usuario real sin movimientos, y el
-     *       cliente no podria distinguirlos.
      */
     private void validarQueExista(Long idUsuario) throws UsuarioNoEncontradoException {
         if (!usuarioRepository.existsById(idUsuario))
@@ -193,8 +196,9 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         return ordenes;
     }
 
-    /** Arma y guarda la orden de un vendedor con los items que le corresponden. */
     /**
+     * Arma y guarda la orden de un vendedor con los items que le corresponden.
+     *
      * Pre : el comprador, el vendedor y los items que le corresponden.
      * Post: la orden guardada, con cada renglon copiando el precio del momento
      *       para que una edicion posterior no reescriba la historia.

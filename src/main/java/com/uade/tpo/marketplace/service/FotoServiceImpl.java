@@ -73,10 +73,6 @@ public class FotoServiceImpl implements FotoService {
                 .toList();
     }
 
-    /**
-     * Pre : el id de la foto.
-     * Post: sus metadatos y la URL del contenido.
-     */
     public FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException {
         return fotoRepository.findById(idFoto)
                 .map(FotoResponse::from)
@@ -156,8 +152,7 @@ public class FotoServiceImpl implements FotoService {
      * rechazo se corta la subida, y en el medio se guarda pero marcada para que
      * la revise un admin. Si la IA falla tambien va a revision: que se caiga un
      * servicio externo no puede dejar al vendedor sin poder publicar.
-     */
-    /**
+     *
      * Firmas de los formatos aceptados, en bytes.
      *
      * Son los primeros bytes que escribe quien genera el archivo, asi que
@@ -172,11 +167,6 @@ public class FotoServiceImpl implements FotoService {
     };
 
     /** WEBP es un contenedor RIFF: "RIFF" + 4 bytes de tamanio + "WEBP". */
-    /**
-     * Pre : los primeros bytes del archivo.
-     * Post: si son la firma de un WebP: RIFF al principio y WEBP en la
-     *       posicion 8.
-     */
     private boolean esWebp(byte[] b) {
         return b.length >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
                 && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P';
@@ -240,11 +230,6 @@ public class FotoServiceImpl implements FotoService {
                 : EstadoVerificacion.EN_REVISION);
     }
 
-    /**
-     * Pre : el id de la foto.
-     * Post: la entidad completa, con los bytes. Es el unico camino por el que
-     *       salen: los DTOs nunca los llevan.
-     */
     public byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException {
         return fotoRepository.findById(idFoto)
                 .orElseThrow(FotoNoEncontradaException::new)

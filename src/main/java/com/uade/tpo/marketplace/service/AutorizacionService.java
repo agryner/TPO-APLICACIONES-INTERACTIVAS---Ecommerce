@@ -90,11 +90,6 @@ public class AutorizacionService {
      * operacion prohibida para el resto, esta cuando el rol no prohibe nada
      * sino que amplia lo que se ve, como el listado de ordenes. Un id que no
      * existe no es admin, asi que devuelve false en vez de explotar.
-     *
-     * Pre : el id de un usuario.
-     * Post: true si tiene rol ADMIN. Un id que no existe devuelve false en vez
-     *       de explotar, porque los que lo llaman quieren ramificar y no
-     *       cortar.
      */
     public boolean esAdmin(Long idUsuario) {
         return usuarioRepository.findById(idUsuario)
@@ -121,8 +116,9 @@ public class AutorizacionService {
             throw new AdminNoComerciaException();
     }
 
-    /** Corta la operacion si el usuario que la pide no es ADMIN. */
     /**
+     * Corta la operacion si el usuario que la pide no es ADMIN.
+     *
      * Pre : el id de quien pide la operacion.
      * Post: nada si es ADMIN. Tira AccesoDenegadoException si no lo es, o
      *       UsuarioNoEncontradoException si el id no existe.

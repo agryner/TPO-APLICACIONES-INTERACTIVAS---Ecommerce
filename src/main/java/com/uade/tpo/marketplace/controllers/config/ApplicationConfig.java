@@ -33,12 +33,6 @@ public class ApplicationConfig {
      * Como se busca un usuario a partir de lo que dice el token.
      *
      * Devuelve la entidad Usuario directamente, porque implementa UserDetails.
-     *
-     * Pre : nada; devuelve una funcion que Spring llama con el mail cuando
-     *       necesita resolver una identidad.
-     * Post: el bean que busca el Usuario por mail. Devuelve la entidad tal
-     *       cual, porque implementa UserDetails. Tira
-     *       UsernameNotFoundException si no hay ninguno con ese mail.
      */
     @Bean
     public UserDetailsService userDetailsService() {
@@ -52,10 +46,6 @@ public class ApplicationConfig {
      * probar contrasenas por fuerza bruta no rinda.
      *
      * Nunca se desencripta: para verificar, se hashea lo que llega y se compara.
-     *
-     * Pre : nada.
-     * Post: el bean de BCrypt, que se usa tanto para hashear al dar de alta
-     *       como para comparar al loguear.
      */
     @Bean
     public PasswordEncoder passwordEncoder() {

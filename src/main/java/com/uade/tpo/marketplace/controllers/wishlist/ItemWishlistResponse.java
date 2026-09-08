@@ -27,8 +27,6 @@ public class ItemWishlistResponse {
     private ProductoResponse producto;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad ItemWishlist, o null.
      * Post: el renglon con el producto, cuando se guardo, y si hoy se puede
      *       comprar.
@@ -47,12 +45,6 @@ public class ItemWishlistResponse {
 
     /**
      * Resume en un booleano si el producto se puede comprar ahora.
-     *
-     * Pre : el producto del item.
-     * Post: true si esta activo, PUBLICADO, con stock y de un vendedor
-     *       vigente. La wishlist conserva los que dejaron de estar
-     *       disponibles, asi que el frontend necesita este dato para
-     *       mostrarlos apagados en vez de esconderlos.
      */
     private static boolean estaDisponible(Producto producto) {
         return producto != null

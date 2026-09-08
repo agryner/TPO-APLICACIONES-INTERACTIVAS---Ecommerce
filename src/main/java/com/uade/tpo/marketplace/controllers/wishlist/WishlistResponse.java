@@ -24,8 +24,6 @@ public class WishlistResponse {
     private List<ItemWishlistResponse> items;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad Wishlist, o null.
      * Post: la lista con sus items ordenados por lo mas reciente y la
      *       cantidad. No trae totales: guardar algo para despues no es una

@@ -19,8 +19,6 @@ public class ItemCarritoResponse {
     private ProductoResponse producto;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad ItemCarrito, o null.
      * Post: el renglon con su cantidad y el producto aplanado.
      */

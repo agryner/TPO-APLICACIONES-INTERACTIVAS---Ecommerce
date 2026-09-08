@@ -28,8 +28,6 @@ public class FotoResponse {
     private String queVeIa;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad Foto, o null.
      * Post: solo los metadatos y la URL del contenido. Los bytes NUNCA salen
      *       por aca: para eso estan los endpoints de contenido y base64.

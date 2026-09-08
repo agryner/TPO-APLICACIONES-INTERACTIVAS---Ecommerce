@@ -36,20 +36,12 @@ public class CategoriaServiceImpl implements CategoriaService {
     private final ProductoRepository productoRepository;
     private final AutorizacionService autorizacion;
 
-    /**
-     * Pre : nada.
-     * Post: todas las categorias, cada una con su padre resuelto.
-     */
     public List<CategoriaResponse> getCategorias() {
         return categoriaRepository.findAll().stream()
                 .map(CategoriaResponse::from)
                 .toList();
     }
 
-    /**
-     * Pre : nada.
-     * Post: solo las que no tienen padre, o sea el primer nivel del arbol.
-     */
     public List<CategoriaResponse> getCategoriasRaiz() {
         return categoriaRepository.findByCategoriaPadreIsNull().stream()
                 .map(CategoriaResponse::from)
@@ -70,10 +62,6 @@ public class CategoriaServiceImpl implements CategoriaService {
                 .toList();
     }
 
-    /**
-     * Pre : el id.
-     * Post: la categoria. Tira CategoriaNoEncontradaException si no esta.
-     */
     public CategoriaResponse getCategoriaById(Long idCategoria) throws CategoriaNoEncontradaException {
         return categoriaRepository.findById(idCategoria)
                 .map(CategoriaResponse::from)
@@ -191,10 +179,6 @@ public class CategoriaServiceImpl implements CategoriaService {
             throw new CategoriaDuplicadaException();
     }
 
-    /**
-     * Pre : un padre, que puede ser null.
-     * Post: las categorias que cuelgan de el, o las raices si es null.
-     */
     private List<Categoria> hermanas(Categoria padre) {
         return padre == null
                 ? categoriaRepository.findByCategoriaPadreIsNull()

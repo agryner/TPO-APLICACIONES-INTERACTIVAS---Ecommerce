@@ -22,41 +22,24 @@ import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
  */
 public interface FotoService {
 
-    /**
-     * Fotos de un producto.
-     *
-     * Tira 404 si el producto no existe, para distinguirlo de un producto real
-     * que todavia no tiene fotos: los dos casos devolverian una lista vacia. Un
-     * producto en BORRADOR es justamente eso, asi que la lista vacia es una
-     * respuesta legitima y no un error.
-     */
     List<FotoResponse> getFotosByProducto(Long idProducto)
             throws ProductoNoEncontradoException;
 
     FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException;
 
-    /** Guarda el archivo subido y lo asocia al producto indicado. */
-    /** Solo el vendedor duenio del producto puede subirle fotos. */
     FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
             FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException;
 
-    /** Devuelve los bytes crudos de una foto. */
     byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException;
 
-    /** Fotos que quedaron esperando que un admin las mire. Solo para ADMIN. */
     List<FotoResponse> getPendientesDeRevision(Long idSolicitante, EstadoVerificacion estado)
             throws UsuarioNoEncontradoException, AccesoDenegadoException;
 
-    /**
-     * Resuelve una foto en revision. Aprobarla la deja visible; rechazarla la
-     * borra, porque una foto que no corresponde no tiene por que quedar.
-     */
     FotoResponse revisarFoto(Long idFoto, boolean aprobada, Long idSolicitante)
             throws FotoNoEncontradaException, UsuarioNoEncontradoException,
             AccesoDenegadoException;
 
-    /** Solo el vendedor duenio del producto puede borrarle fotos. */
     void deleteFoto(Long idFoto, Long idSolicitante)
             throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException;
 }
