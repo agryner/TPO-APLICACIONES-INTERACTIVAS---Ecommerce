@@ -54,13 +54,20 @@ public class ProductoServiceImpl implements ProductoService {
      * Cada filtro se saltea solo cuando su parametro llega en null, asi los que
      * si vienen con valor se combinan entre si.
      *
-     * Pre : los filtros, todos opcionales: categoria, vendedor, nombre, rango
-     *       de precio y orden.
+     * No hay filtro por vendedor: ese es /productos/vendedor/{nombreUsuario},
+     * que busca por nombre exacto. El que habia aca era por coincidencia
+     * parcial, asi que pedir un vendedor devolvia tambien los productos de
+     * cualquier otro cuyo nombre contuviera esas letras.
+     *
+     * Pre : los filtros, todos opcionales: categoria, nombre, rango de precio
+     *       y orden. nombre busca por coincidencia parcial y sin distinguir
+     *       mayusculas; ordenPrecio acepta "asc" o "desc", y en null se
+     *       respeta el orden de la base.
      * Post: los productos activos, PUBLICADOS y de vendedores vigentes que
      *       cumplen todos los filtros. Filtrar por una categoria incluye a sus
      *       descendientes.
      */
-    public List<ProductoResponse> getProductos(Long idCategoria, String vendedor, String nombre,
+    public List<ProductoResponse> getProductos(Long idCategoria, String nombre,
             BigDecimal precioMin, BigDecimal precioMax, String ordenPrecio)
             throws OrdenamientoInvalidoException {
 
@@ -78,9 +85,6 @@ public class ProductoServiceImpl implements ProductoService {
                 // que se le escondan los productos de sus subcategorias.
                 .filter(p -> ramaBuscada == null
                         || (p.getCategoria() != null && ramaBuscada.contains(p.getCategoria().getId())))
-                .filter(p -> vendedor == null
-                        || (p.getVendedor() != null && p.getVendedor().getNombreUsuario()
-                                .toLowerCase().contains(vendedor.toLowerCase())))
                 .filter(p -> nombre == null
                         || p.getNombre().toLowerCase().contains(nombre.toLowerCase()))
                 .filter(p -> precioMin == null || p.getPrecio().compareTo(precioMin) >= 0)
@@ -140,17 +144,25 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     /**
+     * El ADMIN no entra: no publica, asi que no tiene publicaciones propias, y
+     * devolverle una lista vacia seria contestar como si la pregunta tuviera
+     * sentido para el. Lo que si puede ver es todo el catalogo, con
+     * /productos/todos, que es otra cosa: ahi mira lo ajeno para moderarlo.
+     *
      * Pre : el id del vendedor y, opcionalmente, el estado.
-     * Post: sus publicaciones, incluidos borradores y pausados. Tira
-     *       UsuarioNoEncontradoException si el id no existe, para no
-     *       confundirlo con un vendedor sin productos.
+     * Post: sus publicaciones, incluidos borradores y pausados. 403 si quien
+     *       pide es ADMIN. Tira UsuarioNoEncontradoException si el id no
+     *       existe, para no confundirlo con un vendedor sin productos.
      */
     public List<ProductoResponse> getMisPublicaciones(Long idSolicitante,
-            EstadoPublicacion estado) throws UsuarioNoEncontradoException {
+            EstadoPublicacion estado)
+            throws UsuarioNoEncontradoException, AdminNoComerciaException {
         // Sin esto un id inexistente devolvia 200 con lista vacia, igual que un
         // vendedor real sin publicaciones. Los otros listados ya tiraban 404.
         if (!usuarioRepository.existsById(idSolicitante))
             throw new UsuarioNoEncontradoException();
+
+        autorizacion.validarQueNoSeaAdmin(idSolicitante);
 
         return productoRepository.findAll().stream()
                 .filter(Producto::getActivo)
@@ -161,11 +173,6 @@ public class ProductoServiceImpl implements ProductoService {
                 .toList();
     }
 
-    /**
-     * Pre : el id.
-     * Post: el producto con su categoria, su vendedor y sus fotos, sin
-     *       importar en que estado este.
-     */
     public ProductoResponse getProductoById(Long idProducto) throws ProductoNoEncontradoException {
         return productoRepository.findById(idProducto)
                 .map(ProductoResponse::from)
@@ -301,6 +308,41 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     /**
+     * La vidriera de un vendedor, buscada por nombre de usuario.
+     *
+     * Existe porque el cliente no conoce ningun id: lo que tiene a mano es el
+     * nombre de usuario, que viaja dentro de cada producto que mira. El filtro
+     * ?vendedor= del catalogo hace una busqueda por coincidencia parcial, util
+     * para buscar; esto es lo contrario, una coincidencia exacta para entrar a
+     * la vidriera de uno.
+     *
+     * Muestra lo mismo que el catalogo publico: si el vendedor esta dado de
+     * baja no se lista nada, y sus borradores y pausados no salen. Ver lo
+     * propio sin filtrar es /productos/mis-publicaciones.
+     *
+     * Pre : el nombre de usuario del vendedor. Es publico.
+     * Post: sus publicaciones visibles. 404 si no existe un vendedor con ese
+     *       nombre, o si esta dado de baja: para quien mira el catalogo, una
+     *       cuenta de baja es una cuenta que no esta.
+     */
+    public List<ProductoResponse> getPublicacionesDeVendedor(String nombreUsuario)
+            throws UsuarioNoEncontradoException {
+        Usuario vendedor = usuarioRepository.findByNombreUsuario(nombreUsuario)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (!Boolean.TRUE.equals(vendedor.getActivo()))
+            throw new UsuarioNoEncontradoException();
+
+        return productoRepository.findAll().stream()
+                .filter(Producto::getActivo)
+                .filter(p -> p.getVendedor() != null
+                        && p.getVendedor().getId().equals(vendedor.getId()))
+                .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
+                .map(ProductoResponse::from)
+                .toList();
+    }
+
+    /**
      * Todo el catalogo tal cual esta, sin los filtros que ve el comprador.
      *
      * getProductos esconde lo inactivo, lo que no esta PUBLICADO y lo de
@@ -339,8 +381,9 @@ public class ProductoServiceImpl implements ProductoService {
         carritoService.quitarDeTodosLosCarritos(idProducto);
     }
 
-    /** El vendedor no se toca aca: lo fija el alta y despues no cambia. */
     /**
+     * El vendedor no se toca aca: lo fija el alta y despues no cambia.
+     *
      * Pre : el producto y el request.
      * Post: nada. Vuelca los campos del request sobre la entidad, resolviendo
      *       la categoria contra su repositorio.

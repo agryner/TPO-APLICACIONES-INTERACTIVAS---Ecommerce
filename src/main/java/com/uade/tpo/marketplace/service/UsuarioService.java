@@ -20,25 +20,20 @@ import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
  */
 public interface UsuarioService {
 
-    List<UsuarioResponse> getUsuarios();
+    List<UsuarioResponse> getUsuarios(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException;
 
-    UsuarioResponse getUsuarioById(Long idUsuario) throws UsuarioNoEncontradoException;
+    UsuarioResponse getUsuarioById(Long idUsuario, Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException;
 
     UsuarioResponse createUsuario(UsuarioRequest request) throws UsuarioDuplicadoException;
 
-    /** Cada uno edita solo su propia cuenta. */
     UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request)
             throws UsuarioNoEncontradoException, CuentaInactivaException;
 
-    /** Cada uno da de baja solo su propia cuenta. */
-    /** Vuelve a poner en circulacion una cuenta dada de baja. Solo ADMIN. */
     UsuarioResponse reactivarUsuario(Long idUsuario, Long idSolicitante)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, CuentaInactivaException;
 
-    /**
-     * Promueve o degrada a un usuario. Solo ADMIN, y en un endpoint aparte
-     * porque el rol no puede viajar en el body de un alta ni de una edicion.
-     */
     UsuarioResponse cambiarRol(Long idUsuario, TipoUsuario rol, Long idSolicitante)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, CuentaInactivaException,
             CambioDeRolInvalidoException;

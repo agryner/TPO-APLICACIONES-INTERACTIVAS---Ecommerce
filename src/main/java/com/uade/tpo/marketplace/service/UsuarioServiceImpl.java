@@ -40,10 +40,18 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final CarritoService carritoService;
 
     /**
-     * Pre : nada.
-     * Post: los usuarios activos, sin los dados de baja.
+     * El padron entero es del ADMIN. Un cliente no tiene por que poder
+     * enumerar a los demas: el mail y la direccion de todo el mundo son datos
+     * personales, y juntarlos en una sola respuesta es armarle a cualquiera la
+     * lista de contactos de la plataforma. Para comprar no hace falta.
+     *
+     * Pre : el id de quien pide, que tiene que ser ADMIN.
+     * Post: los usuarios activos, sin los dados de baja. 403 si no es ADMIN.
      */
-    public List<UsuarioResponse> getUsuarios() {
+    public List<UsuarioResponse> getUsuarios(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        autorizacion.validarAdmin(idSolicitante);
+
         return usuarioRepository.findAll().stream()
                 .filter(Usuario::getActivo)
                 .map(UsuarioResponse::from)
@@ -51,10 +59,19 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     /**
-     * Pre : el id.
-     * Post: el usuario, este activo o no.
+     * Los datos de una cuenta ajena tambien son del ADMIN, por lo mismo que el
+     * listado: aca salen el mail y la direccion, que no son asunto de quien
+     * compra. Para su propia cuenta cada uno tiene /usuarios/me, y para saber
+     * quien vende algo alcanza con el nombre de usuario que ya viaja dentro de
+     * cada producto.
+     *
+     * Pre : el id buscado y el de quien pide, que tiene que ser ADMIN.
+     * Post: el usuario, este activo o no. 403 si no es ADMIN, 404 si no existe.
      */
-    public UsuarioResponse getUsuarioById(Long idUsuario) throws UsuarioNoEncontradoException {
+    public UsuarioResponse getUsuarioById(Long idUsuario, Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        autorizacion.validarAdmin(idSolicitante);
+
         return usuarioRepository.findById(idUsuario)
                 .map(UsuarioResponse::from)
                 .orElseThrow(UsuarioNoEncontradoException::new);
@@ -105,8 +122,7 @@ public class UsuarioServiceImpl implements UsuarioService {
      * Sus ordenes son el registro de operaciones que ocurrieron y siguen
      * apuntando a el, asi que un DELETE real las arrastraria, incluidas las
      * ventas de los vendedores que le vendieron.
-     */
-    /**
+     *
      * Vuelve a poner en circulacion una cuenta dada de baja.
      *
      * Es la contracara de la baja logica: si se guarda el registro justamente

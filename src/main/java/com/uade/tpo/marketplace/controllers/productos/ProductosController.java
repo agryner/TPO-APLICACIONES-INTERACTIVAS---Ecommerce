@@ -53,8 +53,12 @@ public class ProductosController {
     /**
      * El catalogo publico.
      *
+     * No filtra por vendedor: para eso esta /productos/vendedor/{nombreUsuario},
+     * que busca por nombre exacto. El filtro que habia aca era por coincidencia
+     * parcial y mezclaba vendedores distintos.
+     *
      * Pre : todos los filtros son opcionales y se combinan: idCategoria,
-     *       vendedor, nombre, precioMin, precioMax y ordenPrecio.
+     *       nombre, precioMin, precioMax y ordenPrecio.
      * Post: los productos activos, PUBLICADOS y de vendedores vigentes.
      *       Filtrar por una categoria trae tambien los de sus descendientes.
      *       400 si ordenPrecio no es asc ni desc.
@@ -62,14 +66,13 @@ public class ProductosController {
     @GetMapping
     public ResponseEntity<List<ProductoResponse>> getProductos(
             @RequestParam(required = false) Long idCategoria,
-            @RequestParam(required = false) String vendedor,
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) BigDecimal precioMin,
             @RequestParam(required = false) BigDecimal precioMax,
             @RequestParam(required = false) String ordenPrecio)
             throws OrdenamientoInvalidoException {
         return ResponseEntity.ok(productoService.getProductos(
-                idCategoria, vendedor, nombre, precioMin, precioMax, ordenPrecio));
+                idCategoria, nombre, precioMin, precioMax, ordenPrecio));
     }
 
     /**
@@ -78,16 +81,36 @@ public class ProductosController {
      * Va antes que /{idProducto} porque Spring resuelve primero los segmentos
      * literales, pero conviene tenerlas juntas para que se vea el orden.
      *
+     * El ADMIN no entra: no publica, asi que no tiene publicaciones propias.
+     * Para mirar lo ajeno tiene /productos/todos.
+     *
      * Pre : el token y, opcionalmente, el estado a filtrar.
      * Post: las publicaciones propias, incluidos borradores y pausados, que el
-     *       catalogo esconde.
+     *       catalogo esconde. 403 si quien pide es ADMIN.
      */
     @GetMapping("/mis-publicaciones")
     public ResponseEntity<List<ProductoResponse>> getMisPublicaciones(
             @AuthenticationPrincipal Usuario usuario,
             @RequestParam(required = false) EstadoPublicacion estado)
-            throws UsuarioNoEncontradoException {
+            throws UsuarioNoEncontradoException, AdminNoComerciaException {
         return ResponseEntity.ok(productoService.getMisPublicaciones(usuario.getId(), estado));
+    }
+
+    /**
+     * La vidriera de un vendedor, por nombre de usuario.
+     *
+     * El cliente no conoce ningun id, pero si el nombre de usuario: viene
+     * dentro de cada producto que mira. Va antes que /{idProducto} por
+     * prolijidad, aunque no chocarian: aquella es de un solo segmento.
+     *
+     * Pre : el nombre de usuario en la ruta. Es publico.
+     * Post: las publicaciones visibles de ese vendedor, con las mismas reglas
+     *       que el catalogo. 404 si no existe o esta dado de baja.
+     */
+    @GetMapping("/vendedor/{nombreUsuario}")
+    public ResponseEntity<List<ProductoResponse>> getPorVendedor(
+            @PathVariable String nombreUsuario) throws UsuarioNoEncontradoException {
+        return ResponseEntity.ok(productoService.getPublicacionesDeVendedor(nombreUsuario));
     }
 
     /**
@@ -162,8 +185,9 @@ public class ProductosController {
                 productoService.cambiarEstadoPublicacion(idProducto, estado, usuario.getId()));
     }
 
-    /** Su vendedor o el ADMIN: devuelve al catalogo un producto dado de baja. */
     /**
+     * Su vendedor o el ADMIN: devuelve al catalogo un producto dado de baja.
+     *
      * Pre : el id en la ruta y el token de su vendedor o de un ADMIN.
      * Post: el producto activo otra vez, en el estado de publicacion que tenia
      *       antes de la baja.

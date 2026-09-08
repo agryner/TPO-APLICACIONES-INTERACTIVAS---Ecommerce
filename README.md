@@ -29,6 +29,19 @@ Insomnia  ──JSON──▶  controllers  ──Request──▶  service  ─
 
 Lo que hace que la separación sea real y no sólo tres carpetas es **qué objeto viaja por cada tramo**. Una entidad JPA nunca sale de la capa de servicios: entra un `Request`, se traduce a entidad para tocar la base, y vuelve un `Response`. Por eso `GET /usuarios` no puede filtrar la contraseña por accidente — `UsuarioResponse` directamente no tiene ese campo.
 
+Ese mismo criterio se aplica dos veces con los datos personales. Hay **dos DTO distintos para una persona**, y cuál se usa depende de quién mira:
+
+| | Qué lleva | Dónde |
+|---|---|---|
+| `UsuarioResponse` | nombre, apellido, nombre de usuario, **id, mail, dirección, rol, activo** | `/usuarios/me` y los endpoints de ADMIN |
+| `UsuarioPublicoResponse` | nombre, apellido, nombre de usuario | anidado en productos, órdenes, carrito y wishlist |
+
+La diferencia importa porque el catálogo es público. Mientras el vendedor viajaba como `UsuarioResponse` dentro de cada producto, **cualquier visitante sin cuenta podía recorrer `GET /productos` y quedarse con el mail y el domicilio de todos los que venden** — cerrar `GET /usuarios/{id}` no servía de nada mientras la misma información saliera por la puerta de al lado.
+
+En el DTO público no hay nada que filtrar: los campos que no tienen que salir **no existen**. Tampoco viaja el id, y no hace falta, porque a un vendedor se lo busca por nombre de usuario.
+
+En las órdenes vale lo mismo aunque sean las dos puntas de una compra: la orden es el pago, no la entrega. Cuando exista la entidad `Envio`, la dirección de destino va a vivir ahí, que además es su lugar — es un dato de ese envío puntual, no el domicilio que el usuario tenga cargado el día que alguien mire la orden.
+
 Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `final` y Spring las inyecta por constructor. No hay un solo `@Autowired` sobre un campo en todo el proyecto.
 
 ### Mapa del código
@@ -154,6 +167,10 @@ Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
 
 **El token dura 24 horas** y no se guarda en ningún lado: que sea válido se decide verificando la firma y la fecha, no buscándolo en una tabla. Esa es la razón por la que no se puede invalidar uno antes de que venza.
 
+**Los datos de las cuentas son del ADMIN.** Ni el padrón (`GET /usuarios`) ni una cuenta puntual (`GET /usuarios/{id}`) están al alcance de un cliente: ahí salen el mail y la dirección, y juntarlos en una respuesta es armarle a cualquiera la lista de contactos de la plataforma. Para comprar no hace falta.
+
+Un cliente que quiere ver quién vende algo tampoco necesita un id: el **nombre de usuario** del vendedor viaja dentro de cada producto, y con eso pide `GET /productos/vendedor/{nombreUsuario}`, que es público y muestra lo mismo que el catálogo. Es el mismo criterio que el carrito y la wishlist — nada que el usuario tenga que averiguar por su cuenta.
+
 **Después de loguearte**, `GET /usuarios/me` te dice quién sos. El login devuelve sólo el token, así que ese es el endpoint que usa el frontend para saber a quién saludar y si mostrar el panel de administración.
 
 Las contraseñas se guardan con **BCrypt**, que incluye una sal distinta en cada hash y es lento a propósito. Nunca se desencripta: para verificar un login se hashea lo que llega y se comparan los hashes.
@@ -173,7 +190,10 @@ Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** 
 | Borrar una foto | el vendedor del producto · ADMIN |
 | Ver o tocar el carrito | sólo su dueño: la ruta no admite un id ajeno |
 | Ver o tocar la wishlist | sólo su dueño |
-| Editar o dar de baja una cuenta | esa misma cuenta · ADMIN |
+| Editar o dar de baja la cuenta propia | esa misma cuenta |
+| Ver el padrón o los datos de una cuenta ajena | sólo ADMIN |
+| Ver el mail, la dirección, el rol o el id de otro | nadie: no salen en ninguna respuesta compartida |
+| Ver las publicaciones propias | cualquier CLIENTE — el ADMIN no, no publica |
 | Ver una orden | comprador · vendedor · ADMIN |
 | Listar órdenes | las propias — el ADMIN ve todas |
 | Pagar una orden | **sólo ADMIN** — sin pasarela, nadie más puede probarlo |
@@ -192,7 +212,7 @@ Tampoco puede saltear las reglas que no son de permisos: una transición de esta
 
 ---
 
-## Los 46 endpoints
+## Los 47 endpoints
 
 Todo lo que no diga **público** necesita `Authorization: Bearer <token>`.
 
@@ -207,22 +227,23 @@ Todo lo que no diga **público** necesita `Authorization: Bearer <token>`.
 | `POST` | `/categorias` | Alta · **ADMIN** |
 | `PUT` | `/categorias/{id}` | Editar o mover en el árbol · **ADMIN** |
 | `DELETE` | `/categorias/{id}` | Baja. 409 si tiene hijas o productos · **ADMIN** |
-| `GET` | `/productos` | Catálogo: sólo activos y PUBLICADOS, con filtros y orden por precio · **público** |
-| `GET` | `/productos/mis-publicaciones` | Las propias, borradores y pausadas incluidas |
+| `GET` | `/productos` | Catálogo: sólo activos y PUBLICADOS. Filtra por categoría, nombre y precio, no por vendedor · **público** |
+| `GET` | `/productos/mis-publicaciones` | Las propias, borradores y pausadas incluidas. El ADMIN no: no publica |
 | `GET` | `/productos/todos` | El catálogo entero, sin los filtros del comprador · **ADMIN** |
-| `GET` | `/productos/{id}` | Un producto, con categoría, vendedor y fotos |
+| `GET` | `/productos/{id}` | Un producto, con categoría, vendedor y fotos · **público** |
+| `GET` | `/productos/vendedor/{nombreUsuario}` | La vidriera de un vendedor, buscada por nombre de usuario · **público** |
 | `POST` | `/productos` | Alta. Nace en BORRADOR |
 | `PUT` | `/productos/{id}` | Editar |
 | `PUT` | `/productos/{id}/estado` | Pausar o reanudar |
 | `PUT` | `/productos/{id}/reactivar` | Devuelve al catálogo un producto dado de baja |
 | `DELETE` | `/productos/{id}` | Baja lógica |
-| `GET` | `/usuarios` | Listar los activos, sin contraseña |
-| `GET` | `/usuarios/{id}` | Un usuario |
-| `POST` | `/usuarios` | Alta sin token de vuelta; para eso está `/auth/registro` · **público** |
-| `PUT` | `/usuarios/{id}` | Editar. El rol no se toca desde el body |
+| `GET` | `/usuarios` | Listar los activos, sin contraseña · **ADMIN** |
+| `GET` | `/usuarios/{id}` | Los datos de una cuenta · **ADMIN** |
+| `PUT` | `/usuarios/me` | Editar mi cuenta. El rol no se toca desde el body |
 | `PUT` | `/usuarios/{id}/reactivar` | Vuelve a poner en circulación una cuenta · **ADMIN** |
 | `PUT` | `/usuarios/{id}/rol` | Promueve o degrada · **ADMIN** |
-| `DELETE` | `/usuarios/{id}` | Baja lógica, propia o por un **ADMIN**. El historial de órdenes sobrevive |
+| `DELETE` | `/usuarios/me` | Darme de baja. El historial de órdenes sobrevive |
+| `DELETE` | `/usuarios/{id}` | Dar de baja a otro · **ADMIN** |
 | `GET` | `/carrito` | Mi carrito, vaciado si venció |
 | `POST` | `/carrito/items` | Agregar. Acumula si ya estaba |
 | `PUT` | `/carrito/items/{item}` | Cambiar cantidad |

@@ -9,14 +9,19 @@ import com.uade.tpo.marketplace.entity.Producto;
 import lombok.Data;
 import com.uade.tpo.marketplace.controllers.categorias.CategoriaResponse;
 import com.uade.tpo.marketplace.controllers.fotos.FotoResponse;
-import com.uade.tpo.marketplace.controllers.usuarios.UsuarioResponse;
+import com.uade.tpo.marketplace.controllers.usuarios.UsuarioPublicoResponse;
 
 /**
  * Vista publica de un producto, con su categoria, su vendedor y sus fotos ya
  * convertidos a DTO.
  *
- * Al anidar UsuarioResponse en vez de la entidad Usuario, la contrasena del
- * vendedor deja de viajar en cada listado de productos.
+ * El vendedor viaja como UsuarioPublicoResponse, que solo lleva el nombre y el
+ * nombre de usuario. No es lo mismo que anidar UsuarioResponse: el catalogo es
+ * publico, asi que con el DTO completo cualquier visitante sin cuenta podia
+ * recorrerlo y quedarse con el mail y el domicilio de todos los que venden.
+ *
+ * Con el nombre de usuario alcanza para llegar al resto: la vidriera de ese
+ * vendedor esta en GET /productos/vendedor/{nombreUsuario}.
  */
 @Data
 public class ProductoResponse {
@@ -30,7 +35,7 @@ public class ProductoResponse {
     private String ubicacion;
     private Integer descuento;
     private CategoriaResponse categoria;
-    private UsuarioResponse vendedor;
+    private UsuarioPublicoResponse vendedor;
     /** false = dado de baja: no aparece en el catalogo ni se puede comprar. */
     private Boolean activo;
 
@@ -40,8 +45,6 @@ public class ProductoResponse {
     private List<FotoResponse> fotos;
 
     /**
-     * Traduce la entidad al objeto que sale por HTTP.
-     *
      * Pre : la entidad Producto, o null.
      * Post: el producto con su categoria, su vendedor y sus fotos ya
      *       aplanados, para que el cliente no tenga que encadenar pedidos.
@@ -62,7 +65,7 @@ public class ProductoResponse {
         dto.setActivo(producto.getActivo());
         dto.setEstadoPublicacion(producto.getEstadoPublicacion());
         dto.setCategoria(CategoriaResponse.from(producto.getCategoria()));
-        dto.setVendedor(UsuarioResponse.from(producto.getVendedor()));
+        dto.setVendedor(UsuarioPublicoResponse.from(producto.getVendedor()));
         dto.setFotos(producto.getFotos() == null ? List.of()
                 : producto.getFotos().stream().map(FotoResponse::from).toList());
         return dto;

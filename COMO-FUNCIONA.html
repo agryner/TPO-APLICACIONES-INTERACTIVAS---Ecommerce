@@ -410,7 +410,7 @@
       <div class="fact"><dt>Stack</dt><dd>Spring Boot 4.1</dd></div>
       <div class="fact"><dt>Java</dt><dd>25</dd></div>
       <div class="fact"><dt>Persistencia</dt><dd>MySQL 8</dd></div>
-      <div class="fact"><dt>Endpoints</dt><dd>46</dd></div>
+      <div class="fact"><dt>Endpoints</dt><dd>47</dd></div>
       <div class="fact"><dt>Clases</dt><dd>101</dd></div>
     </dl>
   </header>
@@ -509,6 +509,32 @@
           <text class="svg-sub" x="414" y="296" fill="var(--danger)">la entidad no cruza esta línea</text>
         </svg>
         <figcaption>Un alta de producto, ida y vuelta. La entidad <code>Producto</code> vive sólo entre el service y la base: el controller nunca la ve. Por eso <code>GET /usuarios</code> no puede filtrar la contraseña por accidente — <code>UsuarioResponse</code> directamente no tiene ese campo.</figcaption>
+      </figure>
+
+      <h3>Dos DTO para una persona</h3>
+
+      <p>El mismo criterio se aplica una segunda vez, con los datos personales. Quién mira decide cuál de los dos sale:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>DTO</th><th>Qué lleva</th><th>Dónde se usa</th></tr></thead>
+          <tbody>
+            <tr><td><code>UsuarioResponse</code></td><td>nombre, apellido, nombre de usuario, <strong>id, mail, dirección, rol, activo</strong></td><td><code>/usuarios/me</code> y los endpoints de ADMIN</td></tr>
+            <tr><td><code>UsuarioPublicoResponse</code></td><td>nombre, apellido, nombre de usuario</td><td>anidado en productos, órdenes, carrito y wishlist</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>La diferencia importa porque <strong>el catálogo es público</strong>. Mientras el vendedor viajaba como <code>UsuarioResponse</code> dentro de cada producto, cualquier visitante sin cuenta podía recorrer <code>GET /productos</code> y quedarse con el mail y el domicilio de todos los que venden. Cerrar <code>GET /usuarios/{id}</code> detrás del ADMIN no servía de nada mientras la misma información saliera por la puerta de al lado.</p>
+
+      <p>En el DTO público no hay nada que filtrar: los campos que no tienen que salir <strong>no existen</strong>. Tampoco viaja el id, y no hace falta — a un vendedor se lo busca por nombre de usuario, con <code>GET /productos/vendedor/{nombreUsuario}</code>.</p>
+
+      <div class="note">
+        <p class="note-title">Ni siquiera entre las dos puntas de una compra</p>
+        <p>En una orden, comprador y vendedor tampoco se ven el mail ni la dirección. La orden es el pago, no la entrega: cuando exista la entidad <code>Envio</code>, la dirección de destino va a vivir ahí, que además es su lugar — es un dato de ese envío puntual, no el domicilio que el usuario tenga cargado en la cuenta el día que alguien mire la orden.</p>
+      </div>
+
+      <figure>
       </figure>
 
       <h3>Quién es quién</h3>
@@ -1102,6 +1128,7 @@
             <tr><td>Ver las publicaciones en borrador</td><td><span class="pill">su vendedor</span></td><td>—</td></tr>
             <tr><td>Ver una orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span> <span class="pill pill-admin">ADMIN</span></td><td>403</td></tr>
             <tr><td>Listar órdenes</td><td><span class="pill">las propias</span> — <span class="pill pill-admin">ADMIN</span> ve todas</td><td>—</td></tr>
+            <tr><td>Ver el mail, la direccion, el rol o el id de otro</td><td><span class="pill">nadie</span></td><td>no salen</td></tr>
             <tr><td>Marcar la orden PAGADA</td><td><span class="pill">solo ADMIN</span></td><td>403</td></tr>
             <tr><td>Cancelar una orden PENDIENTE</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
             <tr><td>Cancelar la orden</td><td><span class="pill">comprador</span> <span class="pill">vendedor</span></td><td>403</td></tr>
@@ -1125,7 +1152,7 @@
     <!-- ============ ENDPOINTS ============ -->
     <section id="endpoints">
       <span class="h2-num">09</span>
-      <h2>Los 46 endpoints</h2>
+      <h2>Los 47 endpoints</h2>
 
       <p>Todo lo que no diga <span class="pill">público</span> necesita el header <code>Authorization: Bearer &lt;token&gt;</code>.</p>
 
@@ -1142,22 +1169,23 @@
             <tr><td><span class="verb verb-post">POST</span></td><td><code>/categorias</code></td><td>Alta <span class="pill pill-admin">ADMIN</span></td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/categorias/{id}</code></td><td>Editar o mover en el arbol <span class="pill pill-admin">ADMIN</span></td></tr>
             <tr><td><span class="verb verb-del">DEL</span></td><td><code>/categorias/{id}</code></td><td>Baja. 409 si tiene hijas o productos <span class="pill pill-admin">ADMIN</span></td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/productos</code></td><td>Catalogo con filtros; la categoria incluye sus descendientes <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/productos</code></td><td>Catalogo con filtros de categoria, nombre y precio; la categoria incluye sus descendientes <span class="pill">público</span></td></tr>
             <tr><td><span class="verb">GET</span></td><td><code>/productos/{id}</code></td><td>Un producto, con categoria, vendedor y fotos <span class="pill">público</span></td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/productos/mis-publicaciones</code></td><td>Las propias, borradores y pausadas incluidas</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/productos/vendedor/{nombreUsuario}</code></td><td>La vidriera de un vendedor, por nombre de usuario <span class="pill">público</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/productos/mis-publicaciones</code></td><td>Las propias, borradores y pausadas incluidas. El ADMIN no: no publica</td></tr>
             <tr><td><span class="verb">GET</span></td><td><code>/productos/todos</code></td><td>El catalogo entero, sin los filtros del comprador <span class="pill pill-admin">ADMIN</span></td></tr>
             <tr><td><span class="verb verb-post">POST</span></td><td><code>/productos</code></td><td>Alta. Nace en BORRADOR: no aparece hasta tener una foto</td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}</code></td><td>Editar</td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}/estado</code></td><td>Pausar o reanudar. Al pausar sale de los carritos</td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/productos/{id}/reactivar</code></td><td>Devuelve al catalogo uno dado de baja</td></tr>
             <tr><td><span class="verb verb-del">DEL</span></td><td><code>/productos/{id}</code></td><td>Baja logica: sale del catalogo, la orden lo conserva</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/usuarios</code></td><td>Listar los activos, sin contrasena</td></tr>
-            <tr><td><span class="verb">GET</span></td><td><code>/usuarios/{id}</code></td><td>Un usuario</td></tr>
-            <tr><td><span class="verb verb-post">POST</span></td><td><code>/usuarios</code></td><td>Alta sin token de vuelta; para eso esta /auth/registro <span class="pill">público</span></td></tr>
-            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}</code></td><td>Editar. El rol no se toca desde el body</td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/usuarios</code></td><td>Listar los activos, sin contrasena <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb">GET</span></td><td><code>/usuarios/{id}</code></td><td>Los datos de una cuenta <span class="pill pill-admin">ADMIN</span></td></tr>
+            <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/me</code></td><td>Editar mi cuenta. El rol no se toca desde el body</td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}/reactivar</code></td><td>Vuelve a poner en circulacion una cuenta <span class="pill pill-admin">ADMIN</span></td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/usuarios/{id}/rol</code></td><td>Promueve o degrada <span class="pill pill-admin">ADMIN</span></td></tr>
-            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/{id}</code></td><td>Baja logica: el historial de ordenes sobrevive</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/me</code></td><td>Darme de baja: el historial de ordenes sobrevive</td></tr>
+            <tr><td><span class="verb verb-del">DEL</span></td><td><code>/usuarios/{id}</code></td><td>Dar de baja a otro <span class="pill pill-admin">ADMIN</span></td></tr>
             <tr><td><span class="verb">GET</span></td><td><code>/carrito</code></td><td>Mi carrito, vaciado si vencio</td></tr>
             <tr><td><span class="verb verb-post">POST</span></td><td><code>/carrito/items</code></td><td>Agregar. Acumula si ya estaba</td></tr>
             <tr><td><span class="verb verb-put">PUT</span></td><td><code>/carrito/items/{item}</code></td><td>Cambiar cantidad. Cero o menos lo elimina</td></tr>

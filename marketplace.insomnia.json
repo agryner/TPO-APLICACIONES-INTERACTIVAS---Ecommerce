@@ -206,7 +206,7 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Listar usuarios",
-      "description": "Devuelve UsuarioResponse: no incluye la contrasena.",
+      "description": "SOLO ADMIN (marcos56@test.com): 403 con un token de cliente. Aca salen el mail y la direccion de todo el mundo, que no es asunto de quien compra.",
       "method": "GET",
       "url": "http://localhost:4002/usuarios",
       "headers": [],
@@ -225,7 +225,7 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Obtener usuario por id",
-      "description": "",
+      "description": "SOLO ADMIN: 403 con un token de cliente, incluso pidiendo la cuenta propia. Para la propia esta GET /usuarios/me; para saber quien vende algo alcanza con el nombreUsuario que ya viene dentro de cada producto.",
       "method": "GET",
       "url": "http://localhost:4002/usuarios/1",
       "headers": [],
@@ -240,34 +240,13 @@
       }
     },
     {
-      "_id": "req_usuarios_3",
-      "_type": "request",
-      "parentId": "fld_usuarios",
-      "name": "Crear usuario",
-      "description": "El campo rol se ignora: por la API todos nacen CLIENTE. El admin de esta coleccion es Marcos56 (4), marcado a mano en la base. Para hacer otro:  UPDATE usuario SET rol='ADMIN' WHERE nombre_usuario='...';",
-      "method": "POST",
-      "url": "http://localhost:4002/usuarios",
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
-      "parameters": [],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Pedro\",\n  \"apellido\": \"Diaz\",\n  \"nombreUsuario\": \"pdiaz\",\n  \"mail\": \"pdiaz@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Mitre 1200\",\n  \"rol\": \"CLIENTE\"\n}"
-      },
-      "metaSortKey": 3
-    },
-    {
       "_id": "req_usuarios_4",
       "_type": "request",
       "parentId": "fld_usuarios",
-      "name": "Modificar usuario",
-      "description": "Su propia cuenta, o cualquiera si sos ADMIN. El rol no se toca desde el body.",
+      "name": "Modificar mi cuenta",
+      "description": "Edita SIEMPRE la cuenta del token: no recibe ningun id, asi que no hay forma de apuntarle a una cuenta ajena. El ADMIN tampoco entra aca, porque moderar no incluye reescribirle los datos personales a otro. El body va con el token de esa misma cuenta; el rol no se toca desde aca.",
       "method": "PUT",
-      "url": "http://localhost:4002/usuarios/1",
+      "url": "http://localhost:4002/usuarios/me",
       "headers": [
         {
           "name": "Content-Type",
@@ -288,11 +267,32 @@
       }
     },
     {
+      "_id": "req_usuarios_baja_propia",
+      "_type": "request",
+      "parentId": "fld_usuarios",
+      "name": "Darme de baja",
+      "method": "DELETE",
+      "url": "http://localhost:4002/usuarios/me",
+      "description": "Baja de la cuenta propia, sin ningun id: sale del token. Es baja logica y arrastra las publicaciones propias. Las ordenes se conservan.",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "authentication": {},
+      "metaSortKey": 4,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
       "_id": "req_usuarios_5",
       "_type": "request",
       "parentId": "fld_usuarios",
-      "name": "Eliminar usuario",
-      "description": "Baja logica. Arrastra las publicaciones del usuario: salen del catalogo y de los carritos ajenos. Corre de verdad sobre el vendedor 1.",
+      "name": "Dar de baja a otro (ADMIN)",
+      "description": "SOLO ADMIN: da de baja la cuenta de un tercero. Es baja logica y arrastra sus publicaciones, que salen del catalogo y de los carritos ajenos. Las ordenes se conservan. Para darse de baja uno mismo esta DELETE /usuarios/me.",
       "method": "DELETE",
       "url": "http://localhost:4002/usuarios/1",
       "headers": [],
@@ -319,7 +319,7 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Listar productos",
-      "description": "Catalogo publico: activos, PUBLICADOS y de vendedores vigentes. Filtrar por la categoria 1 trae tambien lo de la 2, que es su hija.",
+      "description": "Catalogo publico: solo activos, PUBLICADOS y de vendedores vigentes. Los filtros son opcionales y se combinan. NO hay filtro por vendedor: para ver la tienda de uno esta GET /productos/vendedor/{nombreUsuario}, que busca por nombre exacto.",
       "method": "GET",
       "url": "http://localhost:4002/productos",
       "headers": [],
@@ -328,13 +328,6 @@
           "id": "pair_idCategoria_13",
           "name": "idCategoria",
           "value": "1",
-          "description": "",
-          "disabled": true
-        },
-        {
-          "id": "pair_vendedor_14",
-          "name": "vendedor",
-          "value": "anagomez",
           "description": "",
           "disabled": true
         },
@@ -371,6 +364,27 @@
       "metaSortKey": 1
     },
     {
+      "_id": "req_productos_por_vendedor",
+      "_type": "request",
+      "parentId": "fld_productos",
+      "name": "Productos de un vendedor",
+      "method": "GET",
+      "url": "http://localhost:4002/productos/vendedor/anagomez",
+      "description": "PUBLICO: anda sin token. Trae las publicaciones visibles de ese vendedor buscando por NOMBRE DE USUARIO, porque el cliente no conoce ningun id. Coincidencia exacta; el ?vendedor= del catalogo es la busqueda parcial. 404 si no existe o esta dado de baja.",
+      "headers": [],
+      "parameters": [],
+      "body": {},
+      "authentication": {},
+      "metaSortKey": 2,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
       "_id": "req_productos_mias",
       "_type": "request",
       "parentId": "fld_productos",
@@ -389,7 +403,7 @@
           "disabled": true
         }
       ],
-      "description": "Las publicaciones propias, borradores y pausadas incluidas. 404 si el id no existe.",
+      "description": "Las publicaciones propias, borradores y pausadas incluidas, que el catalogo esconde. El ADMIN recibe 403: no publica, asi que no tiene publicaciones propias. Para mirar lo ajeno tiene GET /productos/todos.",
       "authentication": {
         "type": "bearer",
         "token": "{{ _.token }}",
@@ -1017,7 +1031,7 @@
       "modified": 0,
       "created": 0,
       "name": "Reactivar un usuario",
-      "description": "Solo ADMIN. La contracara de la baja logica: vuelve al listado, y la cuenta puede volver a operar. No reactiva las publicaciones del usuario, porque entre ellas pueden estar las que el vendedor habia dado de baja por su cuenta: cada producto se reactiva aparte.",
+      "description": "SOLO ADMIN: vuelve a poner en circulacion una cuenta dada de baja. No reactiva sus publicaciones: cada producto se reactiva por separado.",
       "url": "http://localhost:4002/usuarios/3/reactivar",
       "method": "PUT",
       "body": {},
@@ -1045,7 +1059,7 @@
       "modified": 0,
       "created": 0,
       "name": "Cambiar el rol de un usuario",
-      "description": "Solo ADMIN. El rol no viaja nunca en el body de un alta ni de una edicion, porque ahi cualquiera se promoveria solo: por eso es un endpoint aparte. Un admin no puede quitarse el rol a si mismo (409): si el ultimo se degrada, no queda quien promueva a nadie.",
+      "description": "SOLO ADMIN: promueve o degrada. No deja degradar al ultimo ADMIN, porque si no no quedaria nadie que pueda volver a promover a alguien.",
       "url": "http://localhost:4002/usuarios/2/rol",
       "method": "PUT",
       "body": {},
@@ -1378,7 +1392,7 @@
       "modified": 0,
       "created": 0,
       "name": "Quien soy",
-      "description": "El complemento del login, que devuelve solo el token. Con esto el frontend sabe a quien saludar y si mostrar el panel de administracion, sin decodificar el JWT por su cuenta. No recibe ningun id: saca el usuario del token. Se lee de la base en cada pedido, asi que refleja un cambio de nombre o de rol sin esperar a que el usuario se vuelva a loguear.",
+      "description": "Los datos de la cuenta del token, sin ningun id. Es el complemento del login, que devuelve solo el access_token: con esto el front sabe a quien saludar y si mostrar el panel de administracion.",
       "url": "http://localhost:4002/usuarios/me",
       "method": "GET",
       "body": {},

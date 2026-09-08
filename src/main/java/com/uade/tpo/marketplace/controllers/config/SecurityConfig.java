@@ -77,7 +77,11 @@ public class SecurityConfig {
                         .requestMatchers(GET, "/fotos/pendientes").authenticated()
 
                         // --- el catalogo se mira sin cuenta ---
-                        .requestMatchers(GET, "/productos", "/productos/*").permitAll()
+                        // /productos/* cubre un solo tramo, asi que la vidriera
+                        // de un vendedor, que tiene dos, va nombrada aparte.
+                        .requestMatchers(GET, "/productos", "/productos/*",
+                                "/productos/vendedor/*")
+                        .permitAll()
                         .requestMatchers(GET, "/categorias", "/categorias/*",
                                 "/categorias/*/subcategorias")
                         .permitAll()

@@ -40,15 +40,17 @@ public class UsuariosController {
     private final UsuarioService usuarioService;
 
     /**
-     * Los usuarios en actividad.
+     * Los usuarios en actividad. Solo para el ADMIN.
      *
-     * Pre : solo el token.
+     * Pre : el token de un ADMIN.
      * Post: la lista sin los dados de baja y sin el campo contrasena, que el
-     *       DTO ni siquiera tiene.
+     *       DTO ni siquiera tiene. 403 si quien pide no es ADMIN.
      */
     @GetMapping
-    public ResponseEntity<List<UsuarioResponse>> getUsuarios() {
-        return ResponseEntity.ok(usuarioService.getUsuarios());
+    public ResponseEntity<List<UsuarioResponse>> getUsuarios(
+            @AuthenticationPrincipal Usuario usuario)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        return ResponseEntity.ok(usuarioService.getUsuarios(usuario.getId()));
     }
 
     /**
@@ -60,11 +62,6 @@ public class UsuariosController {
      *
      * Va declarado antes que /{idUsuario} porque si no Spring tomaria "me"
      * como un id y fallaria al convertirlo a Long.
-     *
-     * Pre : solo el token.
-     * Post: los datos publicos de esa cuenta. Se leen de la base en cada
-     *       pedido, asi que reflejan un cambio de nombre o de rol sin esperar
-     *       a que el usuario se vuelva a loguear.
      */
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponse> yo(@AuthenticationPrincipal Usuario usuario) {
@@ -72,15 +69,21 @@ public class UsuariosController {
     }
 
     /**
-     * Un usuario puntual.
+     * Un usuario puntual. Solo para el ADMIN.
      *
-     * Pre : el id en la ruta y el token.
-     * Post: sus datos publicos. 404 si no existe.
+     * Un cliente que quiere ver quien vende algo no pasa por aca: el nombre de
+     * usuario del vendedor ya viene dentro de cada producto, y con eso puede
+     * pedir /productos/vendedor/{nombreUsuario}. El id no lo necesita nunca.
+     *
+     * Pre : el id en la ruta y el token de un ADMIN.
+     * Post: los datos de esa cuenta. 403 si quien pide no es ADMIN, 404 si el
+     *       id no existe.
      */
     @GetMapping("/{idUsuario}")
-    public ResponseEntity<UsuarioResponse> getUsuarioById(@PathVariable Long idUsuario)
-            throws UsuarioNoEncontradoException {
-        return ResponseEntity.ok(usuarioService.getUsuarioById(idUsuario));
+    public ResponseEntity<UsuarioResponse> getUsuarioById(@PathVariable Long idUsuario,
+            @AuthenticationPrincipal Usuario usuario)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+        return ResponseEntity.ok(usuarioService.getUsuarioById(idUsuario, usuario.getId()));
     }
 
     /**
@@ -101,8 +104,9 @@ public class UsuariosController {
         return ResponseEntity.ok(usuarioService.updateUsuario(usuario.getId(), request));
     }
 
-    /** Solo ADMIN: devuelve al ruedo una cuenta dada de baja. */
     /**
+     * Solo ADMIN: devuelve al ruedo una cuenta dada de baja.
+     *
      * Pre : el id en la ruta y un token de ADMIN.
      * Post: el usuario activo otra vez. No reactiva sus publicaciones: cada
      *       producto se reactiva por separado.
@@ -137,8 +141,7 @@ public class UsuariosController {
      * Post: un mensaje de confirmacion. Es baja logica y arrastra las
      *       publicaciones del usuario, que salen del catalogo y de los
      *       carritos ajenos. Las ordenes se conservan.
-     */
-    /**
+     *
      * Darme de baja a mi mismo.
      *
      * Pre : solo el token.
@@ -153,6 +156,14 @@ public class UsuariosController {
         return ResponseEntity.ok(new MensajeResponse("Usuario dado de baja correctamente"));
     }
 
+    /**
+     * Dar de baja a otro. Para la cuenta propia esta /usuarios/me.
+     *
+     * Pre : el id en la ruta y el token de un ADMIN.
+     * Post: un mensaje de confirmacion. Es baja logica y arrastra las
+     *       publicaciones de esa cuenta: salen del catalogo y de los carritos
+     *       ajenos. Las ordenes se conservan.
+     */
     @DeleteMapping("/{idUsuario}")
     public ResponseEntity<MensajeResponse> deleteUsuario(@PathVariable Long idUsuario,
             @AuthenticationPrincipal Usuario usuario)
