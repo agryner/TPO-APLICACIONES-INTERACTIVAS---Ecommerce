@@ -12,8 +12,10 @@ import com.uade.tpo.marketplace.exceptions.CategoriaConSubcategoriasException;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CategoriaDuplicadaException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
+import com.uade.tpo.marketplace.exceptions.CategoriaPadreInactivaException;
 import com.uade.tpo.marketplace.exceptions.JerarquiaInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import com.uade.tpo.marketplace.repository.CategoriaRepository;
 import com.uade.tpo.marketplace.repository.ProductoRepository;
 
@@ -26,16 +28,27 @@ public class CategoriaServiceImpl implements CategoriaService {
     private final ProductoRepository productoRepository;
     private final AutorizacionService autorizacion;
 
-    public List<CategoriaResponse> getCategorias() {
-        return categoriaRepository.findAll().stream()
+    public List<CategoriaResponse> getCategorias() throws SinResultadosException {
+        List<CategoriaResponse> todas = categoriaRepository.findByActivoTrue().stream()
                 .map(CategoriaResponse::from)
                 .toList();
+
+        if (todas.isEmpty())
+            throw new SinResultadosException("No hay categorias cargadas");
+
+        return todas;
     }
 
-    public List<CategoriaResponse> getCategoriasRaiz() {
-        return categoriaRepository.findByCategoriaPadreIsNull().stream()
+    public List<CategoriaResponse> getCategoriasRaiz() throws SinResultadosException {
+        List<CategoriaResponse> raices = categoriaRepository.findByCategoriaPadreIsNullAndActivoTrue()
+                .stream()
                 .map(CategoriaResponse::from)
                 .toList();
+
+        if (raices.isEmpty())
+            throw new SinResultadosException("No hay categorias de primer nivel");
+
+        return raices;
     }
 
     /**
@@ -43,19 +56,39 @@ public class CategoriaServiceImpl implements CategoriaService {
      * Post: sus hijas inmediatas, sin nietas. Tira
      *       CategoriaNoEncontradaException si el padre no existe.
      */
-    public List<CategoriaResponse> getSubcategorias(Long idCategoria) throws CategoriaNoEncontradaException {
-        if (!categoriaRepository.existsById(idCategoria))
-            throw new CategoriaNoEncontradaException();
+    public List<CategoriaResponse> getSubcategorias(Long idCategoria)
+            throws CategoriaNoEncontradaException, SinResultadosException {
+        buscarActiva(idCategoria);
 
-        return categoriaRepository.findByCategoriaPadreId(idCategoria).stream()
+        List<CategoriaResponse> hijas = categoriaRepository
+                .findByCategoriaPadreIdAndActivoTrue(idCategoria).stream()
                 .map(CategoriaResponse::from)
                 .toList();
+
+        if (hijas.isEmpty())
+            throw new SinResultadosException("Esa categoria no tiene subcategorias");
+
+        return hijas;
     }
 
     public CategoriaResponse getCategoriaById(Long idCategoria) throws CategoriaNoEncontradaException {
-        return categoriaRepository.findById(idCategoria)
-                .map(CategoriaResponse::from)
+        return CategoriaResponse.from(buscarActiva(idCategoria));
+    }
+
+    /**
+     * Pre : el id de una categoria.
+     * Post: la entidad. Tira CategoriaNoEncontradaException si no existe o si
+     *       esta dada de baja: para todo el resto del sistema una categoria
+     *       inactiva es una categoria que no esta.
+     */
+    private Categoria buscarActiva(Long idCategoria) throws CategoriaNoEncontradaException {
+        Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(CategoriaNoEncontradaException::new);
+
+        if (!Boolean.TRUE.equals(categoria.getActivo()))
+            throw new CategoriaNoEncontradaException();
+
+        return categoria;
     }
 
     /**
@@ -88,8 +121,7 @@ public class CategoriaServiceImpl implements CategoriaService {
             CategoriaDuplicadaException, UsuarioNoEncontradoException, AccesoDenegadoException {
         autorizacion.validarAdmin(idSolicitante);
 
-        Categoria categoria = categoriaRepository.findById(idCategoria)
-                .orElseThrow(CategoriaNoEncontradaException::new);
+        Categoria categoria = buscarActiva(idCategoria);
 
         Categoria padre = buscarPadre(request.getIdCategoriaPadre());
         validarJerarquia(categoria, padre);
@@ -102,10 +134,38 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     /**
+     * Pre : el id de la categoria y el de quien pide, que tiene que ser ADMIN.
+     * Post: la categoria de vuelta en circulacion. No reactiva sus
+     *       subcategorias: cada una se reactiva por separado, igual que las
+     *       publicaciones de un usuario. Tira CategoriaPadreInactivaException
+     *       si su padre sigue de baja, porque quedaria colgando de algo que no
+     *       existe, y CategoriaDuplicadaException si mientras estuvo de baja
+     *       alguien le ocupo el nombre entre sus hermanas.
+     */
+    public CategoriaResponse reactivarCategoria(Long idCategoria, Long idSolicitante)
+            throws CategoriaNoEncontradaException, CategoriaDuplicadaException,
+            CategoriaPadreInactivaException, UsuarioNoEncontradoException,
+            AccesoDenegadoException {
+        autorizacion.validarAdmin(idSolicitante);
+
+        Categoria categoria = categoriaRepository.findById(idCategoria)
+                .orElseThrow(CategoriaNoEncontradaException::new);
+
+        Categoria padre = categoria.getCategoriaPadre();
+        if (padre != null && !Boolean.TRUE.equals(padre.getActivo()))
+            throw new CategoriaPadreInactivaException();
+
+        validarNombreLibre(categoria.getNombre(), padre, idCategoria);
+
+        categoria.setActivo(true);
+        return CategoriaResponse.from(categoriaRepository.save(categoria));
+    }
+
+    /**
      * Pre : el id y el id de quien pide.
-     * Post: nada. Es borrado real. Tira CategoriaConSubcategoriasException o
-     *       CategoriaConProductosException si no esta vacia, porque borrarla
-     *       dejaria registros apuntando a la nada.
+     * Post: nada. Es baja logica: la fila queda y deja de aparecer en todos
+     *       los listados. Tira CategoriaConSubcategoriasException o
+     *       CategoriaConProductosException si no esta vacia.
      */
     public void deleteCategoria(Long idCategoria, Long idSolicitante)
             throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException,
@@ -113,16 +173,16 @@ public class CategoriaServiceImpl implements CategoriaService {
             AccesoDenegadoException {
         autorizacion.validarAdmin(idSolicitante);
 
-        if (!categoriaRepository.existsById(idCategoria))
-            throw new CategoriaNoEncontradaException();
+        Categoria categoria = buscarActiva(idCategoria);
 
-        if (!categoriaRepository.findByCategoriaPadreId(idCategoria).isEmpty())
+        if (!categoriaRepository.findByCategoriaPadreIdAndActivoTrue(idCategoria).isEmpty())
             throw new CategoriaConSubcategoriasException();
 
         if (productoRepository.existsByCategoriaId(idCategoria))
             throw new CategoriaConProductosException();
 
-        categoriaRepository.deleteById(idCategoria);
+        categoria.setActivo(false);
+        categoriaRepository.save(categoria);
     }
 
     /**
@@ -134,8 +194,7 @@ public class CategoriaServiceImpl implements CategoriaService {
         if (idCategoriaPadre == null)
             return null;
 
-        return categoriaRepository.findById(idCategoriaPadre)
-                .orElseThrow(CategoriaNoEncontradaException::new);
+        return buscarActiva(idCategoriaPadre);
     }
 
     /**
@@ -160,8 +219,8 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     private List<Categoria> hermanas(Categoria padre) {
         return padre == null
-                ? categoriaRepository.findByCategoriaPadreIsNull()
-                : categoriaRepository.findByCategoriaPadreId(padre.getId());
+                ? categoriaRepository.findByCategoriaPadreIsNullAndActivoTrue()
+                : categoriaRepository.findByCategoriaPadreIdAndActivoTrue(padre.getId());
     }
 
     /**

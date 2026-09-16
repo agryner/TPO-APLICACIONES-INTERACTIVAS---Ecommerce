@@ -15,12 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.controllers.common.MensajeResponse;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
+import com.uade.tpo.marketplace.controllers.auth.TokenResponse;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CambioDeRolInvalidoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import com.uade.tpo.marketplace.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -40,7 +42,7 @@ public class UsuariosController {
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> getUsuarios(
             @AuthenticationPrincipal Usuario usuario)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
         return ResponseEntity.ok(usuarioService.getUsuarios(usuario.getId()));
     }
 
@@ -63,11 +65,14 @@ public class UsuariosController {
 
     /**
      * Pre : el body completo y el token.
-     * Post: el usuario actualizado. La contrasena se vuelve a hashear. El rol
-     *       no se toca desde aca: para eso esta el endpoint de rol.
+     * Post: un access_token nuevo, emitido sobre los datos ya guardados. Hace
+     *       falta porque el token lleva el mail adentro: cambiarlo invalidaba
+     *       el anterior y deslogueaba al usuario en el acto. El front tiene
+     *       que reemplazar el que tenia guardado por este. La contrasena se
+     *       vuelve a hashear, y el rol no se toca desde aca.
      */
     @PutMapping("/me")
-    public ResponseEntity<UsuarioResponse> updateUsuario(
+    public ResponseEntity<TokenResponse> updateUsuario(
             @Valid @RequestBody UsuarioRequest request, @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, CuentaInactivaException {
         return ResponseEntity.ok(usuarioService.updateUsuario(usuario.getId(), request));

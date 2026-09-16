@@ -4,6 +4,7 @@ import com.uade.tpo.marketplace.controllers.carritos.CarritoResponse;
 import com.uade.tpo.marketplace.controllers.carritos.ItemCarritoRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ import com.uade.tpo.marketplace.exceptions.ItemCarritoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -106,10 +107,10 @@ public class CarritoServiceImpl implements CarritoService {
     public CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request)
             throws UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException,
-            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException {
+            CompraPropiaException, CantidadInvalidaException, CuentaInactivaException, RolNoComerciaException {
         autorizacion.validarActivo(idUsuario);
 
-        autorizacion.validarQueNoSeaAdmin(idUsuario);
+        autorizacion.validarQuePuedaComerciar(idUsuario);
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
         Producto producto = productoRepository.findById(request.getIdProducto())
@@ -233,6 +234,22 @@ public class CarritoServiceImpl implements CarritoService {
      *       perezoso: ocurre cuando alguien lo mira, no cuando se cumple el
      *       plazo, asi que no hace falta ninguna tarea programada.
      */
+    /**
+     * Pre : nada. La llama la tarea programada, no un endpoint.
+     * Post: cuantos carritos vacio. Busca por fechaLimite en la base en vez de
+     *       recorrer todos, asi que el trabajo es proporcional a los vencidos
+     *       y no a los que existen.
+     */
+    @Transactional
+    public int vaciarVencidos() {
+        List<Carrito> vencidos = carritoRepository.findByFechaLimiteBefore(LocalDateTime.now());
+
+        for (Carrito carrito : vencidos)
+            vaciarCarrito(carrito);
+
+        return vencidos.size();
+    }
+
     private Carrito vaciarSiVencio(Carrito carrito) {
         boolean vencio = carrito.getFechaLimite() != null
                 && carrito.getFechaLimite().isBefore(LocalDateTime.now());

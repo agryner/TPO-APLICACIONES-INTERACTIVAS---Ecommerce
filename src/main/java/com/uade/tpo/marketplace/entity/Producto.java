@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.entity;
 
+import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -40,6 +41,48 @@ public class Producto {
 
     @Column(nullable = false)
     private Integer vendidos = 0;
+
+    @Column(nullable = false)
+    private Integer vistos = 0;
+
+    @Column(name = "admite_envio", nullable = false)
+    private Boolean admiteEnvio = true;
+
+    @Column(name = "acepta_ofertas", nullable = false)
+    private Boolean aceptaOfertas = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provincia", nullable = false)
+    private Provincia provincia;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "condicion", nullable = false)
+    private CondicionProducto condicion;
+
+    @Column(name = "anio", nullable = false)
+    private Integer anio;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_destacado", nullable = false)
+    private NivelDestacado nivelDestacado = NivelDestacado.NINGUNO;
+
+    @Column(name = "destacado_hasta")
+    private LocalDateTime destacadoHasta;
+
+    /**
+     * Pre : nada.
+     * Post: el nivel que vale HOY. Un destacado vencido no ordena nada aunque
+     *       la columna todavia diga PREMIUM: la tarea que limpia corre cada
+     *       tanto, y entre medio nadie tiene que ver un destacado que ya se
+     *       pago y se termino.
+     */
+    public NivelDestacado nivelVigente() {
+        if (nivelDestacado == null || destacadoHasta == null
+                || destacadoHasta.isBefore(LocalDateTime.now()))
+            return NivelDestacado.NINGUNO;
+
+        return nivelDestacado;
+    }
 
     @Column
     private String descripcion;

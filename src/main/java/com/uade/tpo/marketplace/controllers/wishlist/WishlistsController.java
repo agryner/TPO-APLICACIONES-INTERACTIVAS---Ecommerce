@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.ItemWishlistNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
@@ -51,7 +51,7 @@ public class WishlistsController {
             @Valid @RequestBody ItemWishlistRequest request,
             @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, ProductoNoEncontradoException,
-            CuentaInactivaException, AdminNoComerciaException {
+            CuentaInactivaException, RolNoComerciaException {
         return ResponseEntity.ok(wishlistService.agregarItem(usuario.getId(), request));
     }
 

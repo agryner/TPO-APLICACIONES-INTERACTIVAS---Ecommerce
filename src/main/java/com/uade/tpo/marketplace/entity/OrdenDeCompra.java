@@ -52,6 +52,10 @@ public class OrdenDeCompra {
     @Column(nullable = false)
     private EstadoOrden estado;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "metodo_entrega", nullable = false)
+    private MetodoEntrega metodoEntrega = MetodoEntrega.DESPACHO;
+
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 

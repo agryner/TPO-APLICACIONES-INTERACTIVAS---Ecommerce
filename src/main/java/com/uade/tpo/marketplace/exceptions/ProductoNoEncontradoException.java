@@ -1,8 +1,9 @@
 package com.uade.tpo.marketplace.exceptions;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(code = HttpStatus.NOT_FOUND, reason = "No existe un producto con ese id")
-public class ProductoNoEncontradoException extends Exception {
+public class ProductoNoEncontradoException extends ExcepcionDeNegocio {
+    public ProductoNoEncontradoException() {
+        super(HttpStatus.NOT_FOUND, "No existe un producto con ese id");
+    }
 }

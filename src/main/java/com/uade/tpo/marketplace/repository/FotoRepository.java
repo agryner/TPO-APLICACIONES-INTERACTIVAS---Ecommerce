@@ -10,7 +10,7 @@ import com.uade.tpo.marketplace.entity.Foto;
 
 @Repository
 public interface FotoRepository extends JpaRepository<Foto, Long> {
-    List<Foto> findByProductoId(Long idProducto);
+    List<Foto> findByProductoIdAndActivoTrue(Long idProducto);
 
-    List<Foto> findByEstadoVerificacion(EstadoVerificacion estadoVerificacion);
+    List<Foto> findByEstadoVerificacionAndActivoTrue(EstadoVerificacion estadoVerificacion);
 }

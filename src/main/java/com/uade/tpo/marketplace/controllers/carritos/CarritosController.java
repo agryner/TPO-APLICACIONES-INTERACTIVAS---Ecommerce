@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.entity.Usuario;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
@@ -57,7 +57,7 @@ public class CarritosController {
             @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, ProductoNoEncontradoException,
             StockInsuficienteException, CuentaInactivaException, CompraPropiaException,
-            CantidadInvalidaException, AdminNoComerciaException {
+            CantidadInvalidaException, RolNoComerciaException {
         return ResponseEntity.ok(carritoService.agregarItem(usuario.getId(), request));
     }
 

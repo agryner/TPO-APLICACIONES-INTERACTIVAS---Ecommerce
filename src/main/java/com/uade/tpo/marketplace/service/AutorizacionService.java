@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -60,13 +60,17 @@ public class AutorizacionService {
 
     /**
      * Pre : el id de quien pide la operacion.
-     * Post: nada si es un CLIENTE. Tira AdminNoComerciaException si es ADMIN:
+     * Post: nada si es un CLIENTE. Tira RolNoComerciaException si es ADMIN:
      *       el rol modera el marketplace, no participa de el.
      */
-    public void validarQueNoSeaAdmin(Long idSolicitante)
-            throws UsuarioNoEncontradoException, AdminNoComerciaException {
-        if (esAdmin(idSolicitante))
-            throw new AdminNoComerciaException();
+    public void validarQuePuedaComerciar(Long idSolicitante)
+            throws UsuarioNoEncontradoException, RolNoComerciaException {
+        TipoUsuario rol = usuarioRepository.findById(idSolicitante)
+                .map(Usuario::getRol)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (rol == TipoUsuario.ADMIN || rol == TipoUsuario.DESPACHANTE)
+            throw new RolNoComerciaException();
     }
 
     /**

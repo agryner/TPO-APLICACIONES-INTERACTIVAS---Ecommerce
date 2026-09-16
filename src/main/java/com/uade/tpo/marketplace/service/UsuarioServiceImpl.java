@@ -1,5 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
+import com.uade.tpo.marketplace.controllers.auth.TokenResponse;
+import com.uade.tpo.marketplace.controllers.config.JwtService;
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioRequest;
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioResponse;
 import java.util.List;
@@ -22,6 +24,7 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 @Service
 @RequiredArgsConstructor
@@ -31,19 +34,25 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final ProductoRepository productoRepository;
     private final CarritoService carritoService;
+    private final JwtService jwtService;
 
     /**
      * Pre : el id de quien pide, que tiene que ser ADMIN.
      * Post: los usuarios activos, sin los dados de baja. 403 si no es ADMIN.
      */
     public List<UsuarioResponse> getUsuarios(Long idSolicitante)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
         autorizacion.validarAdmin(idSolicitante);
 
-        return usuarioRepository.findAll().stream()
+        List<UsuarioResponse> activos = usuarioRepository.findAll().stream()
                 .filter(Usuario::getActivo)
                 .map(UsuarioResponse::from)
                 .toList();
+
+        if (activos.isEmpty())
+            throw new SinResultadosException("No hay usuarios activos");
+
+        return activos;
     }
 
     /**
@@ -82,7 +91,7 @@ public class UsuarioServiceImpl implements UsuarioService {
      * Post: el usuario actualizado, con la contrasena vuelta a hashear. El rol
      *       no se toca desde aca.
      */
-    public UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request)
+    public TokenResponse updateUsuario(Long idUsuario, UsuarioRequest request)
             throws UsuarioNoEncontradoException, CuentaInactivaException {
         autorizacion.validarActivo(idUsuario);
 
@@ -90,7 +99,9 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .orElseThrow(UsuarioNoEncontradoException::new);
 
         copiarDatos(usuario, request);
-        return UsuarioResponse.from(usuarioRepository.save(usuario));
+        Usuario guardado = usuarioRepository.save(usuario);
+
+        return TokenResponse.from(jwtService.generarToken(guardado));
     }
 
     /**

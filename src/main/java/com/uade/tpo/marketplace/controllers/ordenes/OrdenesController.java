@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,7 +29,8 @@ import com.uade.tpo.marketplace.service.OrdenDeCompraService;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.uade.tpo.marketplace.entity.Usuario;
 
@@ -48,7 +50,7 @@ public class OrdenesController {
     public ResponseEntity<List<OrdenDeCompraResponse>> getOrdenes(
             @AuthenticationPrincipal Usuario usuario,
             @RequestParam(required = false) RolEnOrden rol)
-            throws UsuarioNoEncontradoException {
+            throws UsuarioNoEncontradoException, SinResultadosException {
         return ResponseEntity.ok(ordenService.getOrdenes(usuario.getId(), rol));
     }
 
@@ -73,10 +75,15 @@ public class OrdenesController {
      */
     @PostMapping
     public ResponseEntity<List<OrdenDeCompraResponse>> createOrden(
+            @RequestBody(required = false) OrdenRequest request,
             @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, AdminNoComerciaException {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.createOrden(usuario.getId()));
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, RolNoComerciaException {
+        boolean coordinar = request != null
+                && Boolean.TRUE.equals(request.getCoordinarConVendedor());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ordenService.createOrden(usuario.getId(), coordinar));
     }
 
     /**

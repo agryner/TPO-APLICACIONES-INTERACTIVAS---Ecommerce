@@ -1,6 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,7 @@ import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.entity.Wishlist;
 import com.uade.tpo.marketplace.controllers.wishlist.ItemWishlistRequest;
 import com.uade.tpo.marketplace.controllers.wishlist.WishlistResponse;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.ItemWishlistNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
@@ -54,15 +55,15 @@ public class WishlistServiceImpl implements WishlistService {
      * Post: la wishlist con el producto adentro. Si ya estaba no hace nada,
      *       asi que se puede repetir sin duplicar. Tira
      *       ProductoNoEncontradoException si no esta a la venta, y
-     *       AdminNoComerciaException si quien pide es ADMIN.
+     *       RolNoComerciaException si quien pide es ADMIN.
      */
     @Transactional
     public WishlistResponse agregarItem(Long idUsuario, ItemWishlistRequest request)
             throws UsuarioNoEncontradoException,
-            ProductoNoEncontradoException, CuentaInactivaException, AdminNoComerciaException {
+            ProductoNoEncontradoException, CuentaInactivaException, RolNoComerciaException {
         autorizacion.validarActivo(idUsuario);
 
-        autorizacion.validarQueNoSeaAdmin(idUsuario);
+        autorizacion.validarQuePuedaComerciar(idUsuario);
 
         Wishlist wishlist = obtenerEntidad(idUsuario);
 
@@ -118,10 +119,7 @@ public class WishlistServiceImpl implements WishlistService {
             throws UsuarioNoEncontradoException, CuentaInactivaException {
         autorizacion.validarActivo(idUsuario);
 
-        Wishlist wishlist = obtenerEntidad(idUsuario);
-        wishlist.getItems().clear();
-        renovarVigencia(wishlist);
-        return WishlistResponse.from(wishlistRepository.save(wishlist));
+        return WishlistResponse.from(vaciarWishlist(obtenerEntidad(idUsuario)));
     }
 
     /**
@@ -159,9 +157,34 @@ public class WishlistServiceImpl implements WishlistService {
                 || wishlist.getFechaLimite().isAfter(LocalDateTime.now()))
             return wishlist;
 
+        return vaciarWishlist(wishlist);
+    }
+
+    /**
+     * Pre : la wishlist.
+     * Post: la misma sin items y sin fecha de vencimiento. Una lista vacia no
+     *       vence, porque no hay nada que limpiar.
+     */
+    private Wishlist vaciarWishlist(Wishlist wishlist) {
         wishlist.getItems().clear();
         wishlist.setFechaLimite(null);
         return wishlistRepository.save(wishlist);
+    }
+
+    /**
+     * Pre : nada. La llama la tarea programada, no un endpoint.
+     * Post: cuantas wishlists vacio. Busca por fechaLimite en la base en vez
+     *       de recorrerlas todas, asi el trabajo es proporcional a las
+     *       vencidas y no a las que existen.
+     */
+    @Transactional
+    public int vaciarVencidas() {
+        List<Wishlist> vencidas = wishlistRepository.findByFechaLimiteBefore(LocalDateTime.now());
+
+        for (Wishlist wishlist : vencidas)
+            vaciarWishlist(wishlist);
+
+        return vencidas.size();
     }
 
     private void renovarVigencia(Wishlist wishlist) {

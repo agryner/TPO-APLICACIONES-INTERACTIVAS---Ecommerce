@@ -2,6 +2,9 @@ package com.uade.tpo.marketplace.controllers.productos;
 
 import java.math.BigDecimal;
 
+import com.uade.tpo.marketplace.entity.CondicionProducto;
+import com.uade.tpo.marketplace.entity.Provincia;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -28,8 +31,18 @@ public class ProductoRequest {
     @Size(max = 500, message = "La descripcion no puede superar los 500 caracteres")
     private String descripcion;
 
+    @NotNull(message = "Hay que indicar la provincia")
+    private Provincia provincia;
+
     @Size(max = 150, message = "La ubicacion no puede superar los 150 caracteres")
     private String ubicacion;
+
+    @NotNull(message = "Hay que indicar si el producto es nuevo o usado")
+    private CondicionProducto condicion;
+
+    @NotNull(message = "Hay que indicar el anio")
+    @Min(value = 1900, message = "El anio no puede ser anterior a 1900")
+    private Integer anio;
 
     @Min(value = 0, message = "El descuento no puede ser negativo")
     @Max(value = 100, message = "El descuento no puede superar el 100 por ciento")
@@ -37,4 +50,8 @@ public class ProductoRequest {
 
     @NotNull(message = "Hay que indicar la categoria")
     private Long idCategoria;
+
+    private Boolean admiteEnvio;
+
+    private Boolean aceptaOfertas;
 }

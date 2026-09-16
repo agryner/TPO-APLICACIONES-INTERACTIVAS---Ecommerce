@@ -52,6 +52,9 @@ public class Foto {
     @Column(name = "que_ve_ia")
     private String queVeIa;
 
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

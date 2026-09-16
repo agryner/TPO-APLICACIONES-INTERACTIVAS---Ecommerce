@@ -1,8 +1,9 @@
 package com.uade.tpo.marketplace.exceptions;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(code = HttpStatus.NOT_FOUND, reason = "No existe ese item en la wishlist")
-public class ItemWishlistNoEncontradoException extends Exception {
+public class ItemWishlistNoEncontradoException extends ExcepcionDeNegocio {
+    public ItemWishlistNoEncontradoException() {
+        super(HttpStatus.NOT_FOUND, "No existe ese item en la wishlist");
+    }
 }

@@ -1,6 +1,10 @@
 package com.uade.tpo.marketplace.service;
 
+import java.math.BigDecimal;
+
 import com.uade.tpo.marketplace.entity.EstadoOrden;
+import com.uade.tpo.marketplace.entity.Producto;
+import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
 import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.util.List;
@@ -15,18 +19,22 @@ import com.uade.tpo.marketplace.exceptions.StockInsuficienteException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 public interface OrdenDeCompraService {
     List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
-            throws UsuarioNoEncontradoException;
+            throws UsuarioNoEncontradoException, SinResultadosException;
 
     OrdenDeCompraResponse getOrdenById(Long idOrden, Long idSolicitante)
             throws OrdenNoEncontradaException, OperacionAjenaException;
 
-    List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
+    OrdenDeCompraResponse crearDesdeOferta(Usuario comprador, Producto producto, int cantidad,
+            BigDecimal precioAcordado) throws StockInsuficienteException;
+
+    List<OrdenDeCompraResponse> createOrden(Long idSolicitante, boolean coordinarConVendedor)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, AdminNoComerciaException;
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, RolNoComerciaException;
 
     OrdenDeCompraResponse actualizarEstado(Long idOrden, EstadoOrden estado, Long idSolicitante)
             throws OrdenNoEncontradaException, TransicionInvalidaException,

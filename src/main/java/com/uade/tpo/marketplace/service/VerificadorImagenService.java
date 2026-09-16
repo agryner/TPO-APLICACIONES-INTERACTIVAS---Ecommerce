@@ -121,7 +121,7 @@ public class VerificadorImagenService {
                     ? actual.getNombre()
                     : actual.getNombre() + " (" + actual.getDescripcion() + ")");
 
-        String otras = categoriaRepository.findAll().stream()
+        String otras = categoriaRepository.findByActivoTrue().stream()
                 .map(Categoria::getNombre)
                 .filter(n -> !n.equals(categoria.getNombre()))
                 .reduce((a, b) -> a + ", " + b)

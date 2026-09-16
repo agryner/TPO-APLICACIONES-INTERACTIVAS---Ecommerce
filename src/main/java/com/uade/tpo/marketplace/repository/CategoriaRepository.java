@@ -9,9 +9,11 @@ import com.uade.tpo.marketplace.entity.Categoria;
 
 @Repository
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
-    List<Categoria> findByCategoriaPadreId(Long idCategoriaPadre);
+    List<Categoria> findByActivoTrue();
 
-    List<Categoria> findByCategoriaPadreIsNull();
+    List<Categoria> findByCategoriaPadreIdAndActivoTrue(Long idCategoriaPadre);
+
+    List<Categoria> findByCategoriaPadreIsNullAndActivoTrue();
 
     List<Categoria> findByNombreAndCategoriaPadreId(String nombre, Long idCategoriaPadre);
 

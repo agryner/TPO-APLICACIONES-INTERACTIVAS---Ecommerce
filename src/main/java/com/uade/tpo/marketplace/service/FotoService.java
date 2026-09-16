@@ -13,22 +13,23 @@ import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 public interface FotoService {
     List<FotoResponse> getFotosByProducto(Long idProducto)
-            throws ProductoNoEncontradoException;
+            throws ProductoNoEncontradoException, SinResultadosException;
 
     FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException;
 
     FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException;
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, RolNoComerciaException;
 
     byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException;
 
     List<FotoResponse> getPendientesDeRevision(Long idSolicitante, EstadoVerificacion estado)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException;
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException;
 
     FotoResponse revisarFoto(Long idFoto, boolean aprobada, Long idSolicitante)
             throws FotoNoEncontradaException, UsuarioNoEncontradoException,

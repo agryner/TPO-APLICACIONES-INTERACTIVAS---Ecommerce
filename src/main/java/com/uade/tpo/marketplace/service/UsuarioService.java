@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.service;
 
+import com.uade.tpo.marketplace.controllers.auth.TokenResponse;
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioRequest;
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioResponse;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
@@ -12,17 +13,18 @@ import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioDuplicadoException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 public interface UsuarioService {
     List<UsuarioResponse> getUsuarios(Long idSolicitante)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException;
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException;
 
     UsuarioResponse getUsuarioById(Long idUsuario, Long idSolicitante)
             throws UsuarioNoEncontradoException, AccesoDenegadoException;
 
     UsuarioResponse createUsuario(UsuarioRequest request) throws UsuarioDuplicadoException;
 
-    UsuarioResponse updateUsuario(Long idUsuario, UsuarioRequest request)
+    TokenResponse updateUsuario(Long idUsuario, UsuarioRequest request)
             throws UsuarioNoEncontradoException, CuentaInactivaException;
 
     UsuarioResponse reactivarUsuario(Long idUsuario, Long idSolicitante)

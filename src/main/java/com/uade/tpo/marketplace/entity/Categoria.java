@@ -38,6 +38,9 @@ public class Categoria {
     @Column
     private String descripcion;
 
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToOne

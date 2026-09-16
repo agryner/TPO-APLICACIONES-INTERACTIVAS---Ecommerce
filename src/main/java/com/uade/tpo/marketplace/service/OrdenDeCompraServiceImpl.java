@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
@@ -17,15 +18,17 @@ import jakarta.persistence.LockModeType;
 import com.uade.tpo.marketplace.entity.Carrito;
 import com.uade.tpo.marketplace.entity.EstadoOrden;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
+import com.uade.tpo.marketplace.entity.MetodoEntrega;
 import com.uade.tpo.marketplace.entity.ItemCarrito;
 import com.uade.tpo.marketplace.entity.OrderDetail;
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 import com.uade.tpo.marketplace.entity.Producto;
+import com.uade.tpo.marketplace.entity.TipoNotificacion;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -38,6 +41,7 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +53,11 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     private final UsuarioRepository usuarioRepository;
     private final CarritoService carritoService;
     private final AutorizacionService autorizacion;
+    private final NotificacionService notificacionService;
+    private final EnvioService envioService;
+
+    @Value("${marketplace.notificaciones.stock-bajo:2}")
+    private int stockBajo;
     private final EntityManager entityManager;
 
     /**
@@ -59,7 +68,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      *       movimientos: los dos casos darian una lista vacia.
      */
     public List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
-            throws UsuarioNoEncontradoException {
+            throws UsuarioNoEncontradoException, SinResultadosException {
         validarQueExista(idSolicitante);
 
         List<OrdenDeCompra> propias;
@@ -71,6 +80,9 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
             propias = ordenRepository.findAll();
         else
             propias = ordenRepository.findByCompradorIdOrVendedorId(idSolicitante, idSolicitante);
+
+        if (propias.isEmpty())
+            throw new SinResultadosException("Todavia no tenes ordenes");
 
         return propias.stream()
                 .map(OrdenDeCompraResponse::from)
@@ -108,11 +120,12 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      *       que si un item falla no queda ninguna orden a medias.
      */
     @Transactional
-    public List<OrdenDeCompraResponse> createOrden(Long idSolicitante)
+    public List<OrdenDeCompraResponse> createOrden(Long idSolicitante,
+            boolean coordinarConVendedor)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, AdminNoComerciaException {
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, RolNoComerciaException {
         autorizacion.validarActivo(idSolicitante);
-        autorizacion.validarQueNoSeaAdmin(idSolicitante);
+        autorizacion.validarQuePuedaComerciar(idSolicitante);
 
         Carrito carrito = carritoService.obtenerCarritoEntidad(idSolicitante);
 
@@ -138,15 +151,30 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
                 throw new StockInsuficienteException(producto, item.getCantidad());
         }
 
-        Map<Usuario, List<ItemCarrito>> porVendedor = new LinkedHashMap<>();
-        for (ItemCarrito item : carrito.getItems())
-            porVendedor.computeIfAbsent(item.getProducto().getVendedor(), v -> new ArrayList<>())
-                    .add(item);
+        // Una orden es una transaccion entre dos personas con un metodo de
+        // entrega. Un tractor y unas semillas del mismo vendedor salen en dos
+        // ordenes: la primera se coordina y la segunda se despacha.
+        Map<Grupo, List<ItemCarrito>> porGrupo = new LinkedHashMap<>();
+        for (ItemCarrito item : carrito.getItems()) {
+            Producto producto = item.getProducto();
+            MetodoEntrega metodo = metodoPara(producto, coordinarConVendedor);
+            porGrupo.computeIfAbsent(new Grupo(producto.getVendedor().getId(), metodo),
+                    g -> new ArrayList<>()).add(item);
+        }
 
         List<OrdenDeCompraResponse> ordenes = new ArrayList<>();
-        for (Map.Entry<Usuario, List<ItemCarrito>> entrada : porVendedor.entrySet())
-            ordenes.add(OrdenDeCompraResponse.from(
-                    armarOrden(carrito.getUsuario(), entrada.getKey(), entrada.getValue())));
+        for (Map.Entry<Grupo, List<ItemCarrito>> entrada : porGrupo.entrySet()) {
+            Usuario vendedor = entrada.getValue().get(0).getProducto().getVendedor();
+            List<Renglon> renglones = entrada.getValue().stream()
+                    .map(i -> new Renglon(i.getProducto(), i.getCantidad(),
+                            i.getProducto().getPrecio(),
+                            i.getProducto().getDescuento() == null
+                                    ? 0
+                                    : i.getProducto().getDescuento()))
+                    .toList();
+            ordenes.add(OrdenDeCompraResponse.from(armarOrden(carrito.getUsuario(), vendedor,
+                    renglones, entrada.getKey().metodo())));
+        }
 
         carritoService.vaciarEntidad(idSolicitante);
         return ordenes;
@@ -157,11 +185,59 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * Post: la orden guardada, con cada renglon copiando el precio del momento
      *       para que una edicion posterior no reescriba la historia.
      */
-    private OrdenDeCompra armarOrden(Usuario comprador, Usuario vendedor, List<ItemCarrito> items) {
+    /**
+     * Pre : el producto y si el comprador prefirio coordinar.
+     * Post: el metodo que le toca. Un producto que no admite envio se coordina
+     *       si o si: la preferencia del comprador no puede volver despachable
+     *       una camioneta.
+     */
+    private MetodoEntrega metodoPara(Producto producto, boolean coordinarConVendedor) {
+        if (coordinarConVendedor || !Boolean.TRUE.equals(producto.getAdmiteEnvio()))
+            return MetodoEntrega.COORDINAR;
+
+        return MetodoEntrega.DESPACHO;
+    }
+
+    private record Grupo(Long idVendedor, MetodoEntrega metodo) {
+    }
+
+    /**
+     * Una linea de una orden por armar, sin importar de donde salio. El carrito
+     * la construye con el precio de lista del producto; una oferta aceptada,
+     * con el precio que acordaron las partes.
+     */
+    private record Renglon(Producto producto, int cantidad, BigDecimal precioUnitario,
+            int descuento) {
+    }
+
+    /**
+     * Pre : el comprador, el producto, la cantidad y el precio que se acordo.
+     * Post: la orden creada y ya guardada. No pasa por el carrito: una oferta
+     *       aceptada es una venta cerrada entre dos personas por un precio que
+     *       no es el de lista. El metodo de entrega sale de la misma regla que
+     *       el checkout: despacho si el producto lo admite, coordinar si no.
+     *       Tira StockInsuficienteException si al aceptar ya no hay unidades.
+     */
+    @Transactional
+    public OrdenDeCompraResponse crearDesdeOferta(Usuario comprador, Producto producto,
+            int cantidad, BigDecimal precioAcordado) throws StockInsuficienteException {
+        if (producto.getStock() == null || producto.getStock() < cantidad)
+            throw new StockInsuficienteException(producto, cantidad);
+
+        MetodoEntrega metodo = metodoPara(producto, false);
+        Renglon renglon = new Renglon(producto, cantidad, precioAcordado, 0);
+
+        return OrdenDeCompraResponse.from(armarOrden(comprador, producto.getVendedor(),
+                List.of(renglon), metodo));
+    }
+
+    private OrdenDeCompra armarOrden(Usuario comprador, Usuario vendedor, List<Renglon> items,
+            MetodoEntrega metodo) {
         OrdenDeCompra orden = new OrdenDeCompra();
         orden.setComprador(comprador);
         orden.setVendedor(vendedor);
         orden.setEstado(ESTADO_INICIAL);
+        orden.setMetodoEntrega(metodo);
 
         LocalDateTime ahora = LocalDateTime.now();
         orden.setFechaCreacion(ahora);
@@ -170,23 +246,24 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal total = BigDecimal.ZERO;
 
-        for (ItemCarrito item : items) {
-            Producto producto = item.getProducto();
+        for (Renglon item : items) {
+            Producto producto = item.producto();
 
             OrderDetail renglon = new OrderDetail();
             renglon.setOrden(orden);
             renglon.setProducto(producto);
             renglon.setNombre(producto.getNombre());
-            renglon.setCantidad(item.getCantidad());
-            renglon.setPrecioUnitario(producto.getPrecio());
-            renglon.setDescuento(producto.getDescuento() == null ? 0 : producto.getDescuento());
+            renglon.setCantidad(item.cantidad());
+            renglon.setPrecioUnitario(item.precioUnitario());
+            renglon.setDescuento(item.descuento());
             orden.getItems().add(renglon);
 
             subtotal = subtotal.add(renglon.getSubtotal());
             total = total.add(renglon.getTotal());
 
-            producto.setStock(producto.getStock() - item.getCantidad());
-            producto.setVendidos(producto.getVendidos() + item.getCantidad());
+            producto.setStock(producto.getStock() - item.cantidad());
+            avisarSiQuedaPoco(producto);
+            producto.setVendidos(producto.getVendidos() + item.cantidad());
             productoRepository.save(producto);
         }
 
@@ -201,6 +278,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      *       CambioDeEstadoNoPermitidoException si el paso no le toca a quien
      *       lo pide, y TransicionInvalidaException si el salto no existe.
      */
+    @Transactional
     public OrdenDeCompraResponse actualizarEstado(Long idOrden, EstadoOrden estado, Long idSolicitante)
             throws OrdenNoEncontradaException, TransicionInvalidaException,
             CambioDeEstadoNoPermitidoException {
@@ -224,7 +302,14 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
 
         orden.setEstado(estado);
         orden.setFechaUltimoEstado(LocalDateTime.now());
-        return OrdenDeCompraResponse.from(ordenRepository.save(orden));
+        OrdenDeCompra guardada = ordenRepository.save(orden);
+
+        // El envio nace recien cuando la orden esta paga: no se despacha algo
+        // que todavia no se cobro.
+        if (estado == EstadoOrden.PAGADA)
+            envioService.crearParaOrden(guardada);
+
+        return OrdenDeCompraResponse.from(guardada);
     }
 
     /**
@@ -271,5 +356,26 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
 
         if (!autorizado)
             throw new CambioDeEstadoNoPermitidoException();
+    }
+
+    /**
+     * Pre : el producto con el stock ya descontado.
+     * Post: nada. Si quedo en el umbral o por debajo, le avisa al vendedor
+     *       para que reponga y a los que lo tienen guardado para que sepan que
+     *       quedan pocos. Se dispara solo al comprar, que es el unico momento
+     *       en que el stock baja sin que nadie lo edite.
+     */
+    private void avisarSiQuedaPoco(Producto producto) {
+        if (producto.getStock() == null || producto.getStock() > stockBajo)
+            return;
+
+        notificacionService.crear(producto.getVendedor(), TipoNotificacion.POCO_STOCK,
+                "Te quedan %d unidades de \"%s\"".formatted(
+                        producto.getStock(), producto.getNombre()),
+                "/productos/" + producto.getId());
+
+        notificacionService.avisarAQuienesLoTienenGuardado(producto, TipoNotificacion.POCO_STOCK,
+                "Quedan %d unidades de \"%s\"".formatted(
+                        producto.getStock(), producto.getNombre()));
     }
 }

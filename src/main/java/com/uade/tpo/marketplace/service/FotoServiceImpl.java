@@ -18,7 +18,7 @@ import com.uade.tpo.marketplace.entity.Foto;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.ArchivoInvalidoException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.FotoNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.FotoRechazadaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -29,6 +29,7 @@ import com.uade.tpo.marketplace.repository.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 @Service
 @RequiredArgsConstructor
@@ -54,19 +55,37 @@ public class FotoServiceImpl implements FotoService {
      *       distinguirlo de uno real que todavia no tiene fotos.
      */
     public List<FotoResponse> getFotosByProducto(Long idProducto)
-            throws ProductoNoEncontradoException {
+            throws ProductoNoEncontradoException, SinResultadosException {
         if (!productoRepository.existsById(idProducto))
             throw new ProductoNoEncontradoException();
 
-        return fotoRepository.findByProductoId(idProducto).stream()
+        List<FotoResponse> fotos = fotoRepository.findByProductoIdAndActivoTrue(idProducto).stream()
                 .map(FotoResponse::from)
                 .toList();
+
+        if (fotos.isEmpty())
+            throw new SinResultadosException("Ese producto todavia no tiene fotos");
+
+        return fotos;
     }
 
     public FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException {
-        return fotoRepository.findById(idFoto)
-                .map(FotoResponse::from)
+        return FotoResponse.from(buscarActiva(idFoto));
+    }
+
+    /**
+     * Pre : el id de una foto.
+     * Post: la entidad. Tira FotoNoEncontradaException si no existe o si esta
+     *       dada de baja: una foto borrada no se puede volver a ver.
+     */
+    private Foto buscarActiva(Long idFoto) throws FotoNoEncontradaException {
+        Foto foto = fotoRepository.findById(idFoto)
                 .orElseThrow(FotoNoEncontradaException::new);
+
+        if (!Boolean.TRUE.equals(foto.getActivo()))
+            throw new FotoNoEncontradaException();
+
+        return foto;
     }
 
     /**
@@ -75,12 +94,12 @@ public class FotoServiceImpl implements FotoService {
      * Post: la foto guardada. Si el producto estaba en BORRADOR queda
      *       PUBLICADO. Tira ArchivoInvalidoException si el contenido no es una
      *       imagen, FotoRechazadaException si la IA la descarta, y
-     *       AdminNoComerciaException si quien sube es ADMIN.
+     *       RolNoComerciaException si quien sube es ADMIN.
      */
     @Transactional
     public FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException {
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, RolNoComerciaException {
         if (request.getIdProducto() == null)
             throw new ArchivoInvalidoException("Falta indicar el idProducto");
 
@@ -97,7 +116,7 @@ public class FotoServiceImpl implements FotoService {
 
         autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
 
-        autorizacion.validarQueNoSeaAdmin(idSolicitante);
+        autorizacion.validarQuePuedaComerciar(idSolicitante);
 
         Foto foto = new Foto();
         foto.setProducto(producto);
@@ -197,9 +216,7 @@ public class FotoServiceImpl implements FotoService {
     }
 
     public byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException {
-        return fotoRepository.findById(idFoto)
-                .orElseThrow(FotoNoEncontradaException::new)
-                .getContenido();
+        return buscarActiva(idFoto).getContenido();
     }
 
     /**
@@ -209,14 +226,21 @@ public class FotoServiceImpl implements FotoService {
      *       es la cola de trabajo.
      */
     public List<FotoResponse> getPendientesDeRevision(Long idSolicitante,
-            EstadoVerificacion estado) throws UsuarioNoEncontradoException, AccesoDenegadoException {
+            EstadoVerificacion estado)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
         autorizacion.validarAdmin(idSolicitante);
 
         EstadoVerificacion buscado = estado == null ? EstadoVerificacion.EN_REVISION : estado;
 
-        return fotoRepository.findByEstadoVerificacion(buscado).stream()
+        List<FotoResponse> pendientes = fotoRepository
+                .findByEstadoVerificacionAndActivoTrue(buscado).stream()
                 .map(FotoResponse::from)
                 .toList();
+
+        if (pendientes.isEmpty())
+            throw new SinResultadosException("No hay fotos en ese estado");
+
+        return pendientes;
     }
 
     /**
@@ -230,8 +254,7 @@ public class FotoServiceImpl implements FotoService {
             AccesoDenegadoException {
         autorizacion.validarAdmin(idSolicitante);
 
-        Foto foto = fotoRepository.findById(idFoto)
-                .orElseThrow(FotoNoEncontradaException::new);
+        Foto foto = buscarActiva(idFoto);
 
         if (!aprobada) {
             FotoResponse borrada = FotoResponse.from(foto);
@@ -251,8 +274,7 @@ public class FotoServiceImpl implements FotoService {
     @Transactional
     public void deleteFoto(Long idFoto, Long idSolicitante)
             throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
-        Foto foto = fotoRepository.findById(idFoto)
-                .orElseThrow(FotoNoEncontradaException::new);
+        Foto foto = buscarActiva(idFoto);
 
         autorizacion.validarDuenio(idSolicitante, foto.getProducto().getVendedor().getId());
         borrar(foto);
@@ -260,17 +282,19 @@ public class FotoServiceImpl implements FotoService {
 
     /**
      * Pre : la foto.
-     * Post: nada. La saca primero de la coleccion del producto: con cascade y
-     *       orphanRemoval, borrarla sola la revivia al hacer flush.
+     * Post: nada. Es baja logica: la fila y sus bytes quedan, y la foto deja
+     *       de aparecer en todos los listados. Ya no hace falta sacarla de la
+     *       coleccion del producto, porque no hay delete que orphanRemoval
+     *       pueda deshacer.
      */
     private void borrar(Foto foto) {
         Producto producto = foto.getProducto();
-        if (producto != null && producto.getFotos() != null)
-            producto.getFotos().remove(foto);
 
-        fotoRepository.delete(foto);
+        foto.setActivo(false);
+        fotoRepository.save(foto);
 
-        if (producto != null && fotoRepository.findByProductoId(producto.getId()).isEmpty()) {
+        if (producto != null
+                && fotoRepository.findByProductoIdAndActivoTrue(producto.getId()).isEmpty()) {
             producto.setEstadoPublicacion(EstadoPublicacion.BORRADOR);
             productoRepository.save(producto);
             carritoService.quitarDeTodosLosCarritos(producto.getId());

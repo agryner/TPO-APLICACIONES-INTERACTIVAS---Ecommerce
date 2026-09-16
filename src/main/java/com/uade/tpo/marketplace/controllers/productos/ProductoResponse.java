@@ -4,6 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
+import java.time.LocalDateTime;
+import com.uade.tpo.marketplace.entity.CondicionProducto;
+import com.uade.tpo.marketplace.entity.NivelDestacado;
+import com.uade.tpo.marketplace.entity.Provincia;
 import com.uade.tpo.marketplace.entity.Producto;
 
 import lombok.Data;
@@ -23,6 +27,13 @@ public class ProductoResponse {
     private Integer descuento;
     private CategoriaResponse categoria;
     private UsuarioPublicoResponse vendedor;
+    private Boolean admiteEnvio;
+    private Boolean aceptaOfertas;
+    private Provincia provincia;
+    private CondicionProducto condicion;
+    private Integer anio;
+    private NivelDestacado nivelDestacado;
+    private LocalDateTime destacadoHasta;
     private Boolean activo;
 
     private EstadoPublicacion estadoPublicacion;
@@ -47,12 +58,22 @@ public class ProductoResponse {
         dto.setDescripcion(producto.getDescripcion());
         dto.setUbicacion(producto.getUbicacion());
         dto.setDescuento(producto.getDescuento());
+        dto.setAdmiteEnvio(producto.getAdmiteEnvio());
+        dto.setAceptaOfertas(producto.getAceptaOfertas());
+        dto.setProvincia(producto.getProvincia());
+        dto.setCondicion(producto.getCondicion());
+        dto.setAnio(producto.getAnio());
+        dto.setNivelDestacado(producto.nivelVigente());
+        dto.setDestacadoHasta(producto.getDestacadoHasta());
         dto.setActivo(producto.getActivo());
         dto.setEstadoPublicacion(producto.getEstadoPublicacion());
         dto.setCategoria(CategoriaResponse.from(producto.getCategoria()));
         dto.setVendedor(UsuarioPublicoResponse.from(producto.getVendedor()));
         dto.setFotos(producto.getFotos() == null ? List.of()
-                : producto.getFotos().stream().map(FotoResponse::from).toList());
+                : producto.getFotos().stream()
+                        .filter(f -> Boolean.TRUE.equals(f.getActivo()))
+                        .map(FotoResponse::from)
+                        .toList());
         return dto;
     }
 }

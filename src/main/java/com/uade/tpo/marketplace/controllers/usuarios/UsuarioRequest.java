@@ -1,7 +1,5 @@
 package com.uade.tpo.marketplace.controllers.usuarios;
 
-import com.uade.tpo.marketplace.entity.TipoUsuario;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -33,6 +31,4 @@ public class UsuarioRequest {
 
     @Size(max = 150, message = "La direccion no puede superar los 150 caracteres")
     private String direccion;
-
-    private TipoUsuario rol;
 }

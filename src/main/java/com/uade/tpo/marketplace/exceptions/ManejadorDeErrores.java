@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -18,7 +17,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -39,6 +37,18 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
         Map<String, Object> cuerpo = base(HttpStatus.BAD_REQUEST, "Hay datos invalidos en el pedido");
         cuerpo.put("campos", campos);
         return ResponseEntity.badRequest().body(cuerpo);
+    }
+
+    /**
+     * Pre : cualquier excepcion de negocio que haya subido desde un service.
+     * Post: la respuesta con el codigo que la excepcion trae adentro y su
+     *       mensaje. Es el unico lugar donde se decide como se ve un error del
+     *       dominio, y por eso todos salen con la misma forma.
+     */
+    @ExceptionHandler(ExcepcionDeNegocio.class)
+    public ResponseEntity<Object> negocio(ExcepcionDeNegocio ex) {
+        return ResponseEntity.status(ex.getEstado())
+                .body(base(ex.getEstado(), ex.getMessage()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -72,10 +82,7 @@ public class ManejadorDeErrores extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> inesperado(Exception ex) throws Exception {
-        if (AnnotatedElementUtils.hasAnnotation(ex.getClass(), ResponseStatus.class))
-            throw ex;
-
+    public ResponseEntity<Object> inesperado(Exception ex) {
         log.error("Error no contemplado", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(base(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrio un error inesperado"));

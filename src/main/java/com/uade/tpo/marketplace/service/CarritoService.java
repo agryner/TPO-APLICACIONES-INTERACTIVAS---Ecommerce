@@ -10,7 +10,7 @@ import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.CantidadInvalidaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 
 public interface CarritoService {
     CarritoResponse obtenerCarrito(Long idUsuario) throws UsuarioNoEncontradoException, CuentaInactivaException;
@@ -19,12 +19,14 @@ public interface CarritoService {
 
     void quitarDeTodosLosCarritos(Long idProducto);
 
+    int vaciarVencidos();
+
     void vaciarEntidad(Long idUsuario) throws UsuarioNoEncontradoException;
 
     CarritoResponse agregarItem(Long idUsuario, ItemCarritoRequest request)
             throws UsuarioNoEncontradoException,
             ProductoNoEncontradoException, StockInsuficienteException, CompraPropiaException,
-            CantidadInvalidaException, CuentaInactivaException, AdminNoComerciaException;
+            CantidadInvalidaException, CuentaInactivaException, RolNoComerciaException;
 
     CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
             throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,

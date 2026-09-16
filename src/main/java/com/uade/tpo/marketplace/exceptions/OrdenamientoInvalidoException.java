@@ -1,8 +1,10 @@
 package com.uade.tpo.marketplace.exceptions;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(code = HttpStatus.BAD_REQUEST, reason = "El parametro ordenPrecio solo acepta 'asc' o 'desc'")
-public class OrdenamientoInvalidoException extends Exception {
+public class OrdenamientoInvalidoException extends ExcepcionDeNegocio {
+    public OrdenamientoInvalidoException() {
+        super(HttpStatus.BAD_REQUEST, "El parametro orden solo acepta precio_asc, precio_desc, "
+                + "vistos o vendidos");
+    }
 }

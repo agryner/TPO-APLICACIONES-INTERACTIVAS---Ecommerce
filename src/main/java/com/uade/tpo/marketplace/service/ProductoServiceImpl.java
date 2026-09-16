@@ -1,9 +1,12 @@
 package com.uade.tpo.marketplace.service;
 
+import com.uade.tpo.marketplace.controllers.productos.FiltroProductos;
 import com.uade.tpo.marketplace.controllers.productos.ProductoRequest;
 import com.uade.tpo.marketplace.controllers.productos.ProductoCreadoResponse;
 import com.uade.tpo.marketplace.controllers.productos.ProductoResponse;
+import com.uade.tpo.marketplace.controllers.productos.ProductoResumenResponse;
 import java.math.BigDecimal;
+import java.time.Year;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
@@ -15,15 +18,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.uade.tpo.marketplace.entity.Categoria;
+import com.uade.tpo.marketplace.entity.TipoNotificacion;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
+import com.uade.tpo.marketplace.exceptions.AnioInvalidoException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.OrdenamientoInvalidoException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.TransicionInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.CategoriaRepository;
@@ -32,12 +37,14 @@ import com.uade.tpo.marketplace.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 @Service
 @RequiredArgsConstructor
 public class ProductoServiceImpl implements ProductoService {
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final NotificacionService notificacionService;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
     private final CarritoService carritoService;
@@ -51,10 +58,12 @@ public class ProductoServiceImpl implements ProductoService {
      *       cumplen todos los filtros. Filtrar por una categoria incluye a sus
      *       descendientes.
      */
-    public List<ProductoResponse> getProductos(Long idCategoria, String nombre,
-            BigDecimal precioMin, BigDecimal precioMax, String ordenPrecio)
-            throws OrdenamientoInvalidoException {
-        Set<Long> ramaBuscada = idCategoria == null ? null : ramaDe(idCategoria);
+    public List<ProductoResumenResponse> getProductos(FiltroProductos filtro)
+            throws OrdenamientoInvalidoException, SinResultadosException {
+        Set<Long> ramaBuscada = filtro.getIdCategoria() == null
+                ? null
+                : ramaDe(filtro.getIdCategoria());
+        String nombre = filtro.getNombre();
 
         List<Producto> encontrados = productoRepository.findAll().stream()
                 .filter(Producto::getActivo)
@@ -65,12 +74,31 @@ public class ProductoServiceImpl implements ProductoService {
                         || (p.getCategoria() != null && ramaBuscada.contains(p.getCategoria().getId())))
                 .filter(p -> nombre == null
                         || p.getNombre().toLowerCase().contains(nombre.toLowerCase()))
-                .filter(p -> precioMin == null || p.getPrecio().compareTo(precioMin) >= 0)
-                .filter(p -> precioMax == null || p.getPrecio().compareTo(precioMax) <= 0)
+                .filter(p -> filtro.getPrecioMin() == null
+                        || p.getPrecio().compareTo(filtro.getPrecioMin()) >= 0)
+                .filter(p -> filtro.getPrecioMax() == null
+                        || p.getPrecio().compareTo(filtro.getPrecioMax()) <= 0)
+                .filter(p -> !Boolean.TRUE.equals(filtro.getEnOferta())
+                        || (p.getDescuento() != null && p.getDescuento() > 0))
+                .filter(p -> filtro.getProvincia() == null
+                        || p.getProvincia() == filtro.getProvincia())
+                .filter(p -> filtro.getCondicion() == null
+                        || p.getCondicion() == filtro.getCondicion())
+                .filter(p -> filtro.getAnioDesde() == null
+                        || (p.getAnio() != null && p.getAnio() >= filtro.getAnioDesde()))
+                .filter(p -> filtro.getAnioHasta() == null
+                        || (p.getAnio() != null && p.getAnio() <= filtro.getAnioHasta()))
+                // Sin envio es un filtro tan valido como con envio: el que
+                // compra un tractor busca justo los que se retiran.
+                .filter(p -> filtro.getAdmiteEnvio() == null
+                        || Boolean.TRUE.equals(p.getAdmiteEnvio()) == filtro.getAdmiteEnvio())
                 .toList();
 
-        return ordenar(encontrados, ordenPrecio).stream()
-                .map(ProductoResponse::from)
+        if (encontrados.isEmpty())
+            throw new SinResultadosException("No hay productos que coincidan con la busqueda");
+
+        return ordenar(encontrados, filtro.getOrden()).stream()
+                .map(ProductoResumenResponse::from)
                 .toList();
     }
 
@@ -79,18 +107,36 @@ public class ProductoServiceImpl implements ProductoService {
      * Post: la lista ordenada por precio, o tal cual si no se pidio orden.
      *       Tira OrdenamientoInvalidoException con cualquier otro valor.
      */
-    private List<Producto> ordenar(List<Producto> productos, String ordenPrecio)
+    /**
+     * Pre : los productos y el criterio, que puede venir en null.
+     * Post: la lista ordenada. Un solo parametro para todos los criterios: con
+     *       uno por criterio habria que inventar una regla de prioridad para
+     *       cuando llegan dos, y esa regla hay que explicarla. Tira
+     *       OrdenamientoInvalidoException si el criterio no existe.
+     */
+    private List<Producto> ordenar(List<Producto> productos, String orden)
             throws OrdenamientoInvalidoException {
-        if (ordenPrecio == null)
-            return productos;
+        // Sin criterio explicito manda la visibilidad pagada. Con criterio, no
+        // interviene: si alguien pidio precio_asc y le pusieramos los PREMIUM
+        // arriba, la lista no estaria ordenada por precio aunque lo haya
+        // pedido.
+        if (orden == null)
+            return productos.stream()
+                    .sorted(Comparator.comparingInt(
+                            (Producto p) -> p.nivelVigente().getPeso()).reversed())
+                    .toList();
 
-        Comparator<Producto> porPrecio = Comparator.comparing(Producto::getPrecio);
-        if ("desc".equalsIgnoreCase(ordenPrecio))
-            porPrecio = porPrecio.reversed();
-        else if (!"asc".equalsIgnoreCase(ordenPrecio))
-            throw new OrdenamientoInvalidoException();
+        Comparator<Producto> criterio = switch (orden.toLowerCase()) {
+            case "precio_asc" -> Comparator.comparing(Producto::getPrecio);
+            case "precio_desc" -> Comparator.comparing(Producto::getPrecio).reversed();
+            case "vistos" -> Comparator.comparing(
+                    (Producto p) -> p.getVistos() == null ? 0 : p.getVistos()).reversed();
+            case "vendidos" -> Comparator.comparing(
+                    (Producto p) -> p.getVendidos() == null ? 0 : p.getVendidos()).reversed();
+            default -> throw new OrdenamientoInvalidoException();
+        };
 
-        return productos.stream().sorted(porPrecio).toList();
+        return productos.stream().sorted(criterio).toList();
     }
 
     /**
@@ -107,7 +153,7 @@ public class ProductoServiceImpl implements ProductoService {
             Long actual = pendientes.poll();
             if (!rama.add(actual))
                 continue;
-            for (Categoria hija : categoriaRepository.findByCategoriaPadreId(actual))
+            for (Categoria hija : categoriaRepository.findByCategoriaPadreIdAndActivoTrue(actual))
                 pendientes.add(hija.getId());
         }
         return rama;
@@ -121,38 +167,98 @@ public class ProductoServiceImpl implements ProductoService {
      */
     public List<ProductoResponse> getMisPublicaciones(Long idSolicitante,
             EstadoPublicacion estado)
-            throws UsuarioNoEncontradoException, AdminNoComerciaException {
+            throws UsuarioNoEncontradoException, RolNoComerciaException, SinResultadosException {
         if (!usuarioRepository.existsById(idSolicitante))
             throw new UsuarioNoEncontradoException();
 
-        autorizacion.validarQueNoSeaAdmin(idSolicitante);
+        autorizacion.validarQuePuedaComerciar(idSolicitante);
 
-        return productoRepository.findAll().stream()
+        List<ProductoResponse> propias = productoRepository.findAll().stream()
                 .filter(Producto::getActivo)
                 .filter(p -> p.getVendedor() != null
                         && p.getVendedor().getId().equals(idSolicitante))
                 .filter(p -> estado == null || p.getEstadoPublicacion() == estado)
                 .map(ProductoResponse::from)
                 .toList();
+
+        if (propias.isEmpty())
+            throw new SinResultadosException("Todavia no tenes publicaciones");
+
+        return propias;
     }
 
-    public ProductoResponse getProductoById(Long idProducto) throws ProductoNoEncontradoException {
-        return productoRepository.findById(idProducto)
-                .map(ProductoResponse::from)
+    /**
+     * Pre : el id del producto y el de quien lo abre, que viene en null si no
+     *       hay token porque el detalle es publico.
+     * Post: el producto, con una visita mas. No se cuenta la del propio
+     *       vendedor: si no, refrescar su publicacion le infla el numero por
+     *       el que despues se ordena el catalogo.
+     */
+    @Transactional
+    public ProductoResponse getProductoById(Long idProducto, Long idSolicitante)
+            throws ProductoNoEncontradoException {
+        Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
+
+        boolean esElVendedor = idSolicitante != null
+                && producto.getVendedor() != null
+                && producto.getVendedor().getId().equals(idSolicitante);
+
+        if (!esElVendedor) {
+            producto.setVistos((producto.getVistos() == null ? 0 : producto.getVistos()) + 1);
+            producto = productoRepository.save(producto);
+        }
+
+        return ProductoResponse.from(producto);
+    }
+
+    /**
+     * Pre : el id de un producto.
+     * Post: hasta 8 publicaciones parecidas y disponibles, sin incluirse a si
+     *       misma. Busca primero entre sus hermanas de categoria y, si no
+     *       llena, sube al padre: una categoria hoja con un solo producto
+     *       siempre devolveria vacio.
+     */
+    public List<ProductoResumenResponse> getSimilares(Long idProducto)
+            throws ProductoNoEncontradoException, SinResultadosException {
+        Producto producto = productoRepository.findById(idProducto)
+                .orElseThrow(ProductoNoEncontradoException::new);
+
+        Categoria categoria = producto.getCategoria();
+        Long raiz = categoria == null ? null
+                : (categoria.getCategoriaPadre() == null ? categoria.getId()
+                        : categoria.getCategoriaPadre().getId());
+
+        Set<Long> rama = raiz == null ? Set.of() : ramaDe(raiz);
+
+        List<ProductoResumenResponse> similares = productoRepository.findAll().stream()
+                .filter(p -> !p.getId().equals(idProducto))
+                .filter(ProductoResumenResponse::estaDisponible)
+                .filter(p -> p.getCategoria() != null && rama.contains(p.getCategoria().getId()))
+                .sorted(Comparator.comparing(
+                        (Producto p) -> p.getVendidos() == null ? 0 : p.getVendidos()).reversed())
+                .limit(8)
+                .map(ProductoResumenResponse::from)
+                .toList();
+
+        if (similares.isEmpty())
+            throw new SinResultadosException("No hay productos similares a este");
+
+        return similares;
     }
 
     /**
      * Pre : el request y el id del vendedor.
      * Post: el producto en BORRADOR mas el aviso de que falta la foto. Todavia
-     *       no aparece en el catalogo. Tira AdminNoComerciaException si quien
+     *       no aparece en el catalogo. Tira RolNoComerciaException si quien
      *       publica es ADMIN.
      */
     public ProductoCreadoResponse createProducto(ProductoRequest request, Long idSolicitante)
-            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException, CuentaInactivaException, AdminNoComerciaException {
+            throws CategoriaNoEncontradaException, UsuarioNoEncontradoException,
+            CuentaInactivaException, RolNoComerciaException, AnioInvalidoException {
         autorizacion.validarActivo(idSolicitante);
 
-        autorizacion.validarQueNoSeaAdmin(idSolicitante);
+        autorizacion.validarQuePuedaComerciar(idSolicitante);
 
         Usuario vendedor = usuarioRepository.findById(idSolicitante)
                 .orElseThrow(UsuarioNoEncontradoException::new);
@@ -176,14 +282,39 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoResponse updateProducto(Long idProducto, ProductoRequest request,
             Long idSolicitante)
             throws ProductoNoEncontradoException, CategoriaNoEncontradaException,
-            UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
+            UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException,
+            AnioInvalidoException {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
 
         autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
 
+        BigDecimal precioViejo = ProductoResumenResponse.conDescuento(producto);
+
         copiarDatos(producto, request);
-        return ProductoResponse.from(productoRepository.save(producto));
+        Producto guardado = productoRepository.save(producto);
+
+        avisarSiBajoElPrecio(guardado, precioViejo);
+        return ProductoResponse.from(guardado);
+    }
+
+    /**
+     * Pre : el producto ya guardado y el precio final que tenia antes.
+     * Post: nada. Si el precio final quedo mas bajo, les avisa a todos los que
+     *       lo tienen en su wishlist. Las subas no se notifican: es una mala
+     *       noticia que nadie pidio.
+     */
+    private void avisarSiBajoElPrecio(Producto producto, BigDecimal precioViejo) {
+        BigDecimal precioNuevo = ProductoResumenResponse.conDescuento(producto);
+
+        if (precioViejo == null || precioNuevo == null
+                || precioNuevo.compareTo(precioViejo) >= 0)
+            return;
+
+        notificacionService.avisarAQuienesLoTienenGuardado(producto,
+                TipoNotificacion.BAJA_DE_PRECIO,
+                "\"%s\" bajo de $%s a $%s".formatted(producto.getNombre(),
+                        precioViejo.toPlainString(), precioNuevo.toPlainString()));
     }
 
     /**
@@ -207,7 +338,12 @@ public class ProductoServiceImpl implements ProductoService {
         if (estado == EstadoPublicacion.PAUSADO)
             carritoService.quitarDeTodosLosCarritos(idProducto);
 
-        return ProductoResponse.from(productoRepository.save(producto));
+        Producto guardado = productoRepository.save(producto);
+
+        if (estado == EstadoPublicacion.PUBLICADO)
+            avisarSiVolvio(guardado);
+
+        return ProductoResponse.from(guardado);
     }
 
     /**
@@ -242,7 +378,26 @@ public class ProductoServiceImpl implements ProductoService {
         autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
 
         producto.setActivo(true);
-        return ProductoResponse.from(productoRepository.save(producto));
+        Producto guardado = productoRepository.save(producto);
+
+        avisarSiVolvio(guardado);
+        return ProductoResponse.from(guardado);
+    }
+
+    /**
+     * Pre : el producto ya guardado.
+     * Post: nada. Si quedo comprable otra vez, les avisa a los que lo tienen
+     *       en su wishlist. Se chequea el estado real y no solo la accion que
+     *       se pidio: despausar algo cuyo vendedor esta dado de baja no lo
+     *       vuelve disponible, y avisarlo seria mentir.
+     */
+    private void avisarSiVolvio(Producto producto) {
+        if (!ProductoResumenResponse.estaDisponible(producto))
+            return;
+
+        notificacionService.avisarAQuienesLoTienenGuardado(producto,
+                TipoNotificacion.DISPONIBLE_OTRA_VEZ,
+                "\"%s\" volvio a estar disponible".formatted(producto.getNombre()));
     }
 
     /**
@@ -251,21 +406,26 @@ public class ProductoServiceImpl implements ProductoService {
      *       nombre, o si esta dado de baja: para quien mira el catalogo, una
      *       cuenta de baja es una cuenta que no esta.
      */
-    public List<ProductoResponse> getPublicacionesDeVendedor(String nombreUsuario)
-            throws UsuarioNoEncontradoException {
+    public List<ProductoResumenResponse> getPublicacionesDeVendedor(String nombreUsuario)
+            throws UsuarioNoEncontradoException, SinResultadosException {
         Usuario vendedor = usuarioRepository.findByNombreUsuario(nombreUsuario)
                 .orElseThrow(UsuarioNoEncontradoException::new);
 
         if (!Boolean.TRUE.equals(vendedor.getActivo()))
             throw new UsuarioNoEncontradoException();
 
-        return productoRepository.findAll().stream()
+        List<ProductoResumenResponse> vidriera = productoRepository.findAll().stream()
                 .filter(Producto::getActivo)
                 .filter(p -> p.getVendedor() != null
                         && p.getVendedor().getId().equals(vendedor.getId()))
                 .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
-                .map(ProductoResponse::from)
+                .map(ProductoResumenResponse::from)
                 .toList();
+
+        if (vidriera.isEmpty())
+            throw new SinResultadosException("Ese vendedor todavia no tiene publicaciones visibles");
+
+        return vidriera;
     }
 
     /**
@@ -275,13 +435,18 @@ public class ProductoServiceImpl implements ProductoService {
      *       borradores y pausados incluidos.
      */
     public List<ProductoResponse> getTodosLosProductos(Long idSolicitante, EstadoPublicacion estado)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
         autorizacion.validarAdmin(idSolicitante);
 
-        return productoRepository.findAll().stream()
+        List<ProductoResponse> todos = productoRepository.findAll().stream()
                 .filter(p -> estado == null || p.getEstadoPublicacion() == estado)
                 .map(ProductoResponse::from)
                 .toList();
+
+        if (todos.isEmpty())
+            throw new SinResultadosException("No hay productos cargados");
+
+        return todos;
     }
 
     /**
@@ -307,15 +472,31 @@ public class ProductoServiceImpl implements ProductoService {
      *       la categoria contra su repositorio.
      */
     private void copiarDatos(Producto producto, ProductoRequest request)
-            throws CategoriaNoEncontradaException {
+            throws CategoriaNoEncontradaException, AnioInvalidoException {
+        // El tope no es una constante: es el anio corriente, asi que sube solo
+        // cada 1 de enero.
+        int maximo = Year.now().getValue();
+
+        if (request.getAnio() > maximo)
+            throw new AnioInvalidoException(maximo);
+
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
+                .filter(c -> Boolean.TRUE.equals(c.getActivo()))
                 .orElseThrow(CategoriaNoEncontradaException::new);
 
         producto.setNombre(request.getNombre());
         producto.setPrecio(request.getPrecio());
         producto.setStock(request.getStock());
+        producto.setAdmiteEnvio(request.getAdmiteEnvio() == null
+                || Boolean.TRUE.equals(request.getAdmiteEnvio()));
+        // Al reves que el envio: aceptar ofertas hay que pedirlo. Si no se
+        // manda nada, el producto no se negocia.
+        producto.setAceptaOfertas(Boolean.TRUE.equals(request.getAceptaOfertas()));
         producto.setDescripcion(request.getDescripcion());
+        producto.setProvincia(request.getProvincia());
         producto.setUbicacion(request.getUbicacion());
+        producto.setCondicion(request.getCondicion());
+        producto.setAnio(request.getAnio());
         producto.setDescuento(request.getDescuento() == null ? 0 : request.getDescuento());
         producto.setCategoria(categoria);
     }

@@ -23,8 +23,10 @@ import com.uade.tpo.marketplace.exceptions.CategoriaConSubcategoriasException;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CategoriaDuplicadaException;
 import com.uade.tpo.marketplace.exceptions.CategoriaNoEncontradaException;
+import com.uade.tpo.marketplace.exceptions.CategoriaPadreInactivaException;
 import com.uade.tpo.marketplace.exceptions.JerarquiaInvalidaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import com.uade.tpo.marketplace.service.CategoriaService;
 
 import lombok.RequiredArgsConstructor;
@@ -44,7 +46,8 @@ public class CategoriasController {
      */
     @GetMapping
     public ResponseEntity<List<CategoriaResponse>> getCategorias(
-            @RequestParam(required = false, defaultValue = "false") boolean soloRaices) {
+            @RequestParam(required = false, defaultValue = "false") boolean soloRaices)
+            throws SinResultadosException {
         return ResponseEntity.ok(soloRaices
                 ? categoriaService.getCategoriasRaiz()
                 : categoriaService.getCategorias());
@@ -66,7 +69,7 @@ public class CategoriasController {
      */
     @GetMapping("/{idCategoria}/subcategorias")
     public ResponseEntity<List<CategoriaResponse>> getSubcategorias(@PathVariable Long idCategoria)
-            throws CategoriaNoEncontradaException {
+            throws CategoriaNoEncontradaException, SinResultadosException {
         return ResponseEntity.ok(categoriaService.getSubcategorias(idCategoria));
     }
 
@@ -99,6 +102,22 @@ public class CategoriasController {
             throws CategoriaNoEncontradaException, JerarquiaInvalidaException,
             CategoriaDuplicadaException, UsuarioNoEncontradoException, AccesoDenegadoException {
         return ResponseEntity.ok(categoriaService.updateCategoria(idCategoria, request, usuario.getId()));
+    }
+
+    /**
+     * Pre : el id en la ruta y un token de ADMIN.
+     * Post: la categoria de vuelta en circulacion. No reactiva sus
+     *       subcategorias: cada una va por separado. 409 si su padre sigue
+     *       dado de baja, 400 si mientras tanto alguien le ocupo el nombre
+     *       entre sus hermanas.
+     */
+    @PutMapping("/{idCategoria}/reactivar")
+    public ResponseEntity<CategoriaResponse> reactivar(@PathVariable Long idCategoria,
+            @AuthenticationPrincipal Usuario usuario)
+            throws CategoriaNoEncontradaException, CategoriaDuplicadaException,
+            CategoriaPadreInactivaException, UsuarioNoEncontradoException,
+            AccesoDenegadoException {
+        return ResponseEntity.ok(categoriaService.reactivarCategoria(idCategoria, usuario.getId()));
     }
 
     /**

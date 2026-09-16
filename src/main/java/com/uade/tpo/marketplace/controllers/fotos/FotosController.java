@@ -33,7 +33,8 @@ import com.uade.tpo.marketplace.service.FotoService;
 
 import lombok.RequiredArgsConstructor;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
-import com.uade.tpo.marketplace.exceptions.AdminNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
+import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.uade.tpo.marketplace.entity.Usuario;
 
@@ -51,7 +52,7 @@ public class FotosController {
      */
     @GetMapping
     public ResponseEntity<List<FotoResponse>> getFotos(@RequestParam Long idProducto)
-            throws ProductoNoEncontradoException {
+            throws ProductoNoEncontradoException, SinResultadosException {
         return ResponseEntity.ok(fotoService.getFotosByProducto(idProducto));
     }
 
@@ -78,7 +79,7 @@ public class FotosController {
     public ResponseEntity<FotoResponse> subirFoto(@ModelAttribute FotoUploadRequest request,
             @AuthenticationPrincipal Usuario usuario)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
-            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, AdminNoComerciaException {
+            FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, RolNoComerciaException {
         FotoResponse result = fotoService.subirFoto(request, usuario.getId());
         return ResponseEntity.created(URI.create("/fotos/" + result.getId())).body(result);
     }
@@ -121,7 +122,7 @@ public class FotosController {
     @GetMapping("/pendientes")
     public ResponseEntity<List<FotoResponse>> getPendientes(@AuthenticationPrincipal Usuario usuario,
             @RequestParam(required = false) EstadoVerificacion estado)
-            throws UsuarioNoEncontradoException, AccesoDenegadoException {
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
         return ResponseEntity.ok(fotoService.getPendientesDeRevision(usuario.getId(), estado));
     }
 

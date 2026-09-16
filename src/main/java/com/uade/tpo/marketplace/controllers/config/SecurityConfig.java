@@ -15,6 +15,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.time.Instant;
+
 import jakarta.servlet.DispatcherType;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private static final String SIN_TOKEN = """
-            {"status":401,"error":"Unauthorized","message":"Hace falta iniciar sesion"}""";
+            {"timestamp":"%s","status":401,"error":"Unauthorized",            "message":"Hace falta iniciar sesion"}""";
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
@@ -51,13 +53,15 @@ public class SecurityConfig {
                         .requestMatchers(GET, "/fotos/pendientes").authenticated()
 
                         .requestMatchers(GET, "/productos", "/productos/*",
-                                "/productos/vendedor/*")
+                                "/productos/vendedor/*", "/productos/*/similares")
                         .permitAll()
                         .requestMatchers(GET, "/categorias", "/categorias/*",
                                 "/categorias/*/subcategorias")
                         .permitAll()
                         .requestMatchers(GET, "/fotos", "/fotos/*", "/fotos/*/contenido",
                                 "/fotos/*/base64")
+                        .permitAll()
+                        .requestMatchers(GET, "/resenas/producto/*", "/resenas/vendedor/*")
                         .permitAll()
 
                         .anyRequest().authenticated())
@@ -66,7 +70,7 @@ public class SecurityConfig {
                     res.setStatus(HttpStatus.UNAUTHORIZED.value());
                     res.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     res.setCharacterEncoding("UTF-8");
-                    res.getWriter().write(SIN_TOKEN);
+                    res.getWriter().write(SIN_TOKEN.formatted(Instant.now()));
                 }))
 
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
