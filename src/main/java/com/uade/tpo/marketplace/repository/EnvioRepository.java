@@ -18,6 +18,9 @@ public interface EnvioRepository extends JpaRepository<Envio, Long> {
     List<Envio> findByDespachanteIdAndEstadoOrderByFechaDespachoAsc(Long idDespachante,
             EstadoEnvio estado);
 
+    List<Envio> findByDespachanteIdAndEstadoOrderByFechaEntregaDesc(Long idDespachante,
+            EstadoEnvio estado);
+
     Optional<Envio> findByOrdenId(Long idOrden);
 
     List<Envio> findByOrdenCompradorIdOrderByFechaCreacionDesc(Long idComprador);

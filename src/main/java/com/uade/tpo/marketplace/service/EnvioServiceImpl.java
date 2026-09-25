@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.uade.tpo.marketplace.controllers.envios.EntregaResponse;
 import com.uade.tpo.marketplace.controllers.envios.EnvioResponse;
 import com.uade.tpo.marketplace.entity.Envio;
 import com.uade.tpo.marketplace.entity.EstadoEnvio;
@@ -16,6 +17,7 @@ import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoDisponibleException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -93,6 +95,32 @@ public class EnvioServiceImpl implements EnvioService {
             throw new SinResultadosException("No hay envios para mostrar");
 
         return encontrados.stream().map(EnvioResponse::from).toList();
+    }
+
+    /**
+     * Pre : el id de quien pregunta, que tiene que ser DESPACHANTE.
+     * Post: lo que entrego, lo mas nuevo primero, con el numero y la fecha y
+     *       nada mas. El historial es de EL: cuenta lo que hizo, no por quienes
+     *       paso. Tira SinResultadosException si todavia no entrego nada.
+     */
+    public List<EntregaResponse> getHistorial(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException {
+        Usuario usuario = usuarioRepository.findById(idSolicitante)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (usuario.getRol() != TipoUsuario.DESPACHANTE)
+            throw new AccesoDenegadoException(
+                    "Solo un despachante tiene historial de entregas");
+
+        List<Envio> entregados = envioRepository
+                .findByDespachanteIdAndEstadoOrderByFechaEntregaDesc(
+                        idSolicitante, EstadoEnvio.ENTREGADO);
+
+        if (entregados.isEmpty())
+            throw new SinResultadosException("Todavia no entregaste ningun envio");
+
+        return entregados.stream().map(EntregaResponse::from).toList();
     }
 
     /**

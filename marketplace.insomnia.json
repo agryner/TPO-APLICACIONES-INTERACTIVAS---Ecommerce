@@ -2016,6 +2016,27 @@
       "settingEncodeUrl": true,
       "settingRebuildPath": true,
       "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_envios_historial",
+      "_type": "request",
+      "parentId": "fld_envios",
+      "name": "Mi historial de entregas (despachante)",
+      "method": "GET",
+      "url": "http://localhost:4002/envios/historial",
+      "description": "SOLO DESPACHANTE, y es el de cada uno: lo que EL entrego, lo mas nuevo primero.\n\nDevuelve lo minimo: numeroSeguimiento y fechaEntrega. Sin comprador, sin vendedor y sin direccion, a proposito. El historial cuenta lo que hizo el, no por quienes paso: si guardara las direcciones, quien entrego mil paquetes se quedaria con una lista permanente de mil direcciones con nombre y apellido, que es justo lo que evitamos al hacer del numero de seguimiento la llave del envio.\n\nEs una vista aparte de GET /envios, que son los que TIENE en la mano ahora. 403 si no sos DESPACHANTE (el ADMIN tampoco: el ya ve todos los envios), 404 si todavia no entregaste nada.",
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 130005,
+      "isPrivate": false,
+      "body": {},
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
     }
   ]
 }

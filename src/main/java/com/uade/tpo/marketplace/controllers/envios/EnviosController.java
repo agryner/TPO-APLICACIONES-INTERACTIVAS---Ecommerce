@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.uade.tpo.marketplace.entity.EstadoEnvio;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoDisponibleException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -59,6 +60,22 @@ public class EnviosController {
             throws EnvioNoEncontradoException, OperacionAjenaException,
             UsuarioNoEncontradoException {
         return ResponseEntity.ok(envioService.getById(idEnvio, usuario.getId()));
+    }
+
+    /**
+     * Pre : solo un token de DESPACHANTE.
+     * Post: lo que entrego, lo mas nuevo primero: el numero y la fecha, nada
+     *       mas. Sin comprador ni direccion, porque el historial cuenta lo que
+     *       hizo el y no por quienes paso; si guardara las direcciones, quien
+     *       entrego mil paquetes se quedaria con mil direcciones. 403 si no sos
+     *       DESPACHANTE, 404 si todavia no entregaste nada.
+     */
+    @GetMapping("/historial")
+    public ResponseEntity<List<EntregaResponse>> getHistorial(
+            @AuthenticationPrincipal Usuario usuario)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException {
+        return ResponseEntity.ok(envioService.getHistorial(usuario.getId()));
     }
 
     /**

@@ -4,6 +4,10 @@ import org.springframework.http.HttpStatus;
 
 public class AccesoDenegadoException extends ExcepcionDeNegocio {
     public AccesoDenegadoException() {
-        super(HttpStatus.FORBIDDEN, "Solo un administrador puede realizar esta operacion");
+        this("Solo un administrador puede realizar esta operacion");
+    }
+
+    public AccesoDenegadoException(String mensaje) {
+        super(HttpStatus.FORBIDDEN, mensaje);
     }
 }
