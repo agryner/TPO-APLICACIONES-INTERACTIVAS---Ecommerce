@@ -1,6 +1,7 @@
 package com.uade.tpo.marketplace.service;
 
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
+import com.uade.tpo.marketplace.controllers.ordenes.OrdenRequest;
 import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,6 +17,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 import com.uade.tpo.marketplace.entity.Carrito;
+import com.uade.tpo.marketplace.entity.DireccionEntrega;
 import com.uade.tpo.marketplace.entity.EstadoOrden;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
 import com.uade.tpo.marketplace.entity.MetodoEntrega;
@@ -28,6 +30,7 @@ import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -117,13 +120,15 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      * Pre : el id de quien compra; el contenido sale de su carrito.
      * Post: una orden por cada vendedor involucrado, con el stock ya
      *       descontado y el carrito vacio. Valida todo antes de escribir, asi
-     *       que si un item falla no queda ninguna orden a medias.
+     *       que si un item falla no queda ninguna orden a medias. La direccion
+     *       de entrega viene en el request y se exige solo si algo se despacha:
+     *       una compra toda a coordinar no la necesita.
      */
     @Transactional
-    public List<OrdenDeCompraResponse> createOrden(Long idSolicitante,
-            boolean coordinarConVendedor)
+    public List<OrdenDeCompraResponse> createOrden(Long idSolicitante, OrdenRequest request)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, RolNoComerciaException {
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException,
+            RolNoComerciaException, DireccionDeEntregaRequeridaException {
         autorizacion.validarActivo(idSolicitante);
         autorizacion.validarQuePuedaComerciar(idSolicitante);
 
@@ -155,12 +160,24 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         // entrega. Un tractor y unas semillas del mismo vendedor salen en dos
         // ordenes: la primera se coordina y la segunda se despacha.
         Map<Grupo, List<ItemCarrito>> porGrupo = new LinkedHashMap<>();
+        boolean coordinarConVendedor = Boolean.TRUE.equals(request.getCoordinarConVendedor());
         for (ItemCarrito item : carrito.getItems()) {
             Producto producto = item.getProducto();
             MetodoEntrega metodo = metodoPara(producto, coordinarConVendedor);
             porGrupo.computeIfAbsent(new Grupo(producto.getVendedor().getId(), metodo),
                     g -> new ArrayList<>()).add(item);
         }
+
+        // La direccion se exige solo si algo se va a despachar. Una compra toda
+        // a coordinar no la necesita, y pedirsela seria pedir un dato que el
+        // sistema despues no usa para nada.
+        DireccionEntrega entrega = new DireccionEntrega(request.getProvinciaEntrega(),
+                request.getLocalidadEntrega(), request.getDireccionEntrega());
+        boolean hayDespacho = porGrupo.keySet().stream()
+                .anyMatch(g -> g.metodo() == MetodoEntrega.DESPACHO);
+
+        if (hayDespacho && !entrega.estaCompleta())
+            throw new DireccionDeEntregaRequeridaException();
 
         List<OrdenDeCompraResponse> ordenes = new ArrayList<>();
         for (Map.Entry<Grupo, List<ItemCarrito>> entrada : porGrupo.entrySet()) {
@@ -173,18 +190,13 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
                                     : i.getProducto().getDescuento()))
                     .toList();
             ordenes.add(OrdenDeCompraResponse.from(armarOrden(carrito.getUsuario(), vendedor,
-                    renglones, entrada.getKey().metodo())));
+                    renglones, entrada.getKey().metodo(), entrega)));
         }
 
         carritoService.vaciarEntidad(idSolicitante);
         return ordenes;
     }
 
-    /**
-     * Pre : el comprador, el vendedor y los items que le corresponden.
-     * Post: la orden guardada, con cada renglon copiando el precio del momento
-     *       para que una edicion posterior no reescriba la historia.
-     */
     /**
      * Pre : el producto y si el comprador prefirio coordinar.
      * Post: el metodo que le toca. Un producto que no admite envio se coordina
@@ -216,11 +228,14 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      *       aceptada es una venta cerrada entre dos personas por un precio que
      *       no es el de lista. El metodo de entrega sale de la misma regla que
      *       el checkout: despacho si el producto lo admite, coordinar si no.
-     *       Tira StockInsuficienteException si al aceptar ya no hay unidades.
+     *       La direccion es la que el comprador puso al ofertar, no la de su
+     *       perfil. Tira StockInsuficienteException si al aceptar ya no hay
+     *       unidades.
      */
     @Transactional
     public OrdenDeCompraResponse crearDesdeOferta(Usuario comprador, Producto producto,
-            int cantidad, BigDecimal precioAcordado) throws StockInsuficienteException {
+            int cantidad, BigDecimal precioAcordado, DireccionEntrega entrega)
+            throws StockInsuficienteException {
         if (producto.getStock() == null || producto.getStock() < cantidad)
             throw new StockInsuficienteException(producto, cantidad);
 
@@ -228,16 +243,26 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         Renglon renglon = new Renglon(producto, cantidad, precioAcordado, 0);
 
         return OrdenDeCompraResponse.from(armarOrden(comprador, producto.getVendedor(),
-                List.of(renglon), metodo));
+                List.of(renglon), metodo, entrega));
     }
 
+    /**
+     * Pre : el comprador, el vendedor, los items que le corresponden, el metodo
+     *       de entrega y a donde va.
+     * Post: la orden guardada, con cada renglon copiando el precio del momento
+     *       para que una edicion posterior no reescriba la historia. La
+     *       direccion se guarda solo si se despacha.
+     */
     private OrdenDeCompra armarOrden(Usuario comprador, Usuario vendedor, List<Renglon> items,
-            MetodoEntrega metodo) {
+            MetodoEntrega metodo, DireccionEntrega entrega) {
         OrdenDeCompra orden = new OrdenDeCompra();
         orden.setComprador(comprador);
         orden.setVendedor(vendedor);
         orden.setEstado(ESTADO_INICIAL);
         orden.setMetodoEntrega(metodo);
+        // Solo en las que se despachan: en una coordinada quedaria un dato que
+        // nadie usa, y es la direccion de alguien.
+        orden.setEntrega(metodo == MetodoEntrega.DESPACHO ? entrega : new DireccionEntrega());
 
         LocalDateTime ahora = LocalDateTime.now();
         orden.setFechaCreacion(ahora);

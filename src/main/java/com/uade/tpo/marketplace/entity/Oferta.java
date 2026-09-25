@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -51,6 +52,11 @@ public class Oferta {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoOferta estado = EstadoOferta.PENDIENTE;
+
+    // Se pide al ofertar: aceptar una oferta CREA la orden, y una orden a
+    // despachar sin direccion no se puede etiquetar nunca.
+    @Embedded
+    private DireccionEntrega entrega = new DireccionEntrega();
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;

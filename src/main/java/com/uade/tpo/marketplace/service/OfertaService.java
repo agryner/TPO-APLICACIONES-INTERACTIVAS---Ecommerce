@@ -3,6 +3,7 @@ package com.uade.tpo.marketplace.service;
 import com.uade.tpo.marketplace.controllers.ofertas.OfertaRequest;
 import com.uade.tpo.marketplace.controllers.ofertas.OfertaResponse;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.OfertaDuplicadaException;
 import com.uade.tpo.marketplace.exceptions.OfertaNoEncontradaException;
@@ -19,7 +20,11 @@ import java.util.List;
 
 public interface OfertaService {
     OfertaResponse crear(OfertaRequest request, Long idSolicitante)
-            throws ProductoNoEncontradoException, CompraPropiaException, PrecioOfrecidoInvalidoException, OfertaDuplicadaException, ProductoNoAceptaOfertasException, UsuarioNoEncontradoException, CuentaInactivaException, RolNoComerciaException;
+            throws ProductoNoEncontradoException, CompraPropiaException,
+            PrecioOfrecidoInvalidoException, OfertaDuplicadaException,
+            ProductoNoAceptaOfertasException, UsuarioNoEncontradoException,
+            CuentaInactivaException, RolNoComerciaException,
+            DireccionDeEntregaRequeridaException;
 
     List<OfertaResponse> getMias(Long idSolicitante) throws SinResultadosException;
 

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
+import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -78,12 +79,11 @@ public class OrdenesController {
             @RequestBody(required = false) OrdenRequest request,
             @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, CarritoVacioException, StockInsuficienteException,
-            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException, RolNoComerciaException {
-        boolean coordinar = request != null
-                && Boolean.TRUE.equals(request.getCoordinarConVendedor());
-
+            ProductoNoEncontradoException, CompraPropiaException, CuentaInactivaException,
+            RolNoComerciaException, DireccionDeEntregaRequeridaException {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ordenService.createOrden(usuario.getId(), coordinar));
+                .body(ordenService.createOrden(usuario.getId(),
+                        request == null ? new OrdenRequest() : request));
     }
 
     /**

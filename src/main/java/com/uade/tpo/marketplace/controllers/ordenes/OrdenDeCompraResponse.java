@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.uade.tpo.marketplace.entity.EstadoOrden;
+import com.uade.tpo.marketplace.entity.DireccionEntrega;
 import com.uade.tpo.marketplace.entity.MetodoEntrega;
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 
@@ -20,6 +21,7 @@ public class OrdenDeCompraResponse {
     private BigDecimal total;
     private EstadoOrden estado;
     private MetodoEntrega metodoEntrega;
+    private DireccionEntrega entrega;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaUltimoEstado;
     private List<OrderDetailResponse> items;
@@ -40,6 +42,7 @@ public class OrdenDeCompraResponse {
         dto.setTotal(orden.getTotal());
         dto.setEstado(orden.getEstado());
         dto.setMetodoEntrega(orden.getMetodoEntrega());
+        dto.setEntrega(orden.getEntrega());
         dto.setFechaCreacion(orden.getFechaCreacion());
         dto.setFechaUltimoEstado(orden.getFechaUltimoEstado());
         dto.setItems(orden.getItems() == null ? List.of()

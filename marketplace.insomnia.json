@@ -963,7 +963,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Crear orden desde el carrito",
-      "description": "Cierra el carrito. El body es OPCIONAL: sin el, despacho donde se pueda. El carrito se parte por VENDEDOR y por METODO DE ENTREGA: si un vendedor te vende un tractor (que no admite envio) y unas semillas, salen DOS ordenes suyas, una a coordinar y otra por despacho. Un producto con admiteEnvio=false se coordina si o si, aunque no lo pidas.",
+      "description": "Cierra el carrito. La DIRECCION DE ENTREGA se manda aca, no sale del perfil: asi podes mandarle algo a otra persona o a otra direccion. Son tres campos y van juntos: provinciaEntrega (la lista cerrada de 24, en mayusculas), localidadEntrega y direccionEntrega (calle y numero). Se EXIGE solo si algo se va a despachar: si mandas coordinarConVendedor en true, o si ninguno de los productos admite envio, no hace falta y la orden queda sin direccion, porque la entrega la arreglan el comprador y el vendedor. Si falta y hay despacho, 400.\n\nEl carrito se parte por VENDEDOR y por METODO DE ENTREGA: si un vendedor te vende un tractor (que no admite envio) y unas semillas, salen DOS ordenes suyas, una a coordinar y otra por despacho. La direccion queda guardada SOLO en la que se despacha.\n\nLa direccion vive en la ORDEN, que nadie edita, asi que ya es la foto de a donde iba cuando se compro: el envio no guarda su propia copia.",
       "method": "POST",
       "url": "http://localhost:4002/ordenes",
       "headers": [
@@ -975,7 +975,7 @@
       "parameters": [],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"coordinarConVendedor\": false\n}"
+        "text": "{\n  \"provinciaEntrega\": \"BUENOS_AIRES\",\n  \"localidadEntrega\": \"Pergamino\",\n  \"direccionEntrega\": \"Santa Fe 900\",\n  \"coordinarConVendedor\": false\n}"
       },
       "metaSortKey": 4,
       "authentication": {
@@ -1597,7 +1597,7 @@
       "name": "Ver un envio",
       "method": "GET",
       "url": "http://localhost:4002/envios/1",
-      "description": "Lo ven su comprador, su vendedor y el ADMIN, en cualquier estado. Un DESPACHANTE solo el que EL cargo y todavia no entrego: ni los pendientes, ni los de otro despachante, ni los ya entregados, ni los coordinados. Trae la direccionEntrega, que es el dato que esto protege. 403 para cualquier otro, 404 si no existe.",
+      "description": "Lo ven su comprador, su vendedor y el ADMIN, en cualquier estado. Un DESPACHANTE solo el que EL cargo por numero y todavia no entrego. Trae entrega: {provincia, localidad, calle}, que sale de la ORDEN y es el dato que todo esto protege. En las coordinadas viene en null, porque la entrega la arreglan las partes. 403 para cualquier otro, 404 si no existe.",
       "headers": [],
       "parameters": [],
       "authentication": {},
@@ -1775,7 +1775,7 @@
       "name": "Hacer una oferta",
       "method": "POST",
       "url": "http://localhost:4002/ofertas",
-      "description": "El precio es POR UNIDAD y tiene que ser MENOR al actual: si ofreces el de lista o mas, da 400, porque para eso esta comprar. 409 si el producto no acepta ofertas, si es tuyo, o si ya tenes una pendiente por el mismo. 404 si el producto no esta publicado. 403 si sos ADMIN o DESPACHANTE. En la base sembrada, el tractor (1) y la sembradora (4) aceptan ofertas; la Hilux (3) no.",
+      "description": "El precio es POR UNIDAD y tiene que ser MENOR al actual: si ofreces el de lista o mas, da 400, porque para eso esta comprar. 409 si es tu propio producto, si ya tenes una pendiente por el mismo, o si el vendedor no lo puso a negociar. 403 si sos ADMIN o DESPACHANTE.\n\nLa DIRECCION DE ENTREGA se manda aca, no sale del perfil: asi podes mandarle algo a otra persona o a otra direccion. Son tres campos y van juntos: provinciaEntrega (la lista cerrada de 24, en mayusculas), localidadEntrega y direccionEntrega (calle y numero). Hace falta aca porque ACEPTAR la oferta crea la orden directamente, y en ese momento ya no hay donde preguntarte a donde va. Se exige solo si el producto admite envio. Vence a los 7 dias sin respuesta.",
       "headers": [
         {
           "name": "Content-Type",
@@ -1794,7 +1794,7 @@
       "settingFollowRedirects": "global",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"idProducto\": 1,\n  \"cantidad\": 1,\n  \"precioOfrecido\": 15000000\n}"
+        "text": "{\n  \"idProducto\": 1,\n  \"cantidad\": 1,\n  \"precioOfrecido\": 15000000,\n  \"provinciaEntrega\": \"BUENOS_AIRES\",\n  \"localidadEntrega\": \"Pergamino\",\n  \"direccionEntrega\": \"Santa Fe 900\"\n}"
       }
     },
     {
@@ -2024,7 +2024,7 @@
       "name": "Mi historial de entregas (despachante)",
       "method": "GET",
       "url": "http://localhost:4002/envios/historial",
-      "description": "SOLO DESPACHANTE, y es el de cada uno: lo que EL entrego, lo mas nuevo primero.\n\nDevuelve lo minimo: numeroSeguimiento y fechaEntrega. Sin comprador, sin vendedor y sin direccion, a proposito. El historial cuenta lo que hizo el, no por quienes paso: si guardara las direcciones, quien entrego mil paquetes se quedaria con una lista permanente de mil direcciones con nombre y apellido, que es justo lo que evitamos al hacer del numero de seguimiento la llave del envio.\n\nEs una vista aparte de GET /envios, que son los que TIENE en la mano ahora. 403 si no sos DESPACHANTE (el ADMIN tampoco: el ya ve todos los envios), 404 si todavia no entregaste nada.",
+      "description": "SOLO DESPACHANTE, y es el de cada uno: lo que EL entrego, lo mas nuevo primero.\n\nDevuelve numeroSeguimiento, fechaEntrega, provincia, localidad y productos (nombre y cantidad de cada cosa que llevaba). LA CALLE NO: quien entrego mil paquetes se quedaria con mil direcciones exactas, y para contar lo que hizo le alcanza con saber a que pueblo fue. Tampoco lleva comprador ni vendedor.\n\nEs una vista aparte de GET /envios, que son los que TIENE en la mano ahora. 403 si no sos DESPACHANTE (el ADMIN tampoco: ya ve todos los envios), 404 si todavia no entregaste nada.",
       "headers": [],
       "parameters": [],
       "authentication": {},

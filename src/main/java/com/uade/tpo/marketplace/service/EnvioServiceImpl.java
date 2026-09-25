@@ -50,14 +50,11 @@ public class EnvioServiceImpl implements EnvioService {
         if (envioRepository.findByOrdenId(orden.getId()).isPresent())
             return;
 
-        Usuario comprador = orden.getComprador();
-
+        // La direccion no se copia mas: vive en la orden, que nadie edita, asi
+        // que ya es la foto de a donde iba cuando se compro.
         Envio envio = new Envio();
         envio.setOrden(orden);
         envio.setEstado(EstadoEnvio.PENDIENTE);
-        envio.setDireccionEntrega(comprador == null || comprador.getDireccion() == null
-                ? "Sin direccion cargada"
-                : comprador.getDireccion());
         envio.setFechaCreacion(LocalDateTime.now());
         envioRepository.save(envio);
     }
@@ -103,6 +100,7 @@ public class EnvioServiceImpl implements EnvioService {
      *       nada mas. El historial es de EL: cuenta lo que hizo, no por quienes
      *       paso. Tira SinResultadosException si todavia no entrego nada.
      */
+    @Transactional(readOnly = true)
     public List<EntregaResponse> getHistorial(Long idSolicitante)
             throws UsuarioNoEncontradoException, AccesoDenegadoException,
             SinResultadosException {

@@ -7,6 +7,7 @@ import java.util.List;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -55,6 +56,11 @@ public class OrdenDeCompra {
     @Enumerated(EnumType.STRING)
     @Column(name = "metodo_entrega", nullable = false)
     private MetodoEntrega metodoEntrega = MetodoEntrega.DESPACHO;
+
+    // Vacia en las coordinadas: ahi la entrega la arreglan el comprador y el
+    // vendedor entre ellos, y el sistema no tiene por que saber donde.
+    @Embedded
+    private DireccionEntrega entrega = new DireccionEntrega();
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;

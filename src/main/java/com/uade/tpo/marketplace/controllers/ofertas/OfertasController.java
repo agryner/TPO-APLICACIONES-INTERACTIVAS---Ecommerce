@@ -22,6 +22,7 @@ import com.uade.tpo.marketplace.exceptions.OfertaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OfertaYaRespondidaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.PrecioOfrecidoInvalidoException;
+import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoAceptaOfertasException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
@@ -53,7 +54,8 @@ public class OfertasController {
             throws ProductoNoEncontradoException, CompraPropiaException,
             PrecioOfrecidoInvalidoException, OfertaDuplicadaException,
             ProductoNoAceptaOfertasException, UsuarioNoEncontradoException,
-            CuentaInactivaException, RolNoComerciaException {
+            CuentaInactivaException, RolNoComerciaException,
+            DireccionDeEntregaRequeridaException {
         OfertaResponse creada = ofertaService.crear(request, usuario.getId());
         return ResponseEntity.created(URI.create("/ofertas/" + creada.getId())).body(creada);
     }

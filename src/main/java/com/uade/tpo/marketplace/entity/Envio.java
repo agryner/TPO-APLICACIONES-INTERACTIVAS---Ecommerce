@@ -42,9 +42,6 @@ public class Envio {
     @Column(name = "numero_seguimiento")
     private String numeroSeguimiento;
 
-    @Column(name = "direccion_entrega", nullable = false)
-    private String direccionEntrega;
-
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

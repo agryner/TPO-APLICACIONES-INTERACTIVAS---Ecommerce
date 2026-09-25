@@ -23,6 +23,8 @@ import com.uade.tpo.marketplace.exceptions.OfertaNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OfertaYaRespondidaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.PrecioOfrecidoInvalidoException;
+import com.uade.tpo.marketplace.entity.DireccionEntrega;
+import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoAceptaOfertasException;
 import com.uade.tpo.marketplace.exceptions.ProductoNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
@@ -60,7 +62,8 @@ public class OfertaServiceImpl implements OfertaService {
             throws ProductoNoEncontradoException, CompraPropiaException,
             PrecioOfrecidoInvalidoException, OfertaDuplicadaException,
             ProductoNoAceptaOfertasException, UsuarioNoEncontradoException,
-            CuentaInactivaException, RolNoComerciaException {
+            CuentaInactivaException, RolNoComerciaException,
+            DireccionDeEntregaRequeridaException {
         autorizacion.validarActivo(idSolicitante);
         autorizacion.validarQuePuedaComerciar(idSolicitante);
 
@@ -74,6 +77,14 @@ public class OfertaServiceImpl implements OfertaService {
         // No todo se negocia: el vendedor decide producto por producto.
         if (!Boolean.TRUE.equals(producto.getAceptaOfertas()))
             throw new ProductoNoAceptaOfertasException();
+
+        // Aceptar una oferta CREA la orden, y ahi ya no hay donde preguntar a
+        // donde va. Si el producto se despacha, la direccion se pide aca.
+        DireccionEntrega entrega = new DireccionEntrega(request.getProvinciaEntrega(),
+                request.getLocalidadEntrega(), request.getDireccionEntrega());
+
+        if (Boolean.TRUE.equals(producto.getAdmiteEnvio()) && !entrega.estaCompleta())
+            throw new DireccionDeEntregaRequeridaException();
 
         // Ofrecer el precio de lista o mas no es negociar: para eso esta el
         // boton de comprar.
@@ -95,6 +106,7 @@ public class OfertaServiceImpl implements OfertaService {
         oferta.setComprador(comprador);
         oferta.setCantidad(request.getCantidad());
         oferta.setPrecioOfrecido(request.getPrecioOfrecido());
+        oferta.setEntrega(entrega);
         oferta.setEstado(EstadoOferta.PENDIENTE);
         oferta.setFechaCreacion(ahora);
         oferta.setFechaVencimiento(ahora.plusDays(diasVigencia));
@@ -143,7 +155,7 @@ public class OfertaServiceImpl implements OfertaService {
         Oferta oferta = pendienteDelVendedor(idOferta, idSolicitante);
 
         ordenService.crearDesdeOferta(oferta.getComprador(), oferta.getProducto(),
-                oferta.getCantidad(), oferta.getPrecioOfrecido());
+                oferta.getCantidad(), oferta.getPrecioOfrecido(), oferta.getEntrega());
 
         oferta.setEstado(EstadoOferta.ACEPTADA);
         oferta.setFechaRespuesta(LocalDateTime.now());
