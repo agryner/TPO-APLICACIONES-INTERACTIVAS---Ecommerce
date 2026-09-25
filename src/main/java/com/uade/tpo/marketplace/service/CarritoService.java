@@ -30,7 +30,7 @@ public interface CarritoService {
 
     CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
             throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,
-            StockInsuficienteException, CuentaInactivaException;
+            StockInsuficienteException, CuentaInactivaException, CantidadInvalidaException;
 
     CarritoResponse eliminarItem(Long idUsuario, Long idItem)
             throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException, CuentaInactivaException;

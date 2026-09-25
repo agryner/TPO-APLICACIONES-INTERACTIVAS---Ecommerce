@@ -158,14 +158,15 @@ public class CarritoServiceImpl implements CarritoService {
      */
     @Transactional
     public CarritoResponse modificarCantidad(Long idUsuario, Long idItem, Integer nuevaCantidad)
-            throws UsuarioNoEncontradoException,
-            ItemCarritoNoEncontradoException, StockInsuficienteException, CuentaInactivaException {
+            throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,
+            StockInsuficienteException, CuentaInactivaException, CantidadInvalidaException {
         autorizacion.validarActivo(idUsuario);
 
-        // Bajar el contador hasta cero es como se saca algo de un carrito en
-        // cualquier tienda: no es un error, es la forma corta del DELETE.
-        if (nuevaCantidad == null || nuevaCantidad <= 0)
-            return eliminarItem(idUsuario, idItem);
+        // La cantidad significa lo mismo que al agregar. Para sacar algo esta
+        // DELETE: dos puertas para borrar, y una escondida adentro de un PUT,
+        // es justo lo que no queremos.
+        if (nuevaCantidad == null || nuevaCantidad < 1)
+            throw new CantidadInvalidaException();
 
         Carrito carrito = obtenerCarritoEntidad(idUsuario);
 

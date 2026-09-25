@@ -67,16 +67,16 @@ public class CarritosController {
      *       del producto.
      * Post: el carrito con la cantidad puesta en el valor nuevo y los totales
      *       recalculados. Con cantidad cero o negativa el item se elimina, que
-     *       es la unica diferencia con agregar. Una cantidad de CERO O MENOS
-     *       saca el item, que es lo que espera quien baja el contador hasta el
-     *       fondo; al agregar, en cambio, cero es un error. 400 si la cantidad
-     *       supera el stock, 404 si ese item no esta en tu carrito.
+     *       es la unica diferencia con agregar. Para SACARLO esta el DELETE:
+     *       cero, negativo o vacio dan 400, igual que al agregar, asi la
+     *       cantidad significa lo mismo en los dos lados. 400 tambien si supera
+     *       el stock, 404 si ese item no esta en tu carrito.
      */
     @PutMapping("/items/{idItem}")
     public ResponseEntity<CarritoResponse> modificarCantidad(@PathVariable Long idItem,
             @RequestBody ItemCarritoRequest request, @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, ItemCarritoNoEncontradoException,
-            StockInsuficienteException, CuentaInactivaException {
+            StockInsuficienteException, CuentaInactivaException, CantidadInvalidaException {
         return ResponseEntity.ok(carritoService.modificarCantidad(
                 usuario.getId(), idItem, request.getCantidad()));
     }

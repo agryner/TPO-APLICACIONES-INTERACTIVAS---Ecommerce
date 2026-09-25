@@ -819,7 +819,7 @@
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Modificar la cantidad de un item",
-      "description": "La cantidad es ABSOLUTA, no un incremento: mandar 3 deja 3, no suma 3. Es la unica diferencia con agregar.\n\nCERO O MENOS SACA EL ITEM, igual que el DELETE: es lo que espera quien baja el contador hasta el fondo. Al AGREGAR, en cambio, cero o negativo da 400, porque ahi no hay nada que sacar.\n\nLa cantidad va en el BODY, no como parametro. 400 si supera el stock, 404 si ese item no esta en TU carrito: el id del item de otro no existe para vos.",
+      "description": "La cantidad es ABSOLUTA, no un incremento: mandar 3 deja 3, no suma 3. Es la unica diferencia con agregar.\n\nPara SACAR el item esta DELETE /carrito/items/{id}. Cero, negativo o el campo vacio dan 400, exactamente igual que al agregar: la cantidad significa lo mismo en los dos lados y hay una sola forma de borrar.\n\nLa cantidad va en el BODY, no como parametro. 400 si supera el stock, 404 si ese item no esta en TU carrito: el id del item de otro no existe para vos.",
       "method": "PUT",
       "url": "http://localhost:4002/carrito/items/1",
       "headers": [
