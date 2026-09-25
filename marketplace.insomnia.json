@@ -256,7 +256,7 @@
       "parameters": [],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Gomez\",\n  \"nombreUsuario\": \"anagomez\",\n  \"mail\": \"ana@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Ruta 8 km 45\",\n  \"rol\": \"CLIENTE\"\n}"
+        "text": "{\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Gomez\",\n  \"nombreUsuario\": \"anagomez\",\n  \"mail\": \"ana@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Ruta 8 km 45\"\n}"
       },
       "metaSortKey": 4,
       "authentication": {
@@ -1380,12 +1380,12 @@
       "modified": 0,
       "created": 0,
       "name": "Registrarse",
-      "description": "Crea la cuenta y devuelve el token ya emitido, asi registrarse e iniciar sesion son un solo paso. El campo rol se ignora: todos nacen CLIENTE, y un ADMIN se marca a mano en la base.",
+      "description": "Todos nacen CLIENTE. El campo rol NO existe en el body: si estuviera, cualquiera se registraria como ADMIN. Para volver a alguien DESPACHANTE o ADMIN hace falta un admin y PUT /usuarios/{id}/rol.\n\ndireccion es la del perfil y hoy no se usa para los envios: la direccion de entrega se manda al comprar. Sirve para que el front pueda prellenar el checkout.\n\nDevuelve el access_token ya listo para usar. 409 si el mail o el nombre de usuario ya estan tomados.",
       "url": "http://localhost:4002/auth/registro",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"nombre\": \"Pedro\",\n  \"apellido\": \"Diaz\",\n  \"nombreUsuario\": \"pdiaz2\",\n  \"mail\": \"pdiaz2@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Mitre 1200\",\n  \"rol\": \"CLIENTE\"\n}"
+        "text": "{\n  \"nombre\": \"Pedro\",\n  \"apellido\": \"Diaz\",\n  \"nombreUsuario\": \"pdiaz2\",\n  \"mail\": \"pdiaz2@test.com\",\n  \"contrasena\": \"1234\",\n  \"direccion\": \"Mitre 1200\"\n}"
       },
       "parameters": [],
       "headers": [
