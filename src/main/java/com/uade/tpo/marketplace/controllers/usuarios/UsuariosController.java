@@ -93,7 +93,8 @@ public class UsuariosController {
     /**
      * Pre : el id en la ruta, el rol destino como enum, y un token de ADMIN.
      * Post: el usuario con el rol nuevo. 409 si un admin intenta quitarse el
-     *       rol a si mismo, 400 si el rol no existe.
+     *       rol a si mismo o si se quiere pasar un DESPACHANTE a CLIENTE, que
+     *       es de ida: ya vio direcciones de entrega. 400 si el rol no existe.
      */
     @PutMapping("/{idUsuario}/rol")
     public ResponseEntity<UsuarioResponse> cambiarRol(@PathVariable Long idUsuario,

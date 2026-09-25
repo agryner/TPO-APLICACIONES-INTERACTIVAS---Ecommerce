@@ -138,10 +138,20 @@ public class UsuarioServiceImpl implements UsuarioService {
         autorizacion.validarActivo(idSolicitante);
 
         if (idUsuario.equals(idSolicitante) && rol != TipoUsuario.ADMIN)
-            throw new CambioDeRolInvalidoException();
+            throw new CambioDeRolInvalidoException(
+                    "Un administrador no puede quitarse el rol a si mismo");
 
         Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(UsuarioNoEncontradoException::new);
+
+        // El despachante es un camino de ida hacia el comercio: vio las
+        // direcciones de entrega de todo el mundo y movio envios que despues
+        // habilitan una resena. Dejarlo volver a cliente seria dejarlo comprar
+        // y vender con eso en la mano.
+        if (usuario.getRol() == TipoUsuario.DESPACHANTE && rol == TipoUsuario.CLIENTE)
+            throw new CambioDeRolInvalidoException(
+                    "Un despachante no puede pasar a cliente: manejo envios y vio "
+                            + "direcciones de entrega");
 
         usuario.setRol(rol);
         return UsuarioResponse.from(usuarioRepository.save(usuario));

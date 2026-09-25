@@ -91,8 +91,9 @@ public class EnvioServiceImpl implements EnvioService {
 
     /**
      * Pre : el id del envio y el de quien pregunta.
-     * Post: el envio. Lo ven su comprador, su vendedor, cualquier DESPACHANTE
-     *       y el ADMIN. Tira OperacionAjenaException para cualquier otro.
+     * Post: el envio. Lo ven su comprador, su vendedor y el ADMIN. Un
+     *       DESPACHANTE solo los de su cola, ni los pendientes ni los ya
+     *       entregados. Tira OperacionAjenaException para cualquier otro.
      */
     public EnvioResponse getById(Long idEnvio, Long idSolicitante)
             throws EnvioNoEncontradoException, OperacionAjenaException,
@@ -211,9 +212,17 @@ public class EnvioServiceImpl implements EnvioService {
      *       compartida y necesita mirar antes de tomar.
      */
     private boolean puedeVerlo(Envio envio, Usuario usuario) {
-        if (usuario.getRol() == TipoUsuario.ADMIN
-                || usuario.getRol() == TipoUsuario.DESPACHANTE)
+        if (usuario.getRol() == TipoUsuario.ADMIN)
             return true;
+
+        // El despachante ve EXACTAMENTE su cola, ni un envio mas. Si pudiera
+        // pedir cualquier id recorreria todos y se quedaria con la direccion de
+        // entrega de cada compra del sistema, incluidas las coordinadas, que no
+        // son asunto suyo. Un envio que ya se entrego tampoco: no queda nada
+        // por hacer con el.
+        if (usuario.getRol() == TipoUsuario.DESPACHANTE)
+            return envio.getEstado() == EstadoEnvio.DESPACHADO
+                    || envio.getEstado() == EstadoEnvio.EN_TRANSITO;
 
         OrdenDeCompra orden = envio.getOrden();
         if (orden == null)

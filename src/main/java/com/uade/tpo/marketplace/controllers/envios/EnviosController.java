@@ -46,7 +46,9 @@ public class EnviosController {
     /**
      * Pre : el id en la ruta y el token.
      * Post: el envio con su numero de seguimiento y sus fechas. Lo ven su
-     *       comprador, su vendedor, cualquier DESPACHANTE y el ADMIN. 403 para
+     *       comprador, su vendedor y el ADMIN. Un DESPACHANTE solo los de su
+     *       cola, los DESPACHADO y EN_TRANSITO: por id podria recorrer todos y
+     *       quedarse con las direcciones de entrega de todo el mundo. 403 para
      *       cualquier otro, 404 si no existe.
      */
     @GetMapping("/{idEnvio}")
