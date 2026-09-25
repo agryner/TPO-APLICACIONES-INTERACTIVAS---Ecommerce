@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -105,16 +104,12 @@ public class UsuariosController {
     }
 
     /**
-     * Pre : el id en la ruta y un token de ADMIN.
-     * Post: un mensaje de confirmacion. Es baja logica y arrastra las
-     *       publicaciones del usuario, que salen del catalogo y de los
-     *       carritos ajenos. Las ordenes se conservan.
      * Pre : solo el token.
      * Post: un mensaje de confirmacion. Es baja logica y arrastra las
      *       publicaciones propias: salen del catalogo y de los carritos
      *       ajenos. Las ordenes se conservan.
      */
-    @DeleteMapping("/me")
+    @PutMapping("/me/baja")
     public ResponseEntity<MensajeResponse> bajaPropia(@AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {
         usuarioService.deleteUsuario(usuario.getId(), usuario.getId());
@@ -127,7 +122,7 @@ public class UsuariosController {
      *       publicaciones de esa cuenta: salen del catalogo y de los carritos
      *       ajenos. Las ordenes se conservan.
      */
-    @DeleteMapping("/{idUsuario}")
+    @PutMapping("/{idUsuario}/baja")
     public ResponseEntity<MensajeResponse> deleteUsuario(@PathVariable Long idUsuario,
             @AuthenticationPrincipal Usuario usuario)
             throws UsuarioNoEncontradoException, OperacionAjenaException, CuentaInactivaException {

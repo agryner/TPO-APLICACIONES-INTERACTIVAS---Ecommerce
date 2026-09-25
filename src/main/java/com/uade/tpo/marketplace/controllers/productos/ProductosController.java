@@ -10,7 +10,6 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -216,7 +215,7 @@ public class ProductosController {
      *       los carritos, pero las ordenes que lo referencian lo siguen
      *       mostrando.
      */
-    @DeleteMapping("/{idProducto}")
+    @PutMapping("/{idProducto}/baja")
     public ResponseEntity<MensajeResponse> deleteProducto(@PathVariable Long idProducto,
             @AuthenticationPrincipal Usuario usuario)
             throws ProductoNoEncontradoException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {

@@ -7,7 +7,6 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -126,7 +125,7 @@ public class CategoriasController {
      * Post: un mensaje de confirmacion. 409 si tiene hijas o productos, porque
      *       borrarla dejaria registros apuntando a la nada.
      */
-    @DeleteMapping("/{idCategoria}")
+    @PutMapping("/{idCategoria}/baja")
     public ResponseEntity<MensajeResponse> deleteCategoria(@PathVariable Long idCategoria,
             @AuthenticationPrincipal Usuario usuario)
             throws CategoriaNoEncontradaException, CategoriaConSubcategoriasException,

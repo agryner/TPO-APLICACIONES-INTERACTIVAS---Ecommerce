@@ -12,7 +12,6 @@ import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -144,7 +143,7 @@ public class FotosController {
      * Post: un mensaje de confirmacion. Si era la ultima foto, el producto
      *       vuelve a BORRADOR y sale del catalogo y de los carritos.
      */
-    @DeleteMapping("/{idFoto}")
+    @PutMapping("/{idFoto}/baja")
     public ResponseEntity<MensajeResponse> deleteFoto(@PathVariable Long idFoto,
             @AuthenticationPrincipal Usuario usuario)
             throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
