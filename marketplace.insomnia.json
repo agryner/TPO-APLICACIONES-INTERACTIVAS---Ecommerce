@@ -792,7 +792,7 @@
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Agregar un producto",
-      "description": "El producto tiene que estar activo y PUBLICADO. Nadie carga lo suyo (409) y un ADMIN no carga nada (403). La respuesta trae el carrito entero con el id de cada item.",
+      "description": "Si el producto ya estaba, SUMA a lo que habia. Si no mandas cantidad, agrega 1. Cero o negativo da 400.\n\nEl carrito se crea solo la primera vez que agregas algo: no hay endpoint para crearlo. 409 si el producto es tuyo, 400 si no hay stock.",
       "method": "POST",
       "url": "http://localhost:4002/carrito/items",
       "headers": [
@@ -819,7 +819,7 @@
       "_type": "request",
       "parentId": "fld_carrito",
       "name": "Modificar la cantidad de un item",
-      "description": "El id de la URL es el del ITEM, no el del producto, y sale de la respuesta de agregar. Cantidad 0 o menos elimina el item.",
+      "description": "La cantidad es ABSOLUTA, no un incremento: mandar 3 deja 3, no suma 3. Es la unica diferencia con agregar.\n\nCERO O MENOS SACA EL ITEM, igual que el DELETE: es lo que espera quien baja el contador hasta el fondo. Al AGREGAR, en cambio, cero o negativo da 400, porque ahi no hay nada que sacar.\n\nLa cantidad va en el BODY, no como parametro. 400 si supera el stock, 404 si ese item no esta en TU carrito: el id del item de otro no existe para vos.",
       "method": "PUT",
       "url": "http://localhost:4002/carrito/items/1",
       "headers": [

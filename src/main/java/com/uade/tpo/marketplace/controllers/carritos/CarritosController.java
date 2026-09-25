@@ -67,8 +67,10 @@ public class CarritosController {
      *       del producto.
      * Post: el carrito con la cantidad puesta en el valor nuevo y los totales
      *       recalculados. Con cantidad cero o negativa el item se elimina, que
-     *       es la unica diferencia con agregar. 400 si la cantidad supera el
-     *       stock, 404 si ese item no esta en tu carrito.
+     *       es la unica diferencia con agregar. Una cantidad de CERO O MENOS
+     *       saca el item, que es lo que espera quien baja el contador hasta el
+     *       fondo; al agregar, en cambio, cero es un error. 400 si la cantidad
+     *       supera el stock, 404 si ese item no esta en tu carrito.
      */
     @PutMapping("/items/{idItem}")
     public ResponseEntity<CarritoResponse> modificarCantidad(@PathVariable Long idItem,

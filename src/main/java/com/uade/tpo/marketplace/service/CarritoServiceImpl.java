@@ -162,6 +162,8 @@ public class CarritoServiceImpl implements CarritoService {
             ItemCarritoNoEncontradoException, StockInsuficienteException, CuentaInactivaException {
         autorizacion.validarActivo(idUsuario);
 
+        // Bajar el contador hasta cero es como se saca algo de un carrito en
+        // cualquier tienda: no es un error, es la forma corta del DELETE.
         if (nuevaCantidad == null || nuevaCantidad <= 0)
             return eliminarItem(idUsuario, idItem);
 
