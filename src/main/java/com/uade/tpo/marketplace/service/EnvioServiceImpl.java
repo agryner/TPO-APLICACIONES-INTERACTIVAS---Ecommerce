@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
+import com.uade.tpo.marketplace.exceptions.EnvioNoDisponibleException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
@@ -28,6 +30,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class EnvioServiceImpl implements EnvioService {
+    private static final String ALFABETO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    private static final SecureRandom AZAR = new SecureRandom();
+
     private final EnvioRepository envioRepository;
     private final UsuarioRepository usuarioRepository;
 
@@ -57,23 +62,24 @@ public class EnvioServiceImpl implements EnvioService {
 
     /**
      * Pre : el id de quien pregunta.
-     * Post: sus envios. Un DESPACHANTE no tiene envios propios: recibe la cola
-     *       de trabajo compartida, o sea los que el vendedor ya despacho y
-     *       todavia no llegaron. Los demas ven aquellos donde compraron o
-     *       vendieron. Tira SinResultadosException si no hay ninguno.
+     * Post: sus envios. Un DESPACHANTE ve los que tiene en la mano: los que el
+     *       mismo cargo por numero y todavia no entrego. Los demas ven aquellos
+     *       donde compraron o vendieron. Tira SinResultadosException si no hay
+     *       ninguno.
      */
     public List<EnvioResponse> getMios(Long idSolicitante)
             throws UsuarioNoEncontradoException, SinResultadosException {
         Usuario usuario = usuarioRepository.findById(idSolicitante)
                 .orElseThrow(UsuarioNoEncontradoException::new);
 
-        // La cola del despachante son los despachados y los que ya viajan. Las
-        // coordinadas nunca llegan a DESPACHADO, asi que no entran: no hay
-        // nada que un despachante tenga que hacer con ellas.
+        // El despachante ve los que TIENE, no los que existen: los que cargo
+        // por numero y todavia no entrego. No hay una cola de pendientes para
+        // mirar, porque mirarla seria ver las direcciones de entrega de
+        // paquetes que no tiene.
         List<Envio> encontrados;
         if (usuario.getRol() == TipoUsuario.DESPACHANTE)
-            encontrados = envioRepository.findByEstadoInOrderByFechaCreacionAsc(
-                    List.of(EstadoEnvio.DESPACHADO, EstadoEnvio.EN_TRANSITO));
+            encontrados = envioRepository.findByDespachanteIdAndEstadoOrderByFechaDespachoAsc(
+                    idSolicitante, EstadoEnvio.EN_TRANSITO);
         else if (usuario.getRol() == TipoUsuario.ADMIN)
             encontrados = envioRepository.findAll();
         else {
@@ -87,6 +93,58 @@ public class EnvioServiceImpl implements EnvioService {
             throw new SinResultadosException("No hay envios para mostrar");
 
         return encontrados.stream().map(EnvioResponse::from).toList();
+    }
+
+    /**
+     * Pre : el numero que figura en la etiqueta del bulto y el id de quien lo
+     *       carga, que tiene que ser DESPACHANTE.
+     * Post: el envio, ya asignado a el y EN_TRANSITO. Cargar el numero ES
+     *       tomar el envio: no hay una cola para elegir, porque en una sucursal
+     *       uno carga el paquete que tiene en la mano, no uno de una lista. Por
+     *       eso tambien es el momento en que aparece la direccion de entrega.
+     *       404 si ese numero no existe, 409 si ya lo tomo otro o si el vendedor
+     *       todavia no lo despacho.
+     */
+    @Transactional
+    public EnvioResponse recibir(String numeroSeguimiento, Long idSolicitante)
+            throws EnvioNoEncontradoException, EnvioNoDisponibleException,
+            CambioDeEstadoNoPermitidoException, UsuarioNoEncontradoException {
+        Usuario usuario = usuarioRepository.findById(idSolicitante)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (usuario.getRol() != TipoUsuario.DESPACHANTE)
+            throw new CambioDeEstadoNoPermitidoException();
+
+        Envio envio = envioRepository
+                .findByNumeroSeguimiento(numeroSeguimiento == null
+                        ? "" : numeroSeguimiento.trim().toUpperCase())
+                .orElseThrow(EnvioNoEncontradoException::new);
+
+        if (envio.getEstado() != EstadoEnvio.DESPACHADO)
+            throw new EnvioNoDisponibleException();
+
+        envio.setDespachante(usuario);
+        envio.setEstado(EstadoEnvio.EN_TRANSITO);
+        return EnvioResponse.from(envioRepository.save(envio));
+    }
+
+    /**
+     * Pre : nada.
+     * Post: un numero que no existia. Sin las letras y numeros que se confunden
+     *       leyendo una etiqueta, porque alguien lo va a tipear a mano. Al azar
+     *       y no correlativo: es lo que destraba una direccion de entrega, y uno
+     *       correlativo se adivina probando desde el uno.
+     */
+    private String nuevoNumero() {
+        String candidato;
+        do {
+            StringBuilder sb = new StringBuilder("AGRO-");
+            for (int i = 0; i < 10; i++)
+                sb.append(ALFABETO.charAt(AZAR.nextInt(ALFABETO.length())));
+            candidato = sb.toString();
+        } while (envioRepository.existsByNumeroSeguimiento(candidato));
+
+        return candidato;
     }
 
     /**
@@ -127,11 +185,8 @@ public class EnvioServiceImpl implements EnvioService {
 
         if (estado == EstadoEnvio.DESPACHADO) {
             envio.setFechaDespacho(LocalDateTime.now());
-            envio.setNumeroSeguimiento("AGRO-%06d".formatted(envio.getId()));
+            envio.setNumeroSeguimiento(nuevoNumero());
         }
-
-        if (estado == EstadoEnvio.EN_TRANSITO)
-            envio.setDespachante(usuario);
 
         if (estado == EstadoEnvio.ENTREGADO)
             envio.setFechaEntrega(LocalDateTime.now());
@@ -189,16 +244,22 @@ public class EnvioServiceImpl implements EnvioService {
                 && envio.getOrden().getComprador() != null
                 && envio.getOrden().getComprador().getId().equals(usuario.getId());
 
-        boolean esDespachante = usuario.getRol() == TipoUsuario.DESPACHANTE;
+        // No cualquier despachante: el que lo cargo. Si no, uno entrega lo que
+        // otro esta llevando.
+        boolean esSuDespachante = usuario.getRol() == TipoUsuario.DESPACHANTE
+                && envio.getDespachante() != null
+                && envio.getDespachante().getId().equals(usuario.getId());
         boolean coordinado = metodoDe(envio) == MetodoEntrega.COORDINAR;
 
         boolean autorizado = switch (nuevo) {
             case DESPACHADO -> esVendedor;
-            case EN_TRANSITO -> esDespachante;
+            // El paso a EN_TRANSITO no se pide por aca: se logra cargando el
+            // numero de seguimiento, que es lo que prueba tener el paquete.
+            case EN_TRANSITO -> false;
             // En las coordinadas no hay despachante que pueda declararlo, asi
             // que lo dice el comprador. Es seguro por la misma razon por la
             // que el vendedor no puede: mentir va en contra de quien lo dice.
-            case ENTREGADO -> coordinado ? esComprador : esDespachante;
+            case ENTREGADO -> coordinado ? esComprador : esSuDespachante;
             case PENDIENTE -> false;
         };
 
@@ -215,14 +276,13 @@ public class EnvioServiceImpl implements EnvioService {
         if (usuario.getRol() == TipoUsuario.ADMIN)
             return true;
 
-        // El despachante ve EXACTAMENTE su cola, ni un envio mas. Si pudiera
-        // pedir cualquier id recorreria todos y se quedaria con la direccion de
-        // entrega de cada compra del sistema, incluidas las coordinadas, que no
-        // son asunto suyo. Un envio que ya se entrego tampoco: no queda nada
-        // por hacer con el.
+        // El despachante ve lo que tiene en la mano y nada mas: el que el mismo
+        // cargo y todavia no entrego. Por id podria recorrer todos y quedarse
+        // con la direccion de entrega de cada compra del sistema.
         if (usuario.getRol() == TipoUsuario.DESPACHANTE)
-            return envio.getEstado() == EstadoEnvio.DESPACHADO
-                    || envio.getEstado() == EstadoEnvio.EN_TRANSITO;
+            return envio.getEstado() == EstadoEnvio.EN_TRANSITO
+                    && envio.getDespachante() != null
+                    && envio.getDespachante().getId().equals(usuario.getId());
 
         OrdenDeCompra orden = envio.getOrden();
         if (orden == null)

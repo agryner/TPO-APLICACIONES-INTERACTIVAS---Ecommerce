@@ -11,11 +11,16 @@ import com.uade.tpo.marketplace.entity.EstadoEnvio;
 
 @Repository
 public interface EnvioRepository extends JpaRepository<Envio, Long> {
+    Optional<Envio> findByNumeroSeguimiento(String numeroSeguimiento);
+
+    boolean existsByNumeroSeguimiento(String numeroSeguimiento);
+
+    List<Envio> findByDespachanteIdAndEstadoOrderByFechaDespachoAsc(Long idDespachante,
+            EstadoEnvio estado);
+
     Optional<Envio> findByOrdenId(Long idOrden);
 
     List<Envio> findByOrdenCompradorIdOrderByFechaCreacionDesc(Long idComprador);
 
     List<Envio> findByOrdenVendedorIdOrderByFechaCreacionDesc(Long idVendedor);
-
-    List<Envio> findByEstadoInOrderByFechaCreacionAsc(List<EstadoEnvio> estados);
 }

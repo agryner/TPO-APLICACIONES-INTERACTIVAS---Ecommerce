@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.uade.tpo.marketplace.entity.EstadoEnvio;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
+import com.uade.tpo.marketplace.exceptions.EnvioNoDisponibleException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
@@ -33,8 +35,8 @@ public class EnviosController {
      * Pre : solo el token. No recibe ningun id: lo que devuelve depende del
      *       rol de quien pregunta.
      * Post: para un CLIENTE, los envios donde compro o vendio. Para un
-     *       DESPACHANTE, la cola de trabajo compartida: los despachados y los
-     *       que estan en transito. Para el ADMIN, todos. 404 si no hay
+     *       DESPACHANTE, los que tiene en la mano: los que el mismo cargo por
+     *       numero y todavia no entrego. Para el ADMIN, todos. 404 si no hay
      *       ninguno.
      */
     @GetMapping
@@ -60,11 +62,32 @@ public class EnviosController {
     }
 
     /**
+     * Pre : el numero que figura en la etiqueta del bulto y un token de
+     *       DESPACHANTE.
+     * Post: el envio, ya suyo y EN_TRANSITO. Cargar el numero ES tomar el
+     *       envio: en una sucursal uno carga el paquete que tiene en la mano,
+     *       no uno de una lista, y por eso este es el momento en que aparece la
+     *       direccion de entrega. 403 si no sos DESPACHANTE, 404 si ese numero
+     *       no existe, 409 si ya lo tomo otro o si el vendedor todavia no lo
+     *       despacho.
+     */
+    @PostMapping("/recibir")
+    public ResponseEntity<EnvioResponse> recibir(@RequestParam String numero,
+            @AuthenticationPrincipal Usuario usuario)
+            throws EnvioNoEncontradoException, EnvioNoDisponibleException,
+            CambioDeEstadoNoPermitidoException, UsuarioNoEncontradoException {
+        return ResponseEntity.ok(envioService.recibir(numero, usuario.getId()));
+    }
+
+    /**
      * Pre : el id en la ruta, el estado destino como enum, y el token.
-     * Post: el envio en el estado nuevo. DESPACHADO lo pide el vendedor;
-     *       EN_TRANSITO y ENTREGADO, un DESPACHANTE. El camino no tiene vuelta
-     *       atras. 403 si no te toca ese paso, 409 si el salto no existe desde
-     *       el estado actual, 400 si el estado no existe.
+     * Post: el envio en el estado nuevo. DESPACHADO lo pide el vendedor, y ahi
+     *       se genera el numero de seguimiento. ENTREGADO lo pide el
+     *       despachante que lo cargo, o el comprador si la entrega se coordino.
+     *       EN_TRANSITO no se pide por aca: se llega cargando el numero en
+     *       POST /envios/recibir. El camino no tiene vuelta atras. 403 si no te
+     *       toca ese paso, 409 si el salto no existe desde el estado actual,
+     *       400 si el estado no existe.
      */
     @PutMapping("/{idEnvio}/estado")
     public ResponseEntity<EnvioResponse> actualizarEstado(@PathVariable Long idEnvio,

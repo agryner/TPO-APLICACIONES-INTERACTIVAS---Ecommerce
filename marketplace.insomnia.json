@@ -1576,7 +1576,7 @@
       "name": "Mis envios",
       "method": "GET",
       "url": "http://localhost:4002/envios",
-      "description": "Depende del rol: un CLIENTE ve donde compro o vendio, un DESPACHANTE ve la cola de trabajo compartida (despachados y en transito), el ADMIN ve todos.",
+      "description": "Depende del rol. Un CLIENTE ve donde compro o vendio. Un DESPACHANTE ve LO QUE TIENE EN LA MANO: los que el mismo cargo por numero y todavia no entrego; no hay una cola de pendientes para mirar, porque mirarla seria ver las direcciones de entrega de paquetes que no tiene. El ADMIN ve todos. 404 si no hay ninguno.",
       "headers": [],
       "parameters": [],
       "authentication": {},
@@ -1597,7 +1597,7 @@
       "name": "Ver un envio",
       "method": "GET",
       "url": "http://localhost:4002/envios/1",
-      "description": "Con su numero de seguimiento y sus fechas. Lo ven su comprador, su vendedor, cualquier DESPACHANTE y el ADMIN. 403 para un tercero.",
+      "description": "Lo ven su comprador, su vendedor y el ADMIN, en cualquier estado. Un DESPACHANTE solo el que EL cargo y todavia no entrego: ni los pendientes, ni los de otro despachante, ni los ya entregados, ni los coordinados. Trae la direccionEntrega, que es el dato que esto protege. 403 para cualquier otro, 404 si no existe.",
       "headers": [],
       "parameters": [],
       "authentication": {},
@@ -1618,28 +1618,21 @@
       "name": "Cambiar el estado",
       "method": "PUT",
       "url": "http://localhost:4002/envios/1/estado",
-      "description": "DESPACHADO lo pide el VENDEDOR (genera el numero de seguimiento). EN_TRANSITO y ENTREGADO, un DESPACHANTE. En los COORDINAR, ENTREGADO lo declara el COMPRADOR. No hay vuelta atras: 409 si el salto no existe, 403 si no te toca.",
+      "description": "DESPACHADO lo pide el VENDEDOR: ahi se genera el numero de seguimiento, que el vendedor pega en el bulto.\n\nEN_TRANSITO YA NO SE PIDE POR ACA: se llega cargando el numero en POST /envios/recibir, que es lo que prueba tener el paquete. Pedirlo aca da 403.\n\nENTREGADO lo pide el despachante QUE LO CARGO, no cualquiera: si no, uno entregaria lo que otro esta llevando. En los COORDINAR lo declara el COMPRADOR, porque no hay despachante. El vendedor nunca declara la entrega: es lo que hace confiable la resena que despues lo califica.\n\nNo hay vuelta atras: 409 si el salto no existe, 403 si no te toca.",
       "headers": [],
       "parameters": [
         {
           "id": "p_env_desp",
           "name": "estado",
           "value": "DESPACHADO",
-          "description": ""
-        },
-        {
-          "id": "p_env_tra",
-          "name": "estado",
-          "value": "EN_TRANSITO",
-          "description": "",
-          "disabled": true
+          "description": "lo pide el VENDEDOR; aca se genera el numero de seguimiento"
         },
         {
           "id": "p_env_ent",
           "name": "estado",
           "value": "ENTREGADO",
-          "description": "",
-          "disabled": true
+          "disabled": true,
+          "description": "el despachante que lo cargo, o el comprador si se coordino"
         }
       ],
       "authentication": {},
@@ -1995,6 +1988,34 @@
       "settingRebuildPath": true,
       "settingFollowRedirects": "global",
       "body": {}
+    },
+    {
+      "_id": "req_envios_recibir",
+      "_type": "request",
+      "parentId": "fld_envios",
+      "name": "Recibir en la sucursal (despachante)",
+      "method": "POST",
+      "url": "http://localhost:4002/envios/recibir",
+      "description": "SOLO DESPACHANTE. Es el paso que reemplaza a la vieja cola compartida.\n\nEl vendedor despacha, el sistema le da un numero, el lo pega en el bulto y lo deja en la sucursal. El despachante lee ese numero DEL PAQUETE que tiene en la mano y lo carga aca. Cargarlo ES tomar el envio: se lo asigna, lo pasa a EN_TRANSITO y recien entonces aparece la direccionEntrega.\n\nPor eso el numero es al azar y no correlativo: es lo que destraba una direccion, y uno correlativo se adivinaria probando desde el uno. No distingue mayusculas.\n\n403 si no sos DESPACHANTE, 404 si ese numero no existe, 409 si ya lo tomo otro o si el vendedor todavia no lo despacho.",
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 130000,
+      "isPrivate": false,
+      "parameters": [
+        {
+          "id": "p_recibir_num",
+          "name": "numero",
+          "value": "AGRO-CVSP2DBYWU",
+          "description": "el que figura en la etiqueta"
+        }
+      ],
+      "body": {},
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
     }
   ]
 }
