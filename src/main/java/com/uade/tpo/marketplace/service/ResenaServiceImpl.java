@@ -14,6 +14,7 @@ import com.uade.tpo.marketplace.entity.EstadoEnvio;
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
 import com.uade.tpo.marketplace.entity.OrderDetail;
 import com.uade.tpo.marketplace.entity.Producto;
+import com.uade.tpo.marketplace.entity.NivelVendedor;
 import com.uade.tpo.marketplace.entity.Resena;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.EntregaPendienteException;
@@ -39,6 +40,7 @@ public class ResenaServiceImpl implements ResenaService {
     private final EnvioRepository envioRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
+    private final NivelVendedorService nivelVendedorService;
 
     /**
      * Pre : el request con la orden, el producto y el puntaje, mas el id de
@@ -135,11 +137,13 @@ public class ResenaServiceImpl implements ResenaService {
         List<Resena> resenas = resenaRepository.findByProductoVendedorId(vendedor.getId());
 
         if (resenas.isEmpty())
-            return new CalificacionResponse(vendedor.getNombreUsuario(), null, 0);
+            return new CalificacionResponse(vendedor.getNombreUsuario(), null, 0,
+                    NivelVendedor.SIN_CALIFICAR);
 
         double promedio = resenas.stream().mapToInt(Resena::getPuntaje).average().orElse(0);
+        double redondeado = Math.round(promedio * 100) / 100.0;
 
-        return new CalificacionResponse(vendedor.getNombreUsuario(),
-                Math.round(promedio * 100) / 100.0, resenas.size());
+        return new CalificacionResponse(vendedor.getNombreUsuario(), redondeado, resenas.size(),
+                nivelVendedorService.calcular(redondeado, resenas.size()));
     }
 }

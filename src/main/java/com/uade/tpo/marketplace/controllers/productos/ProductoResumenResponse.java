@@ -7,6 +7,7 @@ import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.Foto;
 import com.uade.tpo.marketplace.entity.CondicionProducto;
 import com.uade.tpo.marketplace.entity.NivelDestacado;
+import com.uade.tpo.marketplace.entity.NivelVendedor;
 import com.uade.tpo.marketplace.entity.Provincia;
 import com.uade.tpo.marketplace.entity.Producto;
 
@@ -28,6 +29,7 @@ public class ProductoResumenResponse {
     private Boolean admiteEnvio;
     private Boolean aceptaOfertas;
     private NivelDestacado nivelDestacado;
+    private NivelVendedor nivelVendedor;
     private boolean disponible;
 
     /**
@@ -36,7 +38,9 @@ public class ProductoResumenResponse {
      *       categoria, el vendedor, la descripcion ni los metadatos de las
      *       fotos: todo eso es de GET /productos/{id}. De las fotos sale una
      *       sola URL, la de la primera activa Y APROBADA: una que la IA no
-     *       pudo mirar no se muestra como si estuviera revisada.
+     *       pudo mirar no se muestra como si estuviera revisada. El
+     *       nivelVendedor no sale de aca: lo completa el service, que lo
+     *       resuelve para toda la pagina de una sola consulta.
      */
     public static ProductoResumenResponse from(Producto producto) {
         if (producto == null)

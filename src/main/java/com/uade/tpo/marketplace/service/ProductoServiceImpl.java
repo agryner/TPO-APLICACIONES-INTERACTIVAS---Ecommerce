@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.uade.tpo.marketplace.entity.Categoria;
 import com.uade.tpo.marketplace.entity.TipoNotificacion;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
+import com.uade.tpo.marketplace.entity.NivelVendedor;
 import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.AnioInvalidoException;
@@ -48,6 +50,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
     private final CarritoService carritoService;
+    private final NivelVendedorService nivelVendedorService;
 
     /**
      * Pre : los filtros, todos opcionales: categoria, nombre, rango de precio
@@ -97,9 +100,7 @@ public class ProductoServiceImpl implements ProductoService {
         if (encontrados.isEmpty())
             throw new SinResultadosException("No hay productos que coincidan con la busqueda");
 
-        return ordenar(encontrados, filtro.getOrden()).stream()
-                .map(ProductoResumenResponse::from)
-                .toList();
+        return conNivelDelVendedor(ordenar(encontrados, filtro.getOrden()));
     }
 
     /**
@@ -114,6 +115,24 @@ public class ProductoServiceImpl implements ProductoService {
      *       cuando llegan dos, y esa regla hay que explicarla. Tira
      *       OrdenamientoInvalidoException si el criterio no existe.
      */
+    /**
+     * Pre : los productos ya filtrados y ordenados.
+     * Post: sus tarjetas, con el nivel de cada vendedor adentro. Los niveles se
+     *       piden UNA vez para todos: hacerlo producto por producto seria una
+     *       consulta de resenas por cada uno de los 100 que puede traer una
+     *       pagina.
+     */
+    private List<ProductoResumenResponse> conNivelDelVendedor(List<Producto> productos) {
+        Map<Long, NivelVendedor> niveles = nivelVendedorService.deTodos();
+
+        return productos.stream().map(p -> {
+            ProductoResumenResponse dto = ProductoResumenResponse.from(p);
+            Long idVendedor = p.getVendedor() == null ? null : p.getVendedor().getId();
+            dto.setNivelVendedor(niveles.getOrDefault(idVendedor, NivelVendedor.SIN_CALIFICAR));
+            return dto;
+        }).toList();
+    }
+
     private List<Producto> ordenar(List<Producto> productos, String orden)
             throws OrdenamientoInvalidoException {
         // Sin criterio explicito manda la visibilidad pagada. Con criterio, no
@@ -231,20 +250,19 @@ public class ProductoServiceImpl implements ProductoService {
 
         Set<Long> rama = raiz == null ? Set.of() : ramaDe(raiz);
 
-        List<ProductoResumenResponse> similares = productoRepository.findAll().stream()
+        List<Producto> similares = productoRepository.findAll().stream()
                 .filter(p -> !p.getId().equals(idProducto))
                 .filter(ProductoResumenResponse::estaDisponible)
                 .filter(p -> p.getCategoria() != null && rama.contains(p.getCategoria().getId()))
                 .sorted(Comparator.comparing(
                         (Producto p) -> p.getVendidos() == null ? 0 : p.getVendidos()).reversed())
                 .limit(8)
-                .map(ProductoResumenResponse::from)
                 .toList();
 
         if (similares.isEmpty())
             throw new SinResultadosException("No hay productos similares a este");
 
-        return similares;
+        return conNivelDelVendedor(similares);
     }
 
     /**
@@ -414,13 +432,13 @@ public class ProductoServiceImpl implements ProductoService {
         if (!Boolean.TRUE.equals(vendedor.getActivo()))
             throw new UsuarioNoEncontradoException();
 
-        List<ProductoResumenResponse> vidriera = productoRepository.findAll().stream()
-                .filter(Producto::getActivo)
-                .filter(p -> p.getVendedor() != null
-                        && p.getVendedor().getId().equals(vendedor.getId()))
-                .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
-                .map(ProductoResumenResponse::from)
-                .toList();
+        List<ProductoResumenResponse> vidriera = conNivelDelVendedor(
+                productoRepository.findAll().stream()
+                        .filter(Producto::getActivo)
+                        .filter(p -> p.getVendedor() != null
+                                && p.getVendedor().getId().equals(vendedor.getId()))
+                        .filter(p -> p.getEstadoPublicacion() == EstadoPublicacion.PUBLICADO)
+                        .toList());
 
         if (vidriera.isEmpty())
             throw new SinResultadosException("Ese vendedor todavia no tiene publicaciones visibles");

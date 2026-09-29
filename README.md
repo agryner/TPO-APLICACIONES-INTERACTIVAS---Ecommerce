@@ -166,6 +166,19 @@ Una por producto de la orden, del 1 al 5. Sólo la deja el comprador, sólo sobr
 
 La calificación de un vendedor (`GET /resenas/vendedor/{usuario}`) se calcula al preguntarla, no se guarda: así no puede quedar desactualizada. Un vendedor sin reseñas devuelve promedio `null`, que no es lo mismo que cero.
 
+De ahí sale su **nivel**, que viaja también en cada tarjeta del catálogo:
+
+| | Hace falta |
+|---|---|
+| `SIN_CALIFICAR` | todavía no tiene reseñas |
+| `BRONCE` | al menos una |
+| `ORO` | promedio ≥ 4.0 **y** 5 reseñas |
+| `PLATINO` | promedio ≥ 4.5 **y** 10 reseñas |
+
+Cada escalón pide promedio **y** cantidad, porque con el promedio solo una única reseña de 5 estrellas te haría PLATINO — justo lo que el comprador no tiene que creer. Los umbrales están en `application.properties`, así se bajan para una demo sin tocar código.
+
+El nivel de todos los vendedores se resuelve en **una sola consulta** por listado, no una por producto: una página de 100 tarjetas dispara un `GROUP BY`, no cien.
+
 ### Ofertas
 
 El comprador propone un precio por unidad, el vendedor acepta o rechaza. Aceptar **cierra la venta**: crea la orden al precio acordado y descuenta el stock.
@@ -408,6 +421,7 @@ Los filtros del catálogo se combinan entre sí: `idCategoria` (incluye las subc
 | `TipoNotificacion` | BAJA_DE_PRECIO · POCO_STOCK · DISPONIBLE_OTRA_VEZ · OFERTA_RECIBIDA · OFERTA_RESPONDIDA |
 | `NivelDestacado` | NINGUNO · BASICO · DESTACADO · PREMIUM |
 | `CondicionProducto` | NUEVO · USADO |
+| `NivelVendedor` | SIN_CALIFICAR · BRONCE · ORO · PLATINO |
 | `Provincia` | Las 24 jurisdicciones |
 
 Los enums se guardan **como texto** (`@Enumerated(EnumType.STRING)`), no como número: un `2` en la base no dice nada y se corre si alguien reordena el enum.
