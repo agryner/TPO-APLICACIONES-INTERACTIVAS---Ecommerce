@@ -197,7 +197,8 @@ public class FotoServiceImpl implements FotoService {
             throws FotoRechazadaException {
         VerificadorImagenService.Resultado resultado;
         try {
-            resultado = verificador.verificar(contenido, producto.getCategoria());
+            resultado = verificador.verificar(contenido, foto.getTipoContenido(),
+                    producto.getCategoria());
         } catch (Exception e) {
             log.warn("No se pudo verificar la foto del producto {}: {}",
                     producto.getId(), e.getMessage());

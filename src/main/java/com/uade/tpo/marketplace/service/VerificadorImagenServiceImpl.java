@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -33,6 +34,12 @@ public class VerificadorImagenServiceImpl implements VerificadorImagenService {
             + "moto particular, captura de pantalla, comida, ropa, celular o notebook, mascota, "
             + "documento escaneado, o imagen tan borrosa que no se reconozca nada";
 
+    private static final Set<String> ACEPTA_GEMINI = Set.of(
+            "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif");
+
+    /** Gemini recibe la imagen adentro del JSON, asi que hay un techo real. */
+    private static final int BYTES_MAXIMOS = 15 * 1024 * 1024;
+
     private static final int LADO_MAX = 1024;
 
     private final CategoriaRepository categoriaRepository;
@@ -53,14 +60,26 @@ public class VerificadorImagenServiceImpl implements VerificadorImagenService {
      *       excepcion si el servicio no responde, y quien llama decide que
      *       hacer con eso.
      */
-    public Resultado verificar(byte[] imagen, Categoria categoria) throws Exception {
-        byte[] jpeg = preparar(imagen);
+    public Resultado verificar(byte[] imagen, String tipoContenido, Categoria categoria)
+            throws Exception {
+        byte[] achicada = preparar(imagen);
+
+        // Si ImageIO no supo leerla, va el original: Gemini lee varios formatos
+        // que ImageIO no, y el WebP es el caso tipico. Lo unico que se pierde
+        // para esos es el redimensionado.
+        byte[] datos = achicada != null ? achicada : imagen;
+        String mime = achicada != null ? "image/jpeg" : normalizar(tipoContenido);
+
+        if (datos.length > BYTES_MAXIMOS)
+            throw new IllegalArgumentException("La imagen pesa "
+                    + (datos.length / (1024 * 1024)) + " MB y no se puede achicar en este "
+                    + "formato; subila como JPG o PNG");
 
         Map<String, Object> cuerpo = Map.of(
                 "contents", List.of(Map.of("parts", List.of(
                         Map.of("inline_data", Map.of(
-                                "mime_type", "image/jpeg",
-                                "data", Base64.getEncoder().encodeToString(jpeg))),
+                                "mime_type", mime,
+                                "data", Base64.getEncoder().encodeToString(datos))),
                         Map.of("text", construirPrompt(categoria))))),
                 "generationConfig", Map.of("response_mime_type", "application/json"));
 
@@ -158,10 +177,17 @@ public class VerificadorImagenServiceImpl implements VerificadorImagenService {
      * Post: la imagen achicada a 1024 px y recomprimida como JPEG, para no
      *       mandar megabytes por la red.
      */
+    /**
+     * Pre : los bytes que subieron.
+     * Post: la imagen achicada y pasada a JPEG, o NULL si ImageIO no sabe leer
+     *       ese formato. Null no es un error: significa "esta va sin tocar", y
+     *       quien llama decide. ImageIO trae lectores para JPEG, PNG, GIF y BMP;
+     *       para WebP haria falta una dependencia con binario nativo.
+     */
     private byte[] preparar(byte[] original) throws Exception {
         BufferedImage img = ImageIO.read(new ByteArrayInputStream(original));
         if (img == null)
-            throw new IllegalArgumentException("No se pudo leer la imagen");
+            return null;
 
         int ancho = img.getWidth();
         int alto = img.getHeight();
@@ -199,6 +225,20 @@ public class VerificadorImagenServiceImpl implements VerificadorImagenService {
      * Post: el JSON sin los delimitadores de bloque de codigo con los que a
      *       veces lo envuelve.
      */
+    /**
+     * Pre : el tipo que declaro la subida.
+     * Post: ese mismo si Gemini lo recibe, o image/jpeg como ultimo intento.
+     *       La lista es la que documenta Gemini; mandarle uno que no conoce da
+     *       un error de la API, que es peor que probar.
+     */
+    private String normalizar(String tipoContenido) {
+        if (tipoContenido == null)
+            return "image/jpeg";
+
+        String limpio = tipoContenido.toLowerCase().trim();
+        return ACEPTA_GEMINI.contains(limpio) ? limpio : "image/jpeg";
+    }
+
     private String limpiar(String texto) {
         String limpio = texto.strip();
         if (limpio.startsWith("```json"))

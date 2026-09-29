@@ -136,7 +136,9 @@ POST /fotos              → la IA la mira
 
 ### Subir una foto
 
-El archivo entra por `multipart/form-data`, se re-codifica a JPEG con `ImageIO` y se manda a **Gemini** junto con la categoría declarada. La IA responde si la imagen coincide, con cuánta confianza, qué ve y qué categoría sugeriría.
+El archivo entra por `multipart/form-data`, se achica y se re-codifica a JPEG con `ImageIO`, y se manda a **Gemini** junto con la categoría declarada.
+
+`ImageIO` trae lectores para JPEG, PNG, GIF y BMP, y nada más. Cuando no sabe leer el formato —el caso típico es **WebP**— la imagen se manda **tal cual, con su propio tipo**: Gemini los acepta igual. Lo único que se pierde ahí es el redimensionado, que es el precio de no sumar una dependencia con binario nativo para que ande igual en las tres máquinas. Hay un techo de 15 MB, porque la imagen viaja adentro del JSON. La IA responde si la imagen coincide, con cuánta confianza, qué ve y qué categoría sugeriría.
 
 - **coincide y confianza alta** → `APROBADA`, y el producto se publica.
 - **no coincide con confianza alta** → se rechaza con **422** y un mensaje que explica qué vio: *"parece la foto de una pantalla de computadora, no de un tractor"*. No se guarda nada.
@@ -529,7 +531,6 @@ ALTER TABLE envio ADD UNIQUE KEY uk_envio_seguimiento (numero_seguimiento);
 ## Lo que queda pendiente
 
 - **Paginación en la base.** El sobre está, pero el corte se hace sobre la lista ya armada: la consulta sigue trayendo todo. Con miles de productos habría que llevar los filtros y el orden a SQL.
-- **WebP.** `ImageIO` no lo lee, así que esas subidas no llegan a Gemini y quedan `EN_REVISION`. Desde que las no aprobadas no se muestran, el agujero se cerró, pero el formato sigue sin funcionar.
 - **Historial de estados.** Cada orden guarda cuándo se creó y cuándo cambió por última vez, pero no el camino completo. Para eso haría falta una tabla aparte.
 - **El rodeo de dos pasos en los roles.** Un ADMIN puede hacer `DESPACHANTE → ADMIN → CLIENTE`, porque la regla mira el rol de hoy. Cerrarlo pide guardar un "fue despachante" en el usuario.
 - **Qué lleva cada envío.** El historial del despachante dice qué entregó; el envío en curso todavía no, y tampoco de dónde retirarlo.

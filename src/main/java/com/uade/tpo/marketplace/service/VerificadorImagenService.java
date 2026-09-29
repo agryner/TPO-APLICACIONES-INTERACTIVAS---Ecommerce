@@ -10,5 +10,6 @@ public interface VerificadorImagenService {
         }
     }
 
-    Resultado verificar(byte[] imagen, Categoria categoria) throws Exception;
+    Resultado verificar(byte[] imagen, String tipoContenido, Categoria categoria)
+            throws Exception;
 }
