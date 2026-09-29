@@ -44,7 +44,18 @@ El mismo criterio de "que no exista lo que no tiene que salir" se aplica dos vec
 
 La diferencia importa porque el catálogo es público. Mientras el vendedor viajaba como `UsuarioResponse` dentro de cada producto, **cualquier visitante sin cuenta podía recorrer `GET /productos` y quedarse con el mail y el domicilio de todos los que venden** — cerrar `GET /usuarios/{id}` no servía de nada mientras la misma información saliera por la puerta de al lado.
 
-Hay un tercer DTO para lo mismo: `ProductoResumenResponse`. El catálogo no devuelve el producto entero sino lo que entra en una tarjeta —foto, precio, dónde está, si es nuevo o usado—, y el resto está en `GET /productos/{id}`. Bajó de 639 a 179 bytes por producto, y lo usan también el carrito, la wishlist y las órdenes.
+Hay un tercer DTO para lo mismo: `ProductoResumenResponse`. El catálogo no devuelve el producto entero sino lo que entra en una tarjeta:
+
+```json
+{ "nombre": "Sembradora Brioschi", "foto": "/fotos/7/contenido",
+  "precio": 9800000, "precioFinal": 9800000, "descuento": 0,
+  "calificacion": 4.8, "cantidadResenas": 5, "vendidos": 5,
+  "provincia": "BUENOS_AIRES", "condicion": "USADO", "nivelVendedor": "ORO" }
+```
+
+El resto está en `GET /productos/{id}`. Lo usan también el carrito, la wishlist y las órdenes.
+
+La `calificacion` es el promedio del **producto** y `nivelVendedor` el del **vendedor**: son dos cosas distintas y las dos se resuelven en **una consulta agregada cada una** para toda la página. Un producto sin reseñas devuelve `null`, que no es lo mismo que cero.
 
 ### Mapa del código
 

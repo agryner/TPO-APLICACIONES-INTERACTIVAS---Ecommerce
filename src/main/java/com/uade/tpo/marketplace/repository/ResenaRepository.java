@@ -23,4 +23,12 @@ public interface ResenaRepository extends JpaRepository<Resena, Long> {
     @Query("SELECT r.producto.vendedor.id, AVG(r.puntaje), COUNT(r) "
             + "FROM Resena r GROUP BY r.producto.vendedor.id")
     List<Object[]> resumenPorVendedor();
+
+    /**
+     * Lo mismo pero por producto, para la calificacion que va en cada tarjeta
+     * del catalogo.
+     */
+    @Query("SELECT r.producto.id, AVG(r.puntaje), COUNT(r) "
+            + "FROM Resena r GROUP BY r.producto.id")
+    List<Object[]> resumenPorProducto();
 }

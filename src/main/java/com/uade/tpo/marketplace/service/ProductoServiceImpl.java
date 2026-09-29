@@ -51,6 +51,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final AutorizacionService autorizacion;
     private final CarritoService carritoService;
     private final NivelVendedorService nivelVendedorService;
+    private final ResenaService resenaService;
 
     /**
      * Pre : los filtros, todos opcionales: categoria, nombre, rango de precio
@@ -117,18 +118,29 @@ public class ProductoServiceImpl implements ProductoService {
      */
     /**
      * Pre : los productos ya filtrados y ordenados.
-     * Post: sus tarjetas, con el nivel de cada vendedor adentro. Los niveles se
-     *       piden UNA vez para todos: hacerlo producto por producto seria una
-     *       consulta de resenas por cada uno de los 100 que puede traer una
-     *       pagina.
+     * Post: sus tarjetas completas: la calificacion del producto y el nivel de
+     *       su vendedor. Las dos cosas se piden UNA vez para toda la lista, no
+     *       una por producto: en una pagina de cien tarjetas serian doscientas
+     *       consultas. Un producto sin resenas devuelve calificacion null, que
+     *       no es lo mismo que cero.
      */
     private List<ProductoResumenResponse> conNivelDelVendedor(List<Producto> productos) {
         Map<Long, NivelVendedor> niveles = nivelVendedorService.deTodos();
+        Map<Long, ResenaService.Calificacion> calificaciones =
+                resenaService.calificacionesDeProductos();
 
         return productos.stream().map(p -> {
             ProductoResumenResponse dto = ProductoResumenResponse.from(p);
+
             Long idVendedor = p.getVendedor() == null ? null : p.getVendedor().getId();
             dto.setNivelVendedor(niveles.getOrDefault(idVendedor, NivelVendedor.SIN_CALIFICAR));
+
+            ResenaService.Calificacion calificacion = calificaciones.get(p.getId());
+            if (calificacion != null) {
+                dto.setCalificacion(calificacion.promedio());
+                dto.setCantidadResenas(calificacion.cantidad());
+            }
+
             return dto;
         }).toList();
     }

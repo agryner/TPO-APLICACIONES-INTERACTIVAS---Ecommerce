@@ -1,7 +1,9 @@
 package com.uade.tpo.marketplace.service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -129,6 +131,25 @@ public class ResenaServiceImpl implements ResenaService {
      *       quedar desactualizado. Un vendedor sin resenas devuelve promedio
      *       null, que no es lo mismo que cero.
      */
+    /**
+     * Pre : nada.
+     * Post: el promedio y la cantidad de resenas de cada producto que tenga al
+     *       menos una, de UNA sola consulta. El catalogo lo necesita para todas
+     *       las tarjetas de la pagina.
+     */
+    public Map<Long, Calificacion> calificacionesDeProductos() {
+        Map<Long, Calificacion> porProducto = new HashMap<>();
+
+        for (Object[] fila : resenaRepository.resumenPorProducto()) {
+            double promedio = ((Number) fila[1]).doubleValue();
+            porProducto.put((Long) fila[0],
+                    new Calificacion(Math.round(promedio * 100) / 100.0,
+                            ((Number) fila[2]).longValue()));
+        }
+
+        return porProducto;
+    }
+
     public CalificacionResponse getCalificacion(String nombreUsuario)
             throws UsuarioNoEncontradoException {
         Usuario vendedor = usuarioRepository.findByNombreUsuario(nombreUsuario)

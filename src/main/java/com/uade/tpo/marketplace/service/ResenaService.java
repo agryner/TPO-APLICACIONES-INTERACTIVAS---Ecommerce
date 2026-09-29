@@ -11,8 +11,13 @@ import com.uade.tpo.marketplace.exceptions.ResenaDuplicadaException;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import java.util.List;
+import java.util.Map;
 
 public interface ResenaService {
+    record Calificacion(Double promedio, long cantidad) {}
+
+    Map<Long, Calificacion> calificacionesDeProductos();
+
     ResenaResponse crear(ResenaRequest request, Long idSolicitante)
             throws OrdenNoEncontradaException, OperacionAjenaException, ProductoFueraDeLaOrdenException, EntregaPendienteException, ResenaDuplicadaException, UsuarioNoEncontradoException;
 

@@ -25,6 +25,9 @@ public class ProductoResumenResponse {
     private CondicionProducto condicion;
     private Integer anio;
     private String foto;
+    private Double calificacion;
+    private long cantidadResenas;
+    private Integer vendidos;
     private Integer vistos;
     private Boolean admiteEnvio;
     private Boolean aceptaOfertas;
@@ -39,8 +42,9 @@ public class ProductoResumenResponse {
      *       fotos: todo eso es de GET /productos/{id}. De las fotos sale una
      *       sola URL, la de la primera activa Y APROBADA: una que la IA no
      *       pudo mirar no se muestra como si estuviera revisada. El
-     *       nivelVendedor no sale de aca: lo completa el service, que lo
-     *       resuelve para toda la pagina de una sola consulta.
+     *       nivelVendedor y la calificacion no salen de aca: los completa el
+     *       service, que los resuelve para toda la pagina de dos consultas
+     *       agregadas en vez de dos por producto.
      */
     public static ProductoResumenResponse from(Producto producto) {
         if (producto == null)
@@ -57,6 +61,7 @@ public class ProductoResumenResponse {
         dto.setCondicion(producto.getCondicion());
         dto.setAnio(producto.getAnio());
         dto.setFoto(primeraFoto(producto));
+        dto.setVendidos(producto.getVendidos() == null ? 0 : producto.getVendidos());
         dto.setVistos(producto.getVistos() == null ? 0 : producto.getVistos());
         dto.setAdmiteEnvio(producto.getAdmiteEnvio());
         dto.setAceptaOfertas(producto.getAceptaOfertas());
