@@ -1,10 +1,8 @@
 # CÓMO FUNCIONA
 
-Backend de un marketplace agropecuario. Los productores publican lo que venden —semillas, maquinaria, insumos—, los compradores lo cargan al carrito y cierran la compra. Las fotos que se suben pasan por un verificador con IA que chequea que la imagen se corresponda con la categoría declarada.
+Backend de un marketplace agropecuario. Los productores publican lo que venden —semillas, maquinaria, insumos—, los compradores lo cargan al carrito y cierran la compra. Las fotos que se suben pasan por un verificador con IA que chequea que la imagen se corresponda con la categoría declarada. Después de la compra hay una logística real: el vendedor despacha, una empresa de transporte mueve el paquete y el comprador califica lo que recibió.
 
 TPO de Aplicaciones Interactivas · Spring Boot 4.1 · Java 25 · MySQL 8
-
-> **Documento completo:** [`COMO-FUNCIONA.html`](COMO-FUNCIONA.html) — diagramas de las tres capas, el modelo de datos, el flujo de compra y la máquina de estados. GitHub no renderiza HTML acá adentro: descargalo y abrilo en el navegador, o mirá el resumen de abajo.
 
 ---
 
@@ -16,7 +14,9 @@ TPO de Aplicaciones Interactivas · Spring Boot 4.1 · Java 25 · MySQL 8
 
 Queda en `http://localhost:4002`. Necesita MySQL con una base `marketplace` creada; las tablas las genera Hibernate solo (`ddl-auto=update`). Las credenciales están en `src/main/resources/application.properties`.
 
-Para probarlo hay una colección de Insomnia lista en [`marketplace.insomnia.json`](marketplace.insomnia.json): 39 requests divididos en **CLIENTE** y **ADMIN**, cada uno con su descripción.
+> **Si ya tenías la base de antes**, mirá [Migraciones](#migraciones) al final. `ddl-auto=update` crea tablas y columnas nuevas, pero nunca modifica ni borra una que ya existe. Si la dropeás y la dejás armar de cero, no necesitás correr nada.
+
+Para probarlo hay una colección de Insomnia lista en [`marketplace.insomnia.json`](marketplace.insomnia.json): 74 requests agrupados por dominio, cada uno con una descripción que explica no sólo qué hace sino por qué está así.
 
 ---
 
@@ -29,45 +29,70 @@ Insomnia  ──JSON──▶  controllers  ──Request──▶  service  ─
 
 Lo que hace que la separación sea real y no sólo tres carpetas es **qué objeto viaja por cada tramo**. Una entidad JPA nunca sale de la capa de servicios: entra un `Request`, se traduce a entidad para tocar la base, y vuelve un `Response`. Por eso `GET /usuarios` no puede filtrar la contraseña por accidente — `UsuarioResponse` directamente no tiene ese campo.
 
-Ese mismo criterio se aplica dos veces con los datos personales. Hay **dos DTO distintos para una persona**, y cuál se usa depende de quién mira:
+Todos los services son **interfaz + implementación**: `ProductoService` es el contrato, `ProductoServiceImpl` el cómo. Son 20 pares. Lo que se inyecta en todos lados es la interfaz, así que cambiar una implementación no obliga a tocar a quien la usa. Los Pre y Post viven en la implementación; las interfaces van sin comentarios, porque la firma ya dice qué hace.
+
+Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `final` y Spring las inyecta por constructor. No hay un solo `@Autowired` sobre un campo en el proyecto.
+
+### Dos DTO para una persona
+
+El mismo criterio de "que no exista lo que no tiene que salir" se aplica dos veces con los datos personales:
 
 | | Qué lleva | Dónde |
 |---|---|---|
-| `UsuarioResponse` | nombre, apellido, nombre de usuario, **id, mail, dirección, rol, activo** | `/usuarios/me` y los endpoints de ADMIN |
-| `UsuarioPublicoResponse` | nombre, apellido, nombre de usuario | anidado en productos, órdenes, carrito y wishlist |
+| `UsuarioResponse` | nombre, apellido, usuario, **id, mail, dirección, rol, activo** | `/usuarios/me` y los endpoints de ADMIN |
+| `UsuarioPublicoResponse` | nombre, apellido, usuario | anidado en productos, órdenes, carrito, wishlist, envíos |
 
 La diferencia importa porque el catálogo es público. Mientras el vendedor viajaba como `UsuarioResponse` dentro de cada producto, **cualquier visitante sin cuenta podía recorrer `GET /productos` y quedarse con el mail y el domicilio de todos los que venden** — cerrar `GET /usuarios/{id}` no servía de nada mientras la misma información saliera por la puerta de al lado.
 
-En el DTO público no hay nada que filtrar: los campos que no tienen que salir **no existen**. Tampoco viaja el id, y no hace falta, porque a un vendedor se lo busca por nombre de usuario.
-
-En las órdenes vale lo mismo aunque sean las dos puntas de una compra: la orden es el pago, no la entrega. Cuando exista la entidad `Envio`, la dirección de destino va a vivir ahí, que además es su lugar — es un dato de ese envío puntual, no el domicilio que el usuario tenga cargado el día que alguien mire la orden.
-
-Ninguna clase hace `new` de otra: todas declaran sus dependencias como campos `final` y Spring las inyecta por constructor. No hay un solo `@Autowired` sobre un campo en todo el proyecto.
+Hay un tercer DTO para lo mismo: `ProductoResumenResponse`. El catálogo no devuelve el producto entero sino lo que entra en una tarjeta —foto, precio, dónde está, si es nuevo o usado—, y el resto está en `GET /productos/{id}`. Bajó de 639 a 179 bytes por producto, y lo usan también el carrito, la wishlist y las órdenes.
 
 ### Mapa del código
 
-Los controllers están agrupados por dominio, siguiendo el ejemplo de la cátedra: `controllers/productos`, `controllers/ordenes`, etc., cada uno con su controller y sus DTOs. `controllers/config` guarda las cuatro clases de Spring Security, y `controllers/common` lo que no tiene dueño.
-
 | Paquete | Clases | Responsabilidad |
 |---|---|---|
-| `controllers/*` | 34 | 8 controllers, sus 22 DTOs y las 4 clases de seguridad, agrupados por dominio. |
-| `service` | 17 | Las reglas: validaciones, cálculos, transacciones. 7 interfaces + 7 impl + 3 sin interfaz. |
-| `repository` | 8 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto. |
-| `entity` | 14 | 10 entidades JPA y 4 enums, guardados como texto. |
-
-Cada orden guarda **cuándo** se creó y cuándo fue su último cambio de estado. Con eso se puede medir el tiempo de despacho de un vendedor o cuánto lleva una orden trabada, que es la base de cualquier métrica de reputación. Lo que no se puede reconstruir es el camino completo —cuándo pasó a PAGADA y cuándo se canceló, por separado—: para eso haría falta una tabla de historial.
-| `exceptions` | 27 | Una por regla de negocio, cada una con su código HTTP en `@ResponseStatus`. |
-
-Adentro de `controllers` hay una carpeta por dominio, y cada una lleva su controller y sus DTOs:
+| `controllers/*` | 56 | 14 controllers, sus DTOs y las 4 clases de seguridad, agrupados por dominio |
+| `service` | 40 | Las reglas: validaciones, cálculos, transacciones. 20 interfaces + 20 impl |
+| `repository` | 14 | Interfaces de Spring Data. No hay una línea de SQL en el proyecto |
+| `entity` | 27 | 16 entidades JPA y 11 enums, guardados como texto |
+| `exceptions` | 43 | Una por regla de negocio, más el manejador y la clase base |
 
 ```
 controllers/
-  auth/       AutenticacionController · LoginRequest · TokenResponse
-  carritos/   CarritosController · CarritoResponse · ItemCarritoRequest · ItemCarritoResponse
-  categorias/ · fotos/ · ordenes/ · productos/ · usuarios/ · wishlist/
+  auth/  carritos/  categorias/  dashboard/  destacados/  envios/  fotos/
+  notificaciones/  ofertas/  ordenes/  productos/  resenas/  usuarios/  wishlist/
   config/     SecurityConfig · ApplicationConfig · JwtAuthenticationFilter · JwtService
-  common/     MensajeResponse, que usan cuatro controllers y no tiene dueño
+  common/     MensajeResponse y PaginaResponse, que no tienen dueño
 ```
+
+---
+
+## Errores: un solo lugar
+
+Las 40 excepciones de negocio heredan de `ExcepcionDeNegocio`, que lleva su propio `HttpStatus` adentro:
+
+```java
+public abstract class ExcepcionDeNegocio extends Exception {
+    private final HttpStatus estado;
+}
+```
+
+Y `ManejadorDeErrores`, que es un `@RestControllerAdvice`, las traduce todas con un solo método:
+
+```java
+@ExceptionHandler(ExcepcionDeNegocio.class)
+public ResponseEntity<Object> negocio(ExcepcionDeNegocio ex) {
+    return ResponseEntity.status(ex.getEstado()).body(base(ex.getEstado(), ex.getMessage()));
+}
+```
+
+El beneficio no es escribir menos: es que **hay una sola forma de error en toda la API**. Antes convivían tres —el 500 crudo de Spring con el stacktrace adentro, el `@ResponseStatus` sin cuerpo y los mensajes armados a mano—, y el front tenía que adivinar cuál le tocaba. Ahora todo sale igual:
+
+```json
+{"timestamp": "2026-09-29T14:02:11Z", "status": 409, "error": "Conflict",
+ "message": "No hay stock suficiente de \"Tractor JD 5090E\""}
+```
+
+Agregar una regla nueva es crear una clase de tres líneas. Nadie toca el manejador.
 
 ---
 
@@ -75,103 +100,96 @@ controllers/
 
 ### Publicar un producto
 
-Un `POST /productos` **no publica nada**: deja el producto en `BORRADOR` y devuelve el aviso de que falta la foto. Se publica solo cuando entra la primera imagen. Así el catálogo nunca tiene publicaciones sin foto.
+Un producto nace en **BORRADOR** y no aparece en el catálogo hasta tener **una foto aprobada**. Al crearlo hay que declarar provincia, si es nuevo o usado, y el año.
 
 ```
-BORRADOR ──sube la primera foto──▶ PUBLICADO ──▶ PAUSADO
-   ▲                                             │
-   └──────── borra la última foto ◀──────────────┘
+POST /productos          → BORRADOR
+POST /fotos              → la IA la mira
+                           APROBADA    → el producto pasa a PUBLICADO
+                           EN_REVISION → sigue en BORRADOR
+                           rechazada   → 422 y no se guarda nada
 ```
 
-Pausar, dar de baja o quedarse sin fotos **saca el producto de todos los carritos** donde estuviera cargado. Sin eso el comprador se enteraría recién al pagar.
-
-### Carrito y wishlist
-
-Se parecen —uno por usuario, con ítems y vencimiento— pero resuelven cosas distintas, y por eso son entidades separadas:
-
-| | Carrito | Wishlist |
-|---|---|---|
-| Qué es | una compra a punto de cerrarse | una lista de intenciones |
-| Cantidad por ítem | sí | no: querer algo dos veces no significa nada |
-| Totales | subtotal y total | ninguno |
-| Si el producto se pausa | **se va** del carrito | **se queda**, marcado `disponible: false` |
-| Agregar dos veces | acumula cantidad | no hace nada |
-| Vence a los | 30 días | 8 meses |
-
-Que el ítem se quede cuando el producto sale de circulación es el punto de la wishlist: sirve para volver a mirarlo cuando vuelva. En el carrito sería lo contrario — descubrir al pagar que lo que ibas a comprar ya no está.
-
-Ninguna de las dos tiene tarea programada: la limpieza es perezosa, ocurre cuando alguien mira la lista después de vencida. Y una lista vacía no vence, porque no hay nada que limpiar.
-
-### Comprar
-
-Nadie puede comprar lo que él mismo publica: la regla se chequea al agregar al carrito y otra vez al cerrar la orden, porque los chequeos de la orden no alcanzan — preguntan si sos el comprador y si sos el vendedor, y cuando sos los dos ambas dan verdadero.
-
-`POST /ordenes` cierra el carrito. Si mezcla productos de varios vendedores genera **una orden por vendedor**, porque una orden es una transacción entre dos personas: con una sola no se podría representar que un vendedor ya despachó y el otro no. Valida el stock de todo antes de escribir nada, así un ítem sin stock no deja órdenes a medio crear.
-
-La orden representa **la plata, no la logística**. Por eso tiene sólo los estados del cobro: que la mercadería se despachó, está en tránsito o llegó son hechos del envío, que tiene otro responsable y se modela aparte.
-
-```
-              ┌──▶ PAGADA        (solo ADMIN)
-PENDIENTE ────┤
-              └──▶ CANCELADA     (comprador o vendedor)
-```
-
-Las dos salidas arrancan en `PENDIENTE`, y son finales.
-
-**PAGADA la marca sólo el ADMIN.** Que el dinero entró es un hecho de un tercero, no de las partes: el comprador tiene motivo para decir que pagó sin haber pagado, y el vendedor no tiene cómo probarlo dentro del sistema. Hasta que haya una pasarela que lo confirme por webhook, lo declara quien puede mirar el comprobante. Cuando esa pasarela exista, `PAGADA` deja de ser algo que alguien pide y pasa a ser algo que el sistema escribe solo.
-
-**CANCELADA la piden comprador o vendedor**, pero sólo sobre una orden `PENDIENTE`. Una orden ya pagada no se cancela **ni siendo ADMIN**: cancelar un cobro que ya ocurrió no es un cambio de estado sino una devolución, y eso todavía no existe. Esa regla vive en la máquina de estados, no en los permisos, y por eso alcanza a todos.
-
-Si la transición no existe desde el estado actual, 409. Si existe pero no te toca, 403. El 409 se chequea primero.
+`PAUSADO` lo pone el vendedor cuando no quiere vender por un rato; vuelve a `PUBLICADO` cuando quiere.
 
 ### Subir una foto
 
-La imagen se guarda como `byte[]` en la misma tabla. Antes de guardarse se le pregunta a Gemini si se corresponde con la categoría del producto. El prompt **se arma leyendo las categorías de la base**, no de una lista fija: cuando el admin crea una categoría nueva, la siguiente verificación ya la contempla.
+El archivo entra por `multipart/form-data`, se re-codifica a JPEG con `ImageIO` y se manda a **Gemini** junto con la categoría declarada. La IA responde si la imagen coincide, con cuánta confianza, qué ve y qué categoría sugeriría.
 
-| Confianza | Resultado |
-|---|---|
-| ≥ 0,7 | `APROBADA` |
-| entre 0,4 y 0,7 | `EN_REVISION` — la resuelve un admin a mano |
-| ≤ 0,4 | `RECHAZADA` — la subida falla |
+- **coincide y confianza alta** → `APROBADA`, y el producto se publica.
+- **no coincide con confianza alta** → se rechaza con **422** y un mensaje que explica qué vio: *"parece la foto de una pantalla de computadora, no de un tractor"*. No se guarda nada.
+- **duda, o la IA no contestó** → `EN_REVISION`, y queda para que la mire un ADMIN.
 
-La clave de Gemini está escrita en `application.properties`; la variable de entorno `GEMINI_API_KEY`, si existe, le gana. Si la API no está disponible o la clave no sirve, la foto queda en `EN_REVISION`: la verificación no puede ser un punto único de falla para publicar.
+**Una foto que no está APROBADA no se muestra en público.** Ni en la tarjeta del catálogo, ni en el detalle del producto, ni por `/fotos/{id}/contenido`. Para el que no es su vendedor ni ADMIN da **404 y no 403**: un 403 ya estaría contando que hay algo ahí, y alcanzaría con probar ids. Su dueño sí las ve, que es como se entera de que quedó algo por revisar.
+
+### Comprar
+
+```
+POST /carrito/items          agregar
+POST /ordenes                cerrar la compra
+PUT  /ordenes/{id}/estado    PAGADA, sólo ADMIN
+```
+
+Al cerrar, **el carrito se parte por vendedor y por método de entrega**. Si un vendedor te vende un tractor (que no se despacha) y unas semillas, salen dos órdenes suyas: una a coordinar y otra por despacho. Cada renglón copia el nombre y el precio del momento, así que editar el producto después no reescribe la historia.
+
+La **dirección de entrega se manda al comprar**, no sale del perfil: así podés mandarle algo a otra persona o a otra dirección. Se exige sólo si algo se va a despachar; una compra toda a coordinar no la necesita.
+
+**PAGADA la marca el ADMIN.** No hay pasarela, así que ninguna de las dos partes puede probar que el dinero se movió: el vendedor diría que no le llegó y el comprador que ya pagó. Un tercero que no gana con ninguna de las dos respuestas es la única forma honesta de resolverlo sin integrar Mercado Pago. Una orden PAGADA ya no se cancela — ahí hay plata de por medio y habría que devolverla, que es un flujo que no existe.
+
+### El envío
+
+Cuando la orden pasa a PAGADA nace un `Envio`. La orden es la **plata**; el envío es la **logística**.
+
+```
+vendedor      PUT /envios/{id}/estado?estado=DESPACHADO
+              → el sistema le da AGRO-CVSP2DBYWU, lo pega en el bulto
+                y lo deja en la sucursal
+
+despachante   POST /envios/recibir?numero=AGRO-CVSP2DBYWU
+              → se lo asigna, pasa a EN_TRANSITO
+              → RECIÉN AHÍ aparece la dirección de entrega
+
+despachante   PUT /envios/{id}/estado?estado=ENTREGADO
+```
+
+**El número de seguimiento es la llave.** No hay una cola de envíos para mirar: en una sucursal uno carga el paquete que tiene en la mano, no uno de una lista. Por eso el número es aleatorio y no correlativo —si fuera `AGRO-000017` se adivinaría probando desde el uno— y sin letras que se confundan leyendo una etiqueta.
+
+Un despachante ve **lo que tiene**, no lo que existe: `GET /envios` son los que él cargó y todavía no entregó, y por id no puede abrir ninguno más. Sin esto, cualquier despachante se quedaba con la dirección de entrega de todas las compras del sistema.
+
+**El vendedor nunca declara la entrega**, y eso es a propósito: es lo que hace confiable la reseña que después lo califica. El hecho que habilita calificarlo lo escribe alguien que no gana nada con mentir.
+
+Si la entrega es a **coordinar**, no hay despachante ni número: lo declara entregado el **comprador**.
+
+### Reseñas
+
+Una por producto de la orden, del 1 al 5. Sólo la deja el comprador, sólo sobre un producto que esa orden contiene, y sólo cuando el envío figura **ENTREGADO**. No se edita ni se borra.
+
+La calificación de un vendedor (`GET /resenas/vendedor/{usuario}`) se calcula al preguntarla, no se guarda: así no puede quedar desactualizada. Un vendedor sin reseñas devuelve promedio `null`, que no es lo mismo que cero.
+
+### Ofertas
+
+El comprador propone un precio por unidad, el vendedor acepta o rechaza. Aceptar **cierra la venta**: crea la orden al precio acordado y descuenta el stock.
+
+No reserva stock mientras está pendiente —si no, cualquiera bloquearía el inventario gratis—, así que se valida al aceptar. Vencen a los 7 días. El vendedor decide producto por producto si acepta ofertas; no todo se negocia.
 
 ---
 
 ## Autenticación
-
-Nada de lo privado se puede pedir sin un token. Se consigue en uno de dos lugares:
 
 ```bash
 POST /auth/registro   # crea la cuenta y ya devuelve el token
 POST /auth/login      # mail y contraseña a cambio del token
 ```
 
-Los dos responden lo mismo:
-
-```json
-{"access_token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbmFAdGVzdC5jb20i..."}
-```
-
-y a partir de ahí todo va con el header:
-
-```
-Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
-```
+Los dos responden `{"access_token": "eyJhbGciOiJIUzUxMiJ9..."}`, y a partir de ahí todo va con `Authorization: Bearer <token>`.
 
 **Qué es ese texto.** Tres partes separadas por puntos: `header.payload.firma`. Las dos primeras son JSON en Base64 y **se leen sin ninguna clave** — pegá un token en jwt.io y vas a ver el mail y el vencimiento en claro. La tercera es `HMAC-SHA512(header+payload, clave)`. O sea que un JWT **no oculta, garantiza que no lo tocaron**: cualquiera puede leerlo, pero sólo el servidor puede fabricar uno. Por eso adentro va el mail y la fecha, nunca la contraseña.
 
 **Qué pasa en cada request.** `JwtAuthenticationFilter` corre antes que cualquier controller: lee el header, verifica la firma, busca el usuario y lo deja en el `SecurityContext`. Si no hay token, o venció, o la firma no cierra, no rechaza nada — deja el contexto vacío y sigue. Quién decide si eso alcanza es `SecurityConfig`, y esa división es lo que permite que convivan rutas públicas y privadas sin un solo `if`.
 
-**Lo público** es el catálogo: `GET /productos`, `/categorias`, `/fotos`, más el alta de usuario y las dos rutas de auth. Todo lo demás pide token.
+**El token lleva el mail adentro**, así que cambiarlo invalida el token viejo. Por eso `PUT /usuarios/me` **devuelve un token nuevo** en vez de dejarte deslogueado: el front reemplaza el que tenía guardado y la sesión sigue.
 
-**El token dura 24 horas** y no se guarda en ningún lado: que sea válido se decide verificando la firma y la fecha, no buscándolo en una tabla. Esa es la razón por la que no se puede invalidar uno antes de que venza.
-
-**Los datos de las cuentas son del ADMIN.** Ni el padrón (`GET /usuarios`) ni una cuenta puntual (`GET /usuarios/{id}`) están al alcance de un cliente: ahí salen el mail y la dirección, y juntarlos en una respuesta es armarle a cualquiera la lista de contactos de la plataforma. Para comprar no hace falta.
-
-Un cliente que quiere ver quién vende algo tampoco necesita un id: el **nombre de usuario** del vendedor viaja dentro de cada producto, y con eso pide `GET /productos/vendedor/{nombreUsuario}`, que es público y muestra lo mismo que el catálogo. Es el mismo criterio que el carrito y la wishlist — nada que el usuario tenga que averiguar por su cuenta.
-
-**Después de loguearte**, `GET /usuarios/me` te dice quién sos. El login devuelve sólo el token, así que ese es el endpoint que usa el frontend para saber a quién saludar y si mostrar el panel de administración.
+El token dura 24 horas y no se guarda en ninguna tabla: que sea válido se decide verificando la firma y la fecha. Esa es la razón por la que no se puede invalidar uno antes de que venza.
 
 Las contraseñas se guardan con **BCrypt**, que incluye una sal distinta en cada hash y es lento a propósito. Nunca se desencripta: para verificar un login se hashea lo que llega y se comparan los hashes.
 
@@ -179,113 +197,298 @@ Las contraseñas se guardan con **BCrypt**, que incluye una sal distinta en cada
 
 ## Permisos
 
-El id de quien pide la operación sale del **token**, no de la URL. Los controllers lo reciben con `@AuthenticationPrincipal` y se lo pasan a los services, que no se enteraron del cambio: siguen recibiendo un `Long` y decidiendo con las mismas reglas que cuando el id venía por query param.
+El id de quien pide sale del **token**, no de la URL. Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** pregunta quién sos. Las dos viven en `AutorizacionService`. El ADMIN atraviesa la pertenencia, y esa excepción está dentro de `validarDuenio` y no repartida por los services, para que valga en todos lados por igual.
 
-Hay dos reglas: la **pertenencia** pregunta si el recurso es tuyo, y el **rol** pregunta si sos ADMIN. Las dos viven en `AutorizacionService`. El ADMIN **atraviesa la pertenencia**: puede operar sobre lo de cualquiera, porque modera todo el sistema. Esa excepción está dentro de `validarDuenio` y no repartida por los services, justamente para que valga en todos lados por igual y no se le escape ninguna operación.
+Son tres roles:
+
+| | Qué hace |
+|---|---|
+| **CLIENTE** | Compra y vende. Es todo el mundo |
+| **ADMIN** | Modera: categorías, fotos, roles, marca las órdenes pagadas y reparte visibilidad. **No comercia** |
+| **DESPACHANTE** | Sólo mueve envíos. **No compra ni vende** |
+
+El ADMIN no participa del marketplace, y no es que le falten permisos: le sobran. Un admin que vende puede aprobarse sus propias fotos y despacharse sus propias órdenes; uno que compra audita transacciones en las que es parte.
+
+El despachante **se crea en dos pasos**: se registra como cualquiera y después un ADMIN lo promueve con `PUT /usuarios/{id}/rol?rol=DESPACHANTE`. Y es un camino de ida: `DESPACHANTE → CLIENTE` da 409, porque manejó envíos y vio direcciones de entrega de todo el mundo.
 
 | Operación | Quién |
 |---|---|
 | Editar, pausar o dar de baja un producto | su vendedor · ADMIN |
-| Subir una foto | sólo el vendedor del producto |
-| Borrar una foto | el vendedor del producto · ADMIN |
-| Ver o tocar el carrito | sólo su dueño: la ruta no admite un id ajeno |
-| Ver o tocar la wishlist | sólo su dueño |
-| Editar o dar de baja la cuenta propia | esa misma cuenta |
+| Subir o dar de baja una foto | el vendedor del producto · ADMIN |
+| Ver o tocar el carrito y la wishlist | sólo su dueño: la ruta no admite un id ajeno |
 | Ver el padrón o los datos de una cuenta ajena | sólo ADMIN |
 | Ver el mail, la dirección, el rol o el id de otro | nadie: no salen en ninguna respuesta compartida |
-| Ver las publicaciones propias | cualquier CLIENTE — el ADMIN no, no publica |
 | Ver una orden | comprador · vendedor · ADMIN |
-| Listar órdenes | las propias — el ADMIN ve todas |
-| Pagar una orden | **sólo ADMIN** — sin pasarela, nadie más puede probarlo |
+| Marcar una orden PAGADA | **sólo ADMIN** |
 | Cancelar una orden PENDIENTE | comprador · vendedor · ADMIN |
 | Cancelar una orden PAGADA | nadie, tampoco el ADMIN |
-| Reactivar una cuenta o cambiar un rol | sólo ADMIN |
-| Crear, editar o borrar categorías | ADMIN |
-| Moderar fotos | ADMIN |
+| Despachar un envío | su vendedor |
+| Recibirlo y entregarlo | el DESPACHANTE que lo cargó por número |
+| Declarar entregado un COORDINAR | el comprador |
+| Ver un envío | su comprador, su vendedor, ADMIN · el despachante sólo el suyo en curso |
+| Calificar | el comprador, con el envío ENTREGADO |
+| Aceptar o rechazar una oferta | el vendedor del producto |
+| Repartir visibilidad pagada | sólo ADMIN |
+| Crear, editar o dar de baja categorías | ADMIN |
 | Comprar un producto | cualquier CLIENTE menos su vendedor |
-| Publicar, carritear o comprar | **el ADMIN no**: modera, no comercia |
+| Publicar, carritear o comprar | **ADMIN y DESPACHANTE no** |
 | Ver el catálogo y crear una cuenta | abierto |
-
-El ADMIN **no participa del marketplace**: no publica, no carga el carrito y no compra. No es que le falten permisos, es que le sobran — un admin que vende puede aprobarse sus propias fotos y despacharse sus propias órdenes, y uno que compra audita transacciones en las que es parte. Separar los dos papeles evita tener que confiar en que no los mezcle.
-
-Tampoco puede saltear las reglas que no son de permisos: una transición de estado que no existe le da 409 igual, porque ahí el problema no es quién lo pide sino que la orden quedaría en un estado sin sentido. Ni quitarse el rol a sí mismo: si el último administrador se degrada, no queda nadie que pueda promover a nadie.
 
 ---
 
-## Los 47 endpoints
+## Bajas: nada se borra
+
+Casi nada. **No hay un solo `repository.delete()` en el proyecto.**
+
+| | Cómo se da de baja |
+|---|---|
+| Usuario, producto, categoría, foto | `activo = false` · `PUT .../baja`, se deshace con `PUT .../reactivar` |
+| Orden, oferta | cambian de estado a `CANCELADA` |
+| Ítem de carrito, ítem de wishlist | **se borran de verdad** |
+
+Los dos últimos son la única excepción, y es deliberada: un ítem de carrito no es historia de nada, y dejarlo con un flag obligaría a filtrarlo en cada consulta para siempre.
+
+Por eso **`DELETE` significa una sola cosa en toda la API**: esto borra filas. Quedan cuatro, todos de carrito y wishlist. Las bajas lógicas son `PUT .../baja`, haciendo par con `/reactivar`. Así la diferencia se ve en la lista de endpoints sin leer una descripción.
+
+Dar de baja un usuario **arrastra sus publicaciones**: salen del catálogo y de los carritos de todos los demás, para que nadie se entere recién al pagar de que compró algo de un vendedor que ya no está.
+
+---
+
+## Listados: todo paginado
+
+Los 13 listados que pueden crecer sin techo devuelven un sobre, no un array:
+
+```json
+{"contenido": [...], "pagina": 0, "tamanio": 20, "total": 143, "totalPaginas": 8}
+```
+
+Se pide con `?pagina=` (arranca en 0) y `?tamanio=` (20 por defecto, 100 de tope). **Pedir una página que no existe devuelve la última**, no una lista vacía: el que estaba en la página 9 y perdió resultados no se queda mirando la nada.
+
+Quedan sin paginar los que están acotados por diseño: el árbol de categorías, que el front necesita entero para armar el menú; las fotos de un producto, que van todas en la galería; y los similares, topeados en 8.
+
+**Ningún listado devuelve una lista vacía.** Si no hay resultados sale un 404 con un mensaje que explica qué pasó, porque un `[]` en el front es una pantalla en blanco sin explicación.
+
+---
+
+## Los 68 endpoints
 
 Todo lo que no diga **público** necesita `Authorization: Bearer <token>`.
+
+**Auth**
 
 | | Ruta | Qué hace |
 |---|---|---|
 | `POST` | `/auth/registro` | Crea la cuenta y devuelve el token · **público** |
 | `POST` | `/auth/login` | Mail y contraseña a cambio del token · **público** |
+
+**Usuarios**
+
+| | Ruta | Qué hace |
+|---|---|---|
 | `GET` | `/usuarios/me` | Quién soy, según el token |
+| `PUT` | `/usuarios/me` | Editar mi cuenta. Devuelve un **token nuevo** |
+| `PUT` | `/usuarios/me/baja` | Darme de baja. Arrastra mis publicaciones |
+| `GET` | `/usuarios` | El padrón · **ADMIN** · paginado |
+| `GET` | `/usuarios/{id}` | Una cuenta con todos sus datos · **ADMIN** |
+| `PUT` | `/usuarios/{id}/baja` | Dar de baja a otro · **ADMIN** |
+| `PUT` | `/usuarios/{id}/reactivar` | Reactivar una cuenta · **ADMIN** |
+| `PUT` | `/usuarios/{id}/rol` | Cambiar el rol · **ADMIN** · de despachante a cliente, 409 |
+
+**Categorías**
+
+| | Ruta | Qué hace |
+|---|---|---|
 | `GET` | `/categorias` | Listar. Con `?soloRaices=true`, sólo las de primer nivel · **público** |
-| `GET` | `/categorias/{id}` | Una categoría |
-| `GET` | `/categorias/{id}/subcategorias` | Sus hijas directas |
+| `GET` | `/categorias/{id}` | Una categoría · **público** |
+| `GET` | `/categorias/{id}/subcategorias` | Sus hijas directas · **público** |
 | `POST` | `/categorias` | Alta · **ADMIN** |
 | `PUT` | `/categorias/{id}` | Editar o mover en el árbol · **ADMIN** |
-| `DELETE` | `/categorias/{id}` | Baja. 409 si tiene hijas o productos · **ADMIN** |
-| `GET` | `/productos` | Catálogo: sólo activos y PUBLICADOS. Filtra por categoría, nombre y precio, no por vendedor · **público** |
-| `GET` | `/productos/mis-publicaciones` | Las propias, borradores y pausadas incluidas. El ADMIN no: no publica |
-| `GET` | `/productos/todos` | El catálogo entero, sin los filtros del comprador · **ADMIN** |
-| `GET` | `/productos/{id}` | Un producto, con categoría, vendedor y fotos · **público** |
-| `GET` | `/productos/vendedor/{nombreUsuario}` | La vidriera de un vendedor, buscada por nombre de usuario · **público** |
-| `POST` | `/productos` | Alta. Nace en BORRADOR |
+| `PUT` | `/categorias/{id}/baja` | Baja lógica. 409 si tiene hijas o productos · **ADMIN** |
+| `PUT` | `/categorias/{id}/reactivar` | Deshacerla · **ADMIN** |
+
+**Productos**
+
+| | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/productos` | El catálogo · **público** · paginado |
+| `GET` | `/productos/{id}` | Vista completa. Suma una visita, salvo la del propio vendedor · **público** |
+| `GET` | `/productos/{id}/similares` | Hasta 8 parecidos · **público** |
+| `GET` | `/productos/vendedor/{usuario}` | La vidriera de un vendedor · **público** · paginado |
+| `GET` | `/productos/mis-publicaciones` | Las propias, borradores incluidos · paginado |
+| `GET` | `/productos/todos` | Todas las del sistema · **ADMIN** · paginado |
+| `POST` | `/productos` | Publicar. Nace en BORRADOR |
 | `PUT` | `/productos/{id}` | Editar |
-| `PUT` | `/productos/{id}/estado` | Pausar o reanudar |
-| `PUT` | `/productos/{id}/reactivar` | Devuelve al catálogo un producto dado de baja |
-| `DELETE` | `/productos/{id}` | Baja lógica |
-| `GET` | `/usuarios` | Listar los activos, sin contraseña · **ADMIN** |
-| `GET` | `/usuarios/{id}` | Los datos de una cuenta · **ADMIN** |
-| `PUT` | `/usuarios/me` | Editar mi cuenta. El rol no se toca desde el body |
-| `PUT` | `/usuarios/{id}/reactivar` | Vuelve a poner en circulación una cuenta · **ADMIN** |
-| `PUT` | `/usuarios/{id}/rol` | Promueve o degrada · **ADMIN** |
-| `DELETE` | `/usuarios/me` | Darme de baja. El historial de órdenes sobrevive |
-| `DELETE` | `/usuarios/{id}` | Dar de baja a otro · **ADMIN** |
-| `GET` | `/carrito` | Mi carrito, vaciado si venció |
-| `POST` | `/carrito/items` | Agregar. Acumula si ya estaba |
-| `PUT` | `/carrito/items/{item}` | Cambiar cantidad |
-| `DELETE` | `/carrito/items/{item}` | Sacar un ítem |
-| `DELETE` | `/carrito` | Vaciar |
-| `GET` | `/wishlist` | Lo guardado para más adelante |
-| `POST` | `/wishlist/items` | Guardar un producto. Idempotente |
-| `DELETE` | `/wishlist/items/{item}` | Sacar uno |
-| `DELETE` | `/wishlist` | Vaciar |
-| `GET` | `/ordenes` | Sólo las del solicitante. Con `?rol=` se mira una punta; el ADMIN las ve todas |
-| `GET` | `/ordenes/{id}` | Una orden con sus renglones. 403 si no sos parte |
-| `POST` | `/ordenes` | Cerrar el carrito. Devuelve una orden por vendedor |
-| `PUT` | `/ordenes/{id}/estado` | Avanzar el estado, según quién lo pida; el **ADMIN** puede cualquiera |
-| `GET` | `/fotos?idProducto=` | Fotos de un producto |
-| `GET` | `/fotos/{id}` | Metadatos de una foto |
-| `POST` | `/fotos` | Subir. Verifica con IA antes de guardar |
-| `GET` | `/fotos/{id}/contenido` | La imagen cruda, servible en un `<img>` |
-| `GET` | `/fotos/{id}/base64` | La misma imagen dentro de un JSON |
-| `GET` | `/fotos/pendientes` | Cola de revisión; con `?estado=` mira lo ya resuelto · **ADMIN** |
-| `PUT` | `/fotos/{id}/revision` | Aprobar o rechazar · **ADMIN** |
-| `DELETE` | `/fotos/{id}` | Borrado real. Si era la última, el producto vuelve a BORRADOR |
+| `PUT` | `/productos/{id}/estado` | PUBLICADO ⇄ PAUSADO |
+| `PUT` | `/productos/{id}/baja` | Baja lógica |
+| `PUT` | `/productos/{id}/reactivar` | Deshacerla |
+| `PUT` | `/productos/{id}/destacar` | Visibilidad paga, por meses · **ADMIN** |
+
+Los filtros del catálogo se combinan entre sí: `idCategoria` (incluye las subcategorías), `nombre`, `precioMin`, `precioMax`, `enOferta`, `provincia`, `condicion`, `anioDesde`, `anioHasta`, `admiteEnvio` y `orden` (`precio_asc`, `precio_desc`, `vistos`, `vendidos`). Sin `?orden=` los destacados van primero; con `?orden=` la visibilidad no interviene, porque si pediste precio la lista tiene que estar por precio.
+
+**Fotos**
+
+| | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/fotos?idProducto=` | Las de un producto · **público**, sólo las aprobadas |
+| `GET` | `/fotos/{id}` | Metadatos, con lo que dijo la IA · **público**, sólo aprobadas |
+| `GET` | `/fotos/{id}/contenido` | Los bytes, para el `src` de un `img` · **público**, sólo aprobadas |
+| `GET` | `/fotos/{id}/base64` | Lo mismo, embebido en JSON · **público**, sólo aprobadas |
+| `POST` | `/fotos` | Subir. `multipart/form-data` |
+| `GET` | `/fotos/pendientes` | La cola de revisión · **ADMIN** · paginado |
+| `PUT` | `/fotos/{id}/revision` | Aprobar o rechazar a mano · **ADMIN** |
+| `PUT` | `/fotos/{id}/baja` | Baja lógica |
+
+**Carrito y wishlist**
+
+| | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/carrito` | El propio, con subtotal y total |
+| `POST` | `/carrito/items` | Agregar. Si ya estaba, suma |
+| `PUT` | `/carrito/items/{id}` | Cambiar la cantidad. Es absoluta, no un incremento |
+| `DELETE` | `/carrito/items/{id}` | Sacar un ítem |
+| `DELETE` | `/carrito` | Vaciarlo |
+| `GET` | `/wishlist` | La propia |
+| `POST` | `/wishlist/items` | Guardar un producto |
+| `DELETE` | `/wishlist/items/{id}` | Sacarlo |
+| `DELETE` | `/wishlist` | Vaciarla |
+
+**Órdenes**
+
+| | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/ordenes` | Las propias. Con `?rol=COMPRADOR\|VENDEDOR` filtra · paginado |
+| `GET` | `/ordenes/{id}` | Una orden con sus renglones |
+| `POST` | `/ordenes` | Cerrar el carrito. Lleva la dirección de entrega |
+| `PUT` | `/ordenes/{id}/estado` | PAGADA sólo ADMIN · CANCELADA sólo desde PENDIENTE |
+
+**Envíos**
+
+| | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/envios` | Depende del rol · paginado |
+| `GET` | `/envios/{id}` | Uno, con su seguimiento y sus fechas |
+| `GET` | `/envios/historial` | Lo que entregué · **DESPACHANTE** · paginado |
+| `POST` | `/envios/recibir?numero=` | Cargar un paquete en la sucursal · **DESPACHANTE** |
+| `PUT` | `/envios/{id}/estado` | DESPACHADO el vendedor · ENTREGADO quien lo cargó |
+
+**Ofertas, reseñas y lo demás**
+
+| | Ruta | Qué hace |
+|---|---|---|
+| `POST` | `/ofertas` | Proponer un precio. Lleva la dirección de entrega |
+| `GET` | `/ofertas` | Las que hice y las que recibí · paginado |
+| `PUT` | `/ofertas/{id}/aceptar` | Cierra la venta · el vendedor |
+| `PUT` | `/ofertas/{id}/rechazar` | El comprador puede volver a ofertar más alto |
+| `PUT` | `/ofertas/{id}/cancelar` | Retirarla, sólo mientras siga PENDIENTE |
+| `POST` | `/resenas` | Calificar un producto de una orden entregada |
+| `GET` | `/resenas/producto/{id}` | Las de un producto · **público** · paginado |
+| `GET` | `/resenas/vendedor/{usuario}` | Promedio y cantidad · **público** |
+| `GET` | `/notificaciones` | Las propias · paginado |
+| `GET` | `/notificaciones/no-leidas` | `{"cantidad": N}`, para el badge de la campanita |
+| `PUT` | `/notificaciones/{id}/leida` | Marcarla |
+| `GET` | `/dashboard` | El tablero del vendedor |
+| `GET` | `/destacados` | Historial de visibilidad paga · paginado |
+
+---
+
+## Los estados
+
+| Enum | Valores |
+|---|---|
+| `TipoUsuario` | ADMIN · CLIENTE · DESPACHANTE |
+| `EstadoPublicacion` | BORRADOR · PUBLICADO · PAUSADO |
+| `EstadoVerificacion` | APROBADA · EN_REVISION |
+| `EstadoOrden` | PENDIENTE · PAGADA · CANCELADA |
+| `MetodoEntrega` | DESPACHO · COORDINAR |
+| `EstadoEnvio` | PENDIENTE · DESPACHADO · EN_TRANSITO · ENTREGADO |
+| `EstadoOferta` | PENDIENTE · ACEPTADA · RECHAZADA · CANCELADA · VENCIDA |
+| `TipoNotificacion` | BAJA_DE_PRECIO · POCO_STOCK · DISPONIBLE_OTRA_VEZ · OFERTA_RECIBIDA · OFERTA_RESPONDIDA |
+| `NivelDestacado` | NINGUNO · BASICO · DESTACADO · PREMIUM |
+| `CondicionProducto` | NUEVO · USADO |
+| `Provincia` | Las 24 jurisdicciones |
+
+Los enums se guardan **como texto** (`@Enumerated(EnumType.STRING)`), no como número: un `2` en la base no dice nada y se corre si alguien reordena el enum.
+
+---
+
+## Tareas programadas
+
+Cuatro `@Scheduled` barren lo que venció, con su frecuencia configurable en `application.properties`:
+
+| Tarea | Qué hace |
+|---|---|
+| `LimpiadorDeCarritos` | Vacía los carritos sin tocar por 30 días |
+| `LimpiadorDeWishlists` | Lo mismo a los 8 meses: es una lista de intenciones, no una compra en curso |
+| `LimpiadorDeOfertas` | Vence las que nadie respondió en 7 días |
+| `LimpiadorDeDestacados` | Baja los destacados que se terminaron |
+
+Todas conservan además el chequeo perezoso que había antes —al mirar tu carrito también se valida—, como red por si la tarea no corrió.
 
 ---
 
 ## Decisiones
 
-**Baja lógica en usuarios y productos.** Las órdenes los referencian para siempre. Un `DELETE` real borraría el historial de ventas de un vendedor que no tuvo nada que ver. Se marcan `activo = false`: salen de los listados y no se pueden comprar, pero la orden se sigue leyendo.
+**Por qué el ADMIN marca las órdenes como pagadas.** Está arriba, en el flujo de compra: sin pasarela, ninguna de las partes puede probar que el dinero se movió.
 
-**El binario en la base, no en disco.** La foto va como `byte[]` a una columna `LONGBLOB`. Evita coordinar el sistema de archivos con la base al borrar. El costo es que `Producto` carga sus fotos en `EAGER`.
+**Por qué el vendedor no declara la entrega.** Porque es lo que habilita la reseña que lo califica. Lo escribe el despachante, que no gana nada con mentir.
 
-**DTOs en las dos direcciones.** Los `Request` no tienen `id`, así que nadie puede pisar el de otro registro. Los `Response` no tienen `contrasena`, así que no puede filtrarse en un listado anidado.
+**Por qué el número de seguimiento es la llave del envío.** Porque es lo único que prueba tener el paquete en la mano. Si hubiera una cola para mirar, pedir el número sería copiar algo de la pantalla.
 
-**Excepciones con `@ResponseStatus`.** 27 excepciones de dominio, cada una con su código. Spring las traduce sola, sin un handler.
+**Por qué el catálogo trae poco.** Una tarjeta necesita foto, precio y poco más. El resto es una llamada más, sólo cuando alguien abre el producto.
 
-**Filtros con streams.** El catálogo se filtra en Java sobre `findAll()`. Es legible y alcanza para el volumen del TPO, pero trae toda la tabla a memoria.
+**Por qué las bajas son lógicas.** Una orden vieja tiene que poder mostrar qué se compró aunque el producto ya no se venda.
+
+**Por qué los ids no viajan en las rutas propias.** `/carrito`, `/wishlist`, `/usuarios/me`, `/dashboard`, `/envios`: si la ruta no admite un id, no hay forma de pedir el de otro. La regla se cumple sola en vez de validarse.
+
+---
+
+## Migraciones
+
+Sólo hacen falta si ya tenías la base cargada de antes. **Si la dropeás y dejás que Hibernate la arme de cero, no corras nada.**
+
+`ddl-auto=update` crea tablas y columnas nuevas, pero **nunca modifica ni borra una que ya existe**. Eso deja dos casos a mano:
+
+**1. Los enums.** Con `@Enumerated(EnumType.STRING)`, Hibernate en MySQL no crea un `VARCHAR` sino un `ENUM(...)` nativo con la lista clavada en el tipo de la columna. Agregar un valor al enum de Java no la cambia, y MySQL tira `Data truncated for column`. Hay que hacerlo a mano:
+
+```sql
+ALTER TABLE orden_de_compra MODIFY estado ENUM('PENDIENTE','PAGADA','CANCELADA') NOT NULL;
+ALTER TABLE envio MODIFY estado ENUM('PENDIENTE','DESPACHADO','EN_TRANSITO','ENTREGADO') NOT NULL;
+ALTER TABLE usuario MODIFY rol ENUM('ADMIN','CLIENTE','DESPACHANTE') NOT NULL;
+```
+
+**2. Las columnas NOT NULL sobre tablas con filas.** MySQL tiene que inventar un valor para lo que ya está, y para un ENUM inventa `''`, que no es válido. Se agregan nullable, se completan y recién ahí se marcan:
+
+```sql
+ALTER TABLE producto
+  ADD COLUMN provincia ENUM('BUENOS_AIRES','CABA','CATAMARCA','CHACO','CHUBUT','CORDOBA',
+    'CORRIENTES','ENTRE_RIOS','FORMOSA','JUJUY','LA_PAMPA','LA_RIOJA','MENDOZA','MISIONES',
+    'NEUQUEN','RIO_NEGRO','SALTA','SAN_JUAN','SAN_LUIS','SANTA_CRUZ','SANTA_FE',
+    'SANTIAGO_DEL_ESTERO','TIERRA_DEL_FUEGO','TUCUMAN') NULL,
+  ADD COLUMN condicion ENUM('NUEVO','USADO') NULL,
+  ADD COLUMN anio INT NULL;
+
+UPDATE producto SET provincia='BUENOS_AIRES', condicion='USADO', anio=2020
+ WHERE provincia IS NULL;
+
+ALTER TABLE producto
+  MODIFY provincia ENUM(/* las 24 */) NOT NULL,
+  MODIFY condicion ENUM('NUEVO','USADO') NOT NULL,
+  MODIFY anio INT NOT NULL;
+```
+
+Y una columna que se fue, porque la dirección ahora vive en la orden:
+
+```sql
+ALTER TABLE envio DROP COLUMN direccion_entrega;
+ALTER TABLE envio ADD UNIQUE KEY uk_envio_seguimiento (numero_seguimiento);
+```
 
 ---
 
 ## Lo que queda pendiente
 
-- **Manejo centralizado de errores.** Sin `@RestControllerAdvice`, un error no contemplado sale como 500 con el SQL adentro.
-- **Paginación.** Todos los listados devuelven la colección completa.
-- **Bloqueo pesimista en el stock.** Dos compras simultáneas del último producto pueden dejar stock negativo.
-- **Rango del descuento.** No valida estar entre 0 y 100: un valor mayor da totales negativos.
-- **WebP.** `ImageIO` no lo lee, así que esas subidas saltean la verificación con IA.
+- **Paginación en la base.** El sobre está, pero el corte se hace sobre la lista ya armada: la consulta sigue trayendo todo. Con miles de productos habría que llevar los filtros y el orden a SQL.
+- **WebP.** `ImageIO` no lo lee, así que esas subidas no llegan a Gemini y quedan `EN_REVISION`. Desde que las no aprobadas no se muestran, el agujero se cerró, pero el formato sigue sin funcionar.
+- **Historial de estados.** Cada orden guarda cuándo se creó y cuándo cambió por última vez, pero no el camino completo. Para eso haría falta una tabla aparte.
+- **El rodeo de dos pasos en los roles.** Un ADMIN puede hacer `DESPACHANTE → ADMIN → CLIENTE`, porque la regla mira el rol de hoy. Cerrarlo pide guardar un "fue despachante" en el usuario.
+- **Qué lleva cada envío.** El historial del despachante dice qué entregó; el envío en curso todavía no, y tampoco de dónde retirarlo.
