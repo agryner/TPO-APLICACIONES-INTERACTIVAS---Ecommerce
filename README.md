@@ -57,6 +57,17 @@ El resto está en `GET /productos/{id}`. Lo usan también el carrito, la wishlis
 
 La `calificacion` es el promedio del **producto** y `nivelVendedor` el del **vendedor**: son dos cosas distintas y las dos se resuelven en **una consulta agregada cada una** para toda la página. Un producto sin reseñas devuelve `null`, que no es lo mismo que cero.
 
+### La página del producto
+
+`GET /productos/{id}` devuelve de una lo que se ve sin scrollear: todo lo de la tarjeta, la descripción, las fotos, la categoría, el cuadro de **vendido por** —nombre, nivel y su calificación general— y las **3 reseñas más nuevas**.
+
+Dos cosas quedan afuera a propósito, y el front las pide después:
+
+- **Todas las reseñas**, en `/resenas/producto/{id}`. El costo de mandarlas crece con el éxito del producto: el que tiene trescientas es justo el que más se abre.
+- **Los similares**, en `/productos/{id}/similares`. Esa consulta recorre la tabla entera de productos; metida en el detalle, la pagaría cada apertura aunque el usuario nunca baje hasta el carrusel.
+
+El vendedor viaja en un `VendedorResponse` propio y no en el `UsuarioPublicoResponse` de siempre, porque ese se usa en otros seis lugares donde un nivel de vendedor no significa nada — en una orden describe también al comprador.
+
 ### Mapa del código
 
 | Paquete | Clases | Responsabilidad |
@@ -335,7 +346,7 @@ Todo lo que no diga **público** necesita `Authorization: Bearer <token>`.
 | | Ruta | Qué hace |
 |---|---|---|
 | `GET` | `/productos` | El catálogo · **público** · paginado |
-| `GET` | `/productos/{id}` | Vista completa. Suma una visita, salvo la del propio vendedor · **público** |
+| `GET` | `/productos/{id}` | La página del producto entera. Suma una visita, salvo la del propio vendedor · **público** |
 | `GET` | `/productos/{id}/similares` | Hasta 8 parecidos · **público** |
 | `GET` | `/productos/vendedor/{usuario}` | La vidriera de un vendedor · **público** · paginado |
 | `GET` | `/productos/mis-publicaciones` | Las propias, borradores incluidos · paginado |

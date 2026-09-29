@@ -5,6 +5,7 @@ import com.uade.tpo.marketplace.controllers.productos.ProductoRequest;
 import com.uade.tpo.marketplace.controllers.productos.ProductoCreadoResponse;
 import com.uade.tpo.marketplace.controllers.productos.ProductoResponse;
 import com.uade.tpo.marketplace.controllers.productos.ProductoResumenResponse;
+import com.uade.tpo.marketplace.controllers.productos.VendedorResponse;
 import java.math.BigDecimal;
 import java.time.Year;
 import java.util.ArrayDeque;
@@ -52,6 +53,9 @@ public class ProductoServiceImpl implements ProductoService {
     private final CarritoService carritoService;
     private final NivelVendedorService nivelVendedorService;
     private final ResenaService resenaService;
+
+    /** Cuantas resenas se ven en el detalle sin pedir la lista completa. */
+    private static final int ULTIMAS_RESENAS = 3;
 
     /**
      * Pre : los filtros, todos opcionales: categoria, nombre, rango de precio
@@ -240,7 +244,37 @@ public class ProductoServiceImpl implements ProductoService {
             producto = productoRepository.save(producto);
         }
 
-        return ProductoResponse.from(producto);
+        ProductoResponse dto = ProductoResponse.from(producto);
+
+        ResenaService.Calificacion delProducto = resenaService.calificacionesDeProductos()
+                .get(producto.getId());
+        if (delProducto != null) {
+            dto.setCalificacion(delProducto.promedio());
+            dto.setCantidadResenas(delProducto.cantidad());
+        }
+
+        dto.setVendedor(cuadroDelVendedor(producto.getVendedor()));
+        dto.setUltimasResenas(resenaService.ultimasDeProducto(producto.getId(), ULTIMAS_RESENAS));
+        return dto;
+    }
+
+    /**
+     * Pre : el vendedor del producto.
+     * Post: el cuadro de "vendido por": quien es y que nivel tiene, con la
+     *       calificacion de la que sale ese nivel. Sin mail ni direccion: al
+     *       vendedor se lo busca por nombre de usuario.
+     */
+    private VendedorResponse cuadroDelVendedor(Usuario vendedor) {
+        if (vendedor == null)
+            return null;
+
+        ResenaService.Calificacion suya = resenaService.calificacionesDeVendedores()
+                .get(vendedor.getId());
+        Double promedio = suya == null ? null : suya.promedio();
+        long cantidad = suya == null ? 0 : suya.cantidad();
+
+        return VendedorResponse.from(vendedor,
+                nivelVendedorService.calcular(promedio, cantidad), promedio, cantidad);
     }
 
     /**

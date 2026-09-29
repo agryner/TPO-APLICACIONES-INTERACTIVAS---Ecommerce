@@ -17,6 +17,9 @@ public interface ResenaService {
     record Calificacion(Double promedio, long cantidad) {}
 
     Map<Long, Calificacion> calificacionesDeProductos();
+    Map<Long, Calificacion> calificacionesDeVendedores();
+
+    List<ResenaResponse> ultimasDeProducto(Long idProducto, int cuantas);
 
     ResenaResponse crear(ResenaRequest request, Long idSolicitante)
             throws OrdenNoEncontradaException, OperacionAjenaException, ProductoFueraDeLaOrdenException, EntregaPendienteException, ResenaDuplicadaException, UsuarioNoEncontradoException;

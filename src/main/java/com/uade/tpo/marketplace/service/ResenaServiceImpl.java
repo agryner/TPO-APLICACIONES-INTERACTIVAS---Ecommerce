@@ -138,16 +138,47 @@ public class ResenaServiceImpl implements ResenaService {
      *       las tarjetas de la pagina.
      */
     public Map<Long, Calificacion> calificacionesDeProductos() {
-        Map<Long, Calificacion> porProducto = new HashMap<>();
+        return agrupar(resenaRepository.resumenPorProducto());
+    }
 
-        for (Object[] fila : resenaRepository.resumenPorProducto()) {
+    /**
+     * Pre : nada.
+     * Post: lo mismo pero por vendedor, para el cuadro de "vendido por" del
+     *       detalle. Sale de la misma consulta agregada que el nivel.
+     */
+    public Map<Long, Calificacion> calificacionesDeVendedores() {
+        return agrupar(resenaRepository.resumenPorVendedor());
+    }
+
+    /**
+     * Pre : las filas (id, promedio, cantidad) de una consulta agregada.
+     * Post: el mismo dato como mapa, con el promedio redondeado a dos
+     *       decimales.
+     */
+    private Map<Long, Calificacion> agrupar(List<Object[]> filas) {
+        Map<Long, Calificacion> porId = new HashMap<>();
+
+        for (Object[] fila : filas) {
             double promedio = ((Number) fila[1]).doubleValue();
-            porProducto.put((Long) fila[0],
+            porId.put((Long) fila[0],
                     new Calificacion(Math.round(promedio * 100) / 100.0,
                             ((Number) fila[2]).longValue()));
         }
 
-        return porProducto;
+        return porId;
+    }
+
+    /**
+     * Pre : el producto y cuantas resenas se quieren.
+     * Post: las mas nuevas primero. Es para el detalle del producto, que
+     *       muestra las ultimas sin traerlas todas: un producto con
+     *       trescientas resenas es justo el que mas se abre.
+     */
+    public List<ResenaResponse> ultimasDeProducto(Long idProducto, int cuantas) {
+        return resenaRepository.findByProductoIdOrderByFechaDesc(idProducto).stream()
+                .limit(cuantas)
+                .map(ResenaResponse::from)
+                .toList();
     }
 
     public CalificacionResponse getCalificacion(String nombreUsuario)

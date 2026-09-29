@@ -516,7 +516,7 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Obtener producto por id",
-      "description": "Vista COMPLETA: categoria, vendedor, fotos, stock, estado. Ademas SUMA UNA VISITA al contador, salvo que quien lo abre sea el propio vendedor. Es publico.",
+      "description": "LA PAGINA DEL PRODUCTO en un solo request: todo lo de la tarjeta (foto, precio, precioFinal, calificacion, cantidadResenas, vendidos) mas la descripcion, las fotos, la categoria, el cuadro de VENDIDO POR (nombre, nivel BRONCE/ORO/PLATINO y la calificacion general del vendedor) y las 3 ULTIMAS RESENAS.\n\nLo que NO viene y el front pide aparte, a proposito:\n- todas las resenas -> GET /resenas/producto/{id}, paginado. Un producto con trescientas es justo el que mas se abre; mandarlas todas haria que tarde mas cuanto mas popular es.\n- los similares -> GET /productos/{id}/similares. Esa consulta recorre la tabla entera de productos, y meterla aca la pagaria cada apertura aunque el usuario nunca baje hasta el carrusel.\n\nAdemas SUMA UNA VISITA al contador, salvo que quien lo abre sea el propio vendedor. Es publico.",
       "method": "GET",
       "url": "http://localhost:4002/productos/1",
       "headers": [],
