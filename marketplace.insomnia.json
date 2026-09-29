@@ -206,11 +206,26 @@
       "_type": "request",
       "parentId": "fld_usuarios",
       "name": "Listar usuarios",
-      "description": "SOLO ADMIN (marcos56@test.com): 403 con un token de cliente. Aca salen el mail y la direccion de todo el mundo, que no es asunto de quien compra.",
+      "description": "SOLO ADMIN (marcos56@test.com): 403 con un token de cliente. Aca salen el mail y la direccion de todo el mundo, que no es asunto de quien compra.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "method": "GET",
       "url": "http://localhost:4002/usuarios",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_os_1",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_os_1",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "body": {},
       "metaSortKey": 1,
       "authentication": {
@@ -319,7 +334,7 @@
       "_type": "request",
       "parentId": "fld_productos",
       "name": "Listar productos",
-      "description": "Catalogo publico en VISTA REDUCIDA: nombre, precio, precioFinal con el descuento ya aplicado, provincia, ubicacion, condicion, anio, una foto, vistos, admiteEnvio, aceptaOfertas, nivelDestacado y disponible. El resto esta en GET /productos/{id}.\n\nLos ONCE filtros son opcionales y se COMBINAN entre si. provincia y condicion son exactos y van en MAYUSCULAS: \"chaco\" da 400, no cero resultados. El rango de anio es cerrado de los dos lados, y anioDesde=anioHasta busca un anio exacto. admiteEnvio=false es un filtro tan util como el otro: el que compra un tractor busca justo los que se retiran.\n\nSIN ?orden= los destacados van primero; CON ?orden= la visibilidad no interviene. Si ningun producto coincide da 404, no una lista vacia. OJO: ya no existe ?vendedor= ni ?ordenPrecio=. Un parametro que sobra se ignora en silencio.",
+      "description": "Catalogo publico en VISTA REDUCIDA: nombre, precio, precioFinal con el descuento ya aplicado, provincia, ubicacion, condicion, anio, una foto, vistos, admiteEnvio, aceptaOfertas, nivelDestacado y disponible. El resto esta en GET /productos/{id}.\n\nLos ONCE filtros son opcionales y se COMBINAN entre si. provincia y condicion son exactos y van en MAYUSCULAS: \"chaco\" da 400, no cero resultados. El rango de anio es cerrado de los dos lados, y anioDesde=anioHasta busca un anio exacto. admiteEnvio=false es un filtro tan util como el otro: el que compra un tractor busca justo los que se retiran.\n\nSIN ?orden= los destacados van primero; CON ?orden= la visibilidad no interviene. Si ningun producto coincide da 404, no una lista vacia. OJO: ya no existe ?vendedor= ni ?ordenPrecio=. Un parametro que sobra se ignora en silencio.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "method": "GET",
       "url": "http://localhost:4002/productos",
       "headers": [],
@@ -400,6 +415,20 @@
           "value": "precio_asc",
           "description": "precio_asc | precio_desc | vistos | vendidos",
           "disabled": true
+        },
+        {
+          "id": "p_pagina_os_1",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_os_1",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
         }
       ],
       "body": {},
@@ -412,9 +441,24 @@
       "name": "Productos de un vendedor",
       "method": "GET",
       "url": "http://localhost:4002/productos/vendedor/anagomez",
-      "description": "PUBLICO: anda sin token. Trae las publicaciones visibles de ese vendedor buscando por NOMBRE DE USUARIO, porque el cliente no conoce ningun id. Coincidencia exacta; el ?vendedor= del catalogo es la busqueda parcial. 404 si no existe o esta dado de baja.",
+      "description": "PUBLICO: anda sin token. Trae las publicaciones visibles de ese vendedor buscando por NOMBRE DE USUARIO, porque el cliente no conoce ningun id. Coincidencia exacta; el ?vendedor= del catalogo es la busqueda parcial. 404 si no existe o esta dado de baja.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_edor",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_edor",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "body": {},
       "authentication": {},
       "metaSortKey": 2,
@@ -443,9 +487,23 @@
           "value": "BORRADOR",
           "description": "",
           "disabled": true
+        },
+        {
+          "id": "pg__mias",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm__mias",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
         }
       ],
-      "description": "Las publicaciones propias, borradores y pausadas incluidas, que el catalogo esconde. El ADMIN recibe 403: no publica, asi que no tiene publicaciones propias. Para mirar lo ajeno tiene GET /productos/todos.",
+      "description": "Las publicaciones propias, borradores y pausadas incluidas, que el catalogo esconde. El ADMIN recibe 403: no publica, asi que no tiene publicaciones propias. Para mirar lo ajeno tiene GET /productos/todos.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "authentication": {
         "type": "bearer",
         "token": "{{ _.token }}",
@@ -585,7 +643,7 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Listar fotos de un producto",
-      "description": "404 si el producto no existe; lista vacia si existe pero esta en BORRADOR.",
+      "description": "404 si el producto no existe; lista vacia si existe pero esta en BORRADOR.\n\nSOLO SE VEN LAS APROBADAS. Una foto EN_REVISION (las WebP, o cuando Gemini no contesta) no existe para el publico: da 404, no 403, porque un 403 ya estaria contando que hay algo ahi y alcanzaria con probar ids. Su VENDEDOR y el ADMIN si las ven, que es como se enteran de que quedo algo por revisar.",
       "method": "GET",
       "url": "http://localhost:4002/fotos",
       "headers": [],
@@ -605,7 +663,7 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Obtener foto por id",
-      "description": "Los ids de la URL son de ejemplo: cambialos por los que devuelvan las requests de alta.",
+      "description": "Los ids de la URL son de ejemplo: cambialos por los que devuelvan las requests de alta.\n\nSOLO SE VEN LAS APROBADAS. Una foto EN_REVISION (las WebP, o cuando Gemini no contesta) no existe para el publico: da 404, no 403, porque un 403 ya estaria contando que hay algo ahi y alcanzaria con probar ids. Su VENDEDOR y el ADMIN si las ven, que es como se enteran de que quedo algo por revisar.",
       "method": "GET",
       "url": "http://localhost:4002/fotos/1",
       "headers": [],
@@ -653,7 +711,7 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Ver contenido de la foto",
-      "description": "Devuelve los bytes con su Content-Type, para usar directo como src de un <img>.",
+      "description": "Devuelve los bytes con su Content-Type, para usar directo como src de un <img>.\n\nSOLO SE VEN LAS APROBADAS. Una foto EN_REVISION (las WebP, o cuando Gemini no contesta) no existe para el publico: da 404, no 403, porque un 403 ya estaria contando que hay algo ahi y alcanzaria con probar ids. Su VENDEDOR y el ADMIN si las ven, que es como se enteran de que quedo algo por revisar.",
       "method": "GET",
       "url": "http://localhost:4002/fotos/1/contenido",
       "headers": [],
@@ -666,7 +724,7 @@
       "_type": "request",
       "parentId": "fld_fotos",
       "name": "Ver foto en base64",
-      "description": "La misma imagen embebida en JSON, para clientes que no pueden pedir binario.",
+      "description": "La misma imagen embebida en JSON, para clientes que no pueden pedir binario.\n\nSOLO SE VEN LAS APROBADAS. Una foto EN_REVISION (las WebP, o cuando Gemini no contesta) no existe para el publico: da 404, no 403, porque un 403 ya estaria contando que hay algo ahi y alcanzaria con probar ids. Su VENDEDOR y el ADMIN si las ven, que es como se enteran de que quedo algo por revisar.",
       "method": "GET",
       "url": "http://localhost:4002/fotos/1/base64",
       "headers": [],
@@ -679,7 +737,7 @@
       "_type": "request",
       "parentId": "fld_admin",
       "name": "Cola de revision de fotos",
-      "description": "Solo ADMIN. Sin estado devuelve las EN_REVISION, que es la cola de trabajo. Con estado=APROBADA se mira lo ya resuelto.\n\nNo existe RECHAZADA: rechazar borra la foto, no la marca, asi que el enum solo tiene APROBADA y EN_REVISION.\n\nCada foto trae su campo url; ese es el que usa el request 'Ver la foto a moderar' de abajo.",
+      "description": "Solo ADMIN. Sin estado devuelve las EN_REVISION, que es la cola de trabajo. Con estado=APROBADA se mira lo ya resuelto.\n\nNo existe RECHAZADA: rechazar borra la foto, no la marca, asi que el enum solo tiene APROBADA y EN_REVISION.\n\nCada foto trae su campo url; ese es el que usa el request 'Ver la foto a moderar' de abajo.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "method": "GET",
       "url": "http://localhost:4002/fotos/pendientes",
       "headers": [],
@@ -696,6 +754,20 @@
           "name": "estado",
           "value": "APROBADA",
           "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pg_entes",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm_entes",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
           "disabled": true
         }
       ],
@@ -892,11 +964,26 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Listar mis ordenes",
-      "description": "Solo las ordenes donde el usuario participa. Un ADMIN sin rol recibe todas.",
+      "description": "Solo las ordenes donde el usuario participa. Un ADMIN sin rol recibe todas.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "method": "GET",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pg_nes_1",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm_nes_1",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "body": {},
       "metaSortKey": 1,
       "authentication": {
@@ -911,7 +998,7 @@
       "_type": "request",
       "parentId": "fld_ordenes",
       "name": "Listar solo mis compras o solo mis ventas",
-      "description": "Mismo listado mirando una punta. Con rol, un ADMIN vuelve a ver solo lo suyo.",
+      "description": "Mismo listado mirando una punta. Con rol, un ADMIN vuelve a ver solo lo suyo.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "method": "GET",
       "url": "http://localhost:4002/ordenes",
       "headers": [],
@@ -927,6 +1014,20 @@
           "name": "rol",
           "value": "VENDEDOR",
           "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pg_nes_2",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm_nes_2",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
           "disabled": true
         }
       ],
@@ -1025,11 +1126,26 @@
       "modified": 0,
       "created": 0,
       "name": "Listar todas las ordenes",
-      "description": "Auditoria: con un idSolicitante ADMIN salen las ordenes de todo el sistema.",
+      "description": "Auditoria: con un idSolicitante ADMIN salen las ordenes de todo el sistema.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "url": "http://localhost:4002/ordenes",
       "method": "GET",
       "body": {},
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "pg_admin",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm_admin",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "headers": [],
       "authentication": {
         "type": "bearer",
@@ -1151,7 +1267,7 @@
       "modified": 0,
       "created": 0,
       "name": "Catalogo completo",
-      "description": "Solo ADMIN. GET /productos esconde lo inactivo, lo que no esta PUBLICADO y lo de vendedores dados de baja, que es correcto para quien compra pero deja al admin sin ver lo que tiene que moderar. estado filtra por BORRADOR, PUBLICADO o PAUSADO.",
+      "description": "Solo ADMIN. GET /productos esconde lo inactivo, lo que no esta PUBLICADO y lo de vendedores dados de baja, que es correcto para quien compra pero deja al admin sin ver lo que tiene que moderar. estado filtra por BORRADOR, PUBLICADO o PAUSADO.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "url": "http://localhost:4002/productos/todos",
       "method": "GET",
       "body": {},
@@ -1161,6 +1277,20 @@
           "name": "estado",
           "value": "BORRADOR",
           "description": "",
+          "disabled": true
+        },
+        {
+          "id": "pg_alogo",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm_alogo",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
           "disabled": true
         }
       ],
@@ -1503,9 +1633,24 @@
       "name": "Mis notificaciones",
       "method": "GET",
       "url": "http://localhost:4002/notificaciones",
-      "description": "Las propias, mas nuevas primero. No recibe ningun id: salen del token. 404 si no tenes ninguna.",
+      "description": "Las propias, mas nuevas primero. No recibe ningun id: salen del token. 404 si no tenes ninguna.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_mias",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_mias",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "authentication": {},
       "metaSortKey": 101010,
       "isPrivate": false,
@@ -1576,9 +1721,24 @@
       "name": "Mis envios",
       "method": "GET",
       "url": "http://localhost:4002/envios",
-      "description": "Depende del rol. Un CLIENTE ve donde compro o vendio. Un DESPACHANTE ve LO QUE TIENE EN LA MANO: los que el mismo cargo por numero y todavia no entrego; no hay una cola de pendientes para mirar, porque mirarla seria ver las direcciones de entrega de paquetes que no tiene. El ADMIN ve todos. 404 si no hay ninguno.",
+      "description": "Depende del rol. Un CLIENTE ve donde compro o vendio. Un DESPACHANTE ve LO QUE TIENE EN LA MANO: los que el mismo cargo por numero y todavia no entrego; no hay una cola de pendientes para mirar, porque mirarla seria ver las direcciones de entrega de paquetes que no tiene. El ADMIN ve todos. 404 si no hay ninguno.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_mios",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_mios",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "authentication": {},
       "metaSortKey": 102040,
       "isPrivate": false,
@@ -1692,9 +1852,24 @@
       "name": "Resenas de un producto",
       "method": "GET",
       "url": "http://localhost:4002/resenas/producto/4",
-      "description": "PUBLICO: anda sin token. Quien esta decidiendo si comprar tiene que poder leerlas.",
+      "description": "PUBLICO: anda sin token. Quien esta decidiendo si comprar tiene que poder leerlas.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_ucto",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_ucto",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "authentication": {},
       "metaSortKey": 103080,
       "isPrivate": false,
@@ -1804,9 +1979,24 @@
       "name": "Mis ofertas",
       "method": "GET",
       "url": "http://localhost:4002/ofertas",
-      "description": "Las que hiciste y las que recibiste, en la misma lista. Cada una dice de que producto es, quien la hizo y el precio de lista al lado del ofrecido.",
+      "description": "Las que hiciste y las que recibiste, en la misma lista. Cada una dice de que producto es, quien la hizo y el precio de lista al lado del ofrecido.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_mias",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_mias",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "authentication": {},
       "metaSortKey": 105120,
       "isPrivate": false,
@@ -1975,9 +2165,24 @@
       "name": "Historial de visibilidad",
       "method": "GET",
       "url": "http://localhost:4002/destacados",
-      "description": "El ADMIN ve el de TODOS, que es el registro de lo que se vendio; un vendedor ve solo el de SUS productos. Cada fila dice nivel, meses, desde, hasta y si sigue vigente: con eso se cuenta cuanto PREMIUM compro alguien. 404 si no hay ninguno.",
+      "description": "El ADMIN ve el de TODOS, que es el registro de lo que se vendio; un vendedor ve solo el de SUS productos. Cada fila dice nivel, meses, desde, hasta y si sigue vigente: con eso se cuenta cuanto PREMIUM compro alguien. 404 si no hay ninguno.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_rial",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_rial",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "authentication": {},
       "metaSortKey": 121020,
       "isPrivate": false,
@@ -2024,9 +2229,24 @@
       "name": "Mi historial de entregas (despachante)",
       "method": "GET",
       "url": "http://localhost:4002/envios/historial",
-      "description": "SOLO DESPACHANTE, y es el de cada uno: lo que EL entrego, lo mas nuevo primero.\n\nDevuelve numeroSeguimiento, fechaEntrega, provincia, localidad y productos (nombre y cantidad de cada cosa que llevaba). LA CALLE NO: quien entrego mil paquetes se quedaria con mil direcciones exactas, y para contar lo que hizo le alcanza con saber a que pueblo fue. Tampoco lleva comprador ni vendedor.\n\nEs una vista aparte de GET /envios, que son los que TIENE en la mano ahora. 403 si no sos DESPACHANTE (el ADMIN tampoco: ya ve todos los envios), 404 si todavia no entregaste nada.",
+      "description": "SOLO DESPACHANTE, y es el de cada uno: lo que EL entrego, lo mas nuevo primero.\n\nDevuelve numeroSeguimiento, fechaEntrega, provincia, localidad y productos (nombre y cantidad de cada cosa que llevaba). LA CALLE NO: quien entrego mil paquetes se quedaria con mil direcciones exactas, y para contar lo que hizo le alcanza con saber a que pueblo fue. Tampoco lleva comprador ni vendedor.\n\nEs una vista aparte de GET /envios, que son los que TIENE en la mano ahora. 403 si no sos DESPACHANTE (el ADMIN tampoco: ya ve todos los envios), 404 si todavia no entregaste nada.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
       "headers": [],
-      "parameters": [],
+      "parameters": [
+        {
+          "id": "p_pagina_rial",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "p_tam_rial",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "authentication": {},
       "metaSortKey": 130005,
       "isPrivate": false,

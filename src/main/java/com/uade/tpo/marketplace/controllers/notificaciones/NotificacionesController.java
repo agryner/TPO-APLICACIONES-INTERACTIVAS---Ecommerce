@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.NotificacionNoEncontradaException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -30,9 +32,12 @@ public class NotificacionesController {
      *       tiene ninguna.
      */
     @GetMapping
-    public ResponseEntity<List<NotificacionResponse>> getMias(
-            @AuthenticationPrincipal Usuario usuario) throws SinResultadosException {
-        return ResponseEntity.ok(notificacionService.getMias(usuario.getId()));
+    public ResponseEntity<PaginaResponse<NotificacionResponse>> getMias(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio) throws SinResultadosException {
+        return ResponseEntity.ok(PaginaResponse.de(
+                notificacionService.getMias(usuario.getId()), pagina, tamanio));
     }
 
     /**

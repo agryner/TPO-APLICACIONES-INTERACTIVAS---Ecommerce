@@ -2,6 +2,7 @@ package com.uade.tpo.marketplace.controllers.productos;
 
 import com.uade.tpo.marketplace.controllers.common.MensajeResponse;
 import com.uade.tpo.marketplace.controllers.productos.ProductoRequest;
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
 import com.uade.tpo.marketplace.controllers.productos.ProductoCreadoResponse;
 import com.uade.tpo.marketplace.controllers.productos.ProductoResponse;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -58,9 +60,12 @@ public class ProductosController {
      *       sus descendientes. 400 si orden no es uno de los cuatro.
      */
     @GetMapping
-    public ResponseEntity<List<ProductoResumenResponse>> getProductos(FiltroProductos filtro)
+    public ResponseEntity<PaginaResponse<ProductoResumenResponse>> getProductos(FiltroProductos filtro,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws OrdenamientoInvalidoException, SinResultadosException {
-        return ResponseEntity.ok(productoService.getProductos(filtro));
+        return ResponseEntity.ok(
+                PaginaResponse.de(productoService.getProductos(filtro), pagina, tamanio));
     }
 
     /**
@@ -69,11 +74,14 @@ public class ProductosController {
      *       catalogo esconde. 403 si quien pide es ADMIN.
      */
     @GetMapping("/mis-publicaciones")
-    public ResponseEntity<List<ProductoResponse>> getMisPublicaciones(
+    public ResponseEntity<PaginaResponse<ProductoResponse>> getMisPublicaciones(
             @AuthenticationPrincipal Usuario usuario,
-            @RequestParam(required = false) EstadoPublicacion estado)
+            @RequestParam(required = false) EstadoPublicacion estado,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, RolNoComerciaException, SinResultadosException {
-        return ResponseEntity.ok(productoService.getMisPublicaciones(usuario.getId(), estado));
+        return ResponseEntity.ok(
+                PaginaResponse.de(productoService.getMisPublicaciones(usuario.getId(), estado), pagina, tamanio));
     }
 
     /**
@@ -82,9 +90,13 @@ public class ProductosController {
      *       que el catalogo. 404 si no existe o esta dado de baja.
      */
     @GetMapping("/vendedor/{nombreUsuario}")
-    public ResponseEntity<List<ProductoResumenResponse>> getPorVendedor(
-            @PathVariable String nombreUsuario) throws UsuarioNoEncontradoException, SinResultadosException {
-        return ResponseEntity.ok(productoService.getPublicacionesDeVendedor(nombreUsuario));
+    public ResponseEntity<PaginaResponse<ProductoResumenResponse>> getPorVendedor(
+            @PathVariable String nombreUsuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
+            throws UsuarioNoEncontradoException, SinResultadosException {
+        return ResponseEntity.ok(PaginaResponse.de(
+                productoService.getPublicacionesDeVendedor(nombreUsuario), pagina, tamanio));
     }
 
     /**
@@ -203,10 +215,13 @@ public class ProductosController {
      *       borradores y pausados. 403 si no sos ADMIN.
      */
     @GetMapping("/todos")
-    public ResponseEntity<List<ProductoResponse>> getTodos(@AuthenticationPrincipal Usuario usuario,
-            @RequestParam(required = false) EstadoPublicacion estado)
+    public ResponseEntity<PaginaResponse<ProductoResponse>> getTodos(@AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) EstadoPublicacion estado,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
-        return ResponseEntity.ok(productoService.getTodosLosProductos(usuario.getId(), estado));
+        return ResponseEntity.ok(
+                PaginaResponse.de(productoService.getTodosLosProductos(usuario.getId(), estado), pagina, tamanio));
     }
 
     /**

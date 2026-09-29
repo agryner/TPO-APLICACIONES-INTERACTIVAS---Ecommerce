@@ -2,6 +2,7 @@ package com.uade.tpo.marketplace.controllers.fotos;
 
 import com.uade.tpo.marketplace.controllers.fotos.FotoContenidoResponse;
 import com.uade.tpo.marketplace.controllers.fotos.FotoResponse;
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.controllers.fotos.FotoUploadRequest;
 import com.uade.tpo.marketplace.controllers.common.MensajeResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,9 +52,10 @@ public class FotosController {
      *       existe pero esta en BORRADOR.
      */
     @GetMapping
-    public ResponseEntity<List<FotoResponse>> getFotos(@RequestParam Long idProducto)
+    public ResponseEntity<List<FotoResponse>> getFotos(@RequestParam Long idProducto,
+            @AuthenticationPrincipal Usuario usuario)
             throws ProductoNoEncontradoException, SinResultadosException {
-        return ResponseEntity.ok(fotoService.getFotosByProducto(idProducto));
+        return ResponseEntity.ok(fotoService.getFotosByProducto(idProducto, idDe(usuario)));
     }
 
     /**
@@ -61,9 +64,10 @@ public class FotosController {
      *       del contenido. 404 si no existe.
      */
     @GetMapping("/{idFoto}")
-    public ResponseEntity<FotoResponse> getFotoById(@PathVariable Long idFoto)
+    public ResponseEntity<FotoResponse> getFotoById(@PathVariable Long idFoto,
+            @AuthenticationPrincipal Usuario usuario)
             throws FotoNoEncontradaException {
-        return ResponseEntity.ok(fotoService.getFotoById(idFoto));
+        return ResponseEntity.ok(fotoService.getFotoById(idFoto, idDe(usuario)));
     }
 
     /**
@@ -89,15 +93,16 @@ public class FotosController {
      *       si no existe.
      */
     @GetMapping("/{idFoto}/contenido")
-    public ResponseEntity<byte[]> getContenido(@PathVariable Long idFoto)
+    public ResponseEntity<byte[]> getContenido(@PathVariable Long idFoto,
+            @AuthenticationPrincipal Usuario usuario)
             throws FotoNoEncontradaException {
-        FotoResponse foto = fotoService.getFotoById(idFoto);
+        FotoResponse foto = fotoService.getFotoById(idFoto, idDe(usuario));
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(foto.getTipoContenido()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"" + foto.getNombreArchivo() + "\"")
-                .body(fotoService.getContenidoById(idFoto));
+                .body(fotoService.getContenidoById(idFoto, idDe(usuario)));
     }
 
     /**
@@ -106,9 +111,10 @@ public class FotosController {
      *       pedir binario.
      */
     @GetMapping("/{idFoto}/base64")
-    public ResponseEntity<FotoContenidoResponse> getContenidoBase64(@PathVariable Long idFoto)
+    public ResponseEntity<FotoContenidoResponse> getContenidoBase64(@PathVariable Long idFoto,
+            @AuthenticationPrincipal Usuario usuario)
             throws FotoNoEncontradaException {
-        byte[] contenido = fotoService.getContenidoById(idFoto);
+        byte[] contenido = fotoService.getContenidoById(idFoto, idDe(usuario));
         return ResponseEntity.ok(new FotoContenidoResponse(idFoto,
                 Base64.getEncoder().encodeToString(contenido)));
     }
@@ -119,10 +125,13 @@ public class FotosController {
      *       es la cola de trabajo. 403 si no sos ADMIN.
      */
     @GetMapping("/pendientes")
-    public ResponseEntity<List<FotoResponse>> getPendientes(@AuthenticationPrincipal Usuario usuario,
-            @RequestParam(required = false) EstadoVerificacion estado)
+    public ResponseEntity<PaginaResponse<FotoResponse>> getPendientes(@AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) EstadoVerificacion estado,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
-        return ResponseEntity.ok(fotoService.getPendientesDeRevision(usuario.getId(), estado));
+        return ResponseEntity.ok(
+                PaginaResponse.de(fotoService.getPendientesDeRevision(usuario.getId(), estado), pagina, tamanio));
     }
 
     /**
@@ -149,5 +158,14 @@ public class FotosController {
             throws FotoNoEncontradaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException {
         fotoService.deleteFoto(idFoto, usuario.getId());
         return ResponseEntity.ok(new MensajeResponse("Foto eliminada correctamente"));
+    }
+
+    /**
+     * Pre : el principal, que viene en null cuando nadie inicio sesion.
+     * Post: su id, o null. Estos endpoints son publicos pero muestran de mas a
+     *       quien es dueño de la foto, asi que necesitan saber si hay alguien.
+     */
+    private Long idDe(Usuario usuario) {
+        return usuario == null ? null : usuario.getId();
     }
 }

@@ -3,6 +3,7 @@ package com.uade.tpo.marketplace.controllers.productos;
 import java.math.BigDecimal;
 
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
+import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.Foto;
 import com.uade.tpo.marketplace.entity.CondicionProducto;
 import com.uade.tpo.marketplace.entity.NivelDestacado;
@@ -34,7 +35,8 @@ public class ProductoResumenResponse {
      * Post: lo que necesita una tarjeta de catalogo y nada mas. No lleva la
      *       categoria, el vendedor, la descripcion ni los metadatos de las
      *       fotos: todo eso es de GET /productos/{id}. De las fotos sale una
-     *       sola URL, la de la primera activa.
+     *       sola URL, la de la primera activa Y APROBADA: una que la IA no
+     *       pudo mirar no se muestra como si estuviera revisada.
      */
     public static ProductoResumenResponse from(Producto producto) {
         if (producto == null)
@@ -99,6 +101,7 @@ public class ProductoResumenResponse {
 
         return producto.getFotos().stream()
                 .filter(f -> Boolean.TRUE.equals(f.getActivo()))
+                .filter(f -> f.getEstadoVerificacion() == EstadoVerificacion.APROBADA)
                 .map(Foto::getId)
                 .findFirst()
                 .map(id -> "/fotos/" + id + "/contenido")

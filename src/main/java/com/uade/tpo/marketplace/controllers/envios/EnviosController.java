@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.EstadoEnvio;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
@@ -41,9 +43,12 @@ public class EnviosController {
      *       ninguno.
      */
     @GetMapping
-    public ResponseEntity<List<EnvioResponse>> getMios(@AuthenticationPrincipal Usuario usuario)
+    public ResponseEntity<PaginaResponse<EnvioResponse>> getMios(@AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, SinResultadosException {
-        return ResponseEntity.ok(envioService.getMios(usuario.getId()));
+        return ResponseEntity.ok(
+                PaginaResponse.de(envioService.getMios(usuario.getId()), pagina, tamanio));
     }
 
     /**
@@ -71,11 +76,14 @@ public class EnviosController {
      *       DESPACHANTE, 404 si todavia no entregaste nada.
      */
     @GetMapping("/historial")
-    public ResponseEntity<List<EntregaResponse>> getHistorial(
-            @AuthenticationPrincipal Usuario usuario)
+    public ResponseEntity<PaginaResponse<EntregaResponse>> getHistorial(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, AccesoDenegadoException,
             SinResultadosException {
-        return ResponseEntity.ok(envioService.getHistorial(usuario.getId()));
+        return ResponseEntity.ok(
+                PaginaResponse.de(envioService.getHistorial(usuario.getId()), pagina, tamanio));
     }
 
     /**

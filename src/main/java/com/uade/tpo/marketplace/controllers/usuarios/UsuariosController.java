@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.controllers.common.MensajeResponse;
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.controllers.auth.TokenResponse;
 import com.uade.tpo.marketplace.entity.Usuario;
@@ -39,10 +41,13 @@ public class UsuariosController {
      *       DTO ni siquiera tiene. 403 si quien pide no es ADMIN.
      */
     @GetMapping
-    public ResponseEntity<List<UsuarioResponse>> getUsuarios(
-            @AuthenticationPrincipal Usuario usuario)
+    public ResponseEntity<PaginaResponse<UsuarioResponse>> getUsuarios(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
-        return ResponseEntity.ok(usuarioService.getUsuarios(usuario.getId()));
+        return ResponseEntity.ok(
+                PaginaResponse.de(usuarioService.getUsuarios(usuario.getId()), pagina, tamanio));
     }
 
     @GetMapping("/me")

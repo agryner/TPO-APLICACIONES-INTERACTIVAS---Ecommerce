@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.EntregaPendienteException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -53,9 +55,12 @@ public class ResenasController {
      * Post: sus resenas, las mas nuevas primero. 404 si no tiene ninguna.
      */
     @GetMapping("/producto/{idProducto}")
-    public ResponseEntity<List<ResenaResponse>> getDeProducto(@PathVariable Long idProducto)
+    public ResponseEntity<PaginaResponse<ResenaResponse>> getDeProducto(@PathVariable Long idProducto,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws SinResultadosException {
-        return ResponseEntity.ok(resenaService.getDeProducto(idProducto));
+        return ResponseEntity.ok(
+                PaginaResponse.de(resenaService.getDeProducto(idProducto), pagina, tamanio));
     }
 
     /**

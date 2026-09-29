@@ -17,16 +17,16 @@ import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 public interface FotoService {
-    List<FotoResponse> getFotosByProducto(Long idProducto)
+    List<FotoResponse> getFotosByProducto(Long idProducto, Long idSolicitante)
             throws ProductoNoEncontradoException, SinResultadosException;
 
-    FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException;
+    FotoResponse getFotoById(Long idFoto, Long idSolicitante) throws FotoNoEncontradaException;
 
     FotoResponse subirFoto(FotoUploadRequest request, Long idSolicitante)
             throws ProductoNoEncontradoException, ArchivoInvalidoException,
             FotoRechazadaException, OperacionAjenaException, CuentaInactivaException, UsuarioNoEncontradoException, RolNoComerciaException;
 
-    byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException;
+    byte[] getContenidoById(Long idFoto, Long idSolicitante) throws FotoNoEncontradaException;
 
     List<FotoResponse> getPendientesDeRevision(Long idSolicitante, EstadoVerificacion estado)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException;

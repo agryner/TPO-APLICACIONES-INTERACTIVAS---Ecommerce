@@ -6,8 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -29,9 +31,12 @@ public class DestacadosController {
      *       no hay ninguno.
      */
     @GetMapping
-    public ResponseEntity<List<DestacadoResponse>> getHistorial(
-            @AuthenticationPrincipal Usuario usuario)
+    public ResponseEntity<PaginaResponse<DestacadoResponse>> getHistorial(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, SinResultadosException {
-        return ResponseEntity.ok(destacadoService.getHistorial(usuario.getId()));
+        return ResponseEntity.ok(
+                PaginaResponse.de(destacadoService.getHistorial(usuario.getId()), pagina, tamanio));
     }
 }

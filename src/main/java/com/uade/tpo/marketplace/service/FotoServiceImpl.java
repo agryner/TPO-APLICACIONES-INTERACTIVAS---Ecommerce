@@ -54,12 +54,15 @@ public class FotoServiceImpl implements FotoService {
      *       ProductoNoEncontradoException si el producto no existe, para
      *       distinguirlo de uno real que todavia no tiene fotos.
      */
-    public List<FotoResponse> getFotosByProducto(Long idProducto)
+    public List<FotoResponse> getFotosByProducto(Long idProducto, Long idSolicitante) 
             throws ProductoNoEncontradoException, SinResultadosException {
-        if (!productoRepository.existsById(idProducto))
-            throw new ProductoNoEncontradoException();
+        Producto producto = productoRepository.findById(idProducto)
+                .orElseThrow(ProductoNoEncontradoException::new);
+
+        boolean deLaCasa = puedeVerLasNoAprobadas(producto, idSolicitante);
 
         List<FotoResponse> fotos = fotoRepository.findByProductoIdAndActivoTrue(idProducto).stream()
+                .filter(f -> deLaCasa || f.getEstadoVerificacion() == EstadoVerificacion.APROBADA)
                 .map(FotoResponse::from)
                 .toList();
 
@@ -69,8 +72,9 @@ public class FotoServiceImpl implements FotoService {
         return fotos;
     }
 
-    public FotoResponse getFotoById(Long idFoto) throws FotoNoEncontradaException {
-        return FotoResponse.from(buscarActiva(idFoto));
+    public FotoResponse getFotoById(Long idFoto, Long idSolicitante)
+            throws FotoNoEncontradaException {
+        return FotoResponse.from(buscarVisible(idFoto, idSolicitante));
     }
 
     /**
@@ -215,8 +219,45 @@ public class FotoServiceImpl implements FotoService {
                 : EstadoVerificacion.EN_REVISION);
     }
 
-    public byte[] getContenidoById(Long idFoto) throws FotoNoEncontradaException {
-        return buscarActiva(idFoto).getContenido();
+    public byte[] getContenidoById(Long idFoto, Long idSolicitante)
+            throws FotoNoEncontradaException {
+        return buscarVisible(idFoto, idSolicitante).getContenido();
+    }
+
+    /**
+     * Pre : el id de la foto y el de quien pregunta, que puede ser null si
+     *       nadie inicio sesion.
+     * Post: la foto, si el que pregunta tiene derecho a verla. Para cualquiera
+     *       que no sea su vendedor o un ADMIN, una foto sin aprobar directamente
+     *       NO EXISTE: si diera 403 ya estaria contando que hay algo ahi, y
+     *       ademas alcanzaria con probar ids para mirar lo que nadie reviso.
+     */
+    private Foto buscarVisible(Long idFoto, Long idSolicitante)
+            throws FotoNoEncontradaException {
+        Foto foto = buscarActiva(idFoto);
+
+        if (foto.getEstadoVerificacion() != EstadoVerificacion.APROBADA
+                && !puedeVerLasNoAprobadas(foto.getProducto(), idSolicitante))
+            throw new FotoNoEncontradaException();
+
+        return foto;
+    }
+
+    /**
+     * Pre : el producto de la foto y el id de quien pregunta, o null.
+     * Post: si puede ver lo que todavia no se aprobo. Son su vendedor, que
+     *       necesita enterarse de que quedo algo por revisar, y el ADMIN, que
+     *       es quien lo revisa.
+     */
+    private boolean puedeVerLasNoAprobadas(Producto producto, Long idSolicitante) {
+        if (idSolicitante == null)
+            return false;
+
+        if (producto != null && producto.getVendedor() != null
+                && producto.getVendedor().getId().equals(idSolicitante))
+            return true;
+
+        return autorizacion.esAdmin(idSolicitante);
     }
 
     /**

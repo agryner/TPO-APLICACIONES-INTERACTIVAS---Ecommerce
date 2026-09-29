@@ -6,6 +6,7 @@ import java.util.List;
 import com.uade.tpo.marketplace.entity.EstadoPublicacion;
 import java.time.LocalDateTime;
 import com.uade.tpo.marketplace.entity.CondicionProducto;
+import com.uade.tpo.marketplace.entity.EstadoVerificacion;
 import com.uade.tpo.marketplace.entity.NivelDestacado;
 import com.uade.tpo.marketplace.entity.Provincia;
 import com.uade.tpo.marketplace.entity.Producto;
@@ -69,9 +70,12 @@ public class ProductoResponse {
         dto.setEstadoPublicacion(producto.getEstadoPublicacion());
         dto.setCategoria(CategoriaResponse.from(producto.getCategoria()));
         dto.setVendedor(UsuarioPublicoResponse.from(producto.getVendedor()));
+        // Solo las aprobadas: este DTO es la vista publica del producto. Las
+        // que quedaron sin revisar las ve su dueño en GET /fotos?idProducto=.
         dto.setFotos(producto.getFotos() == null ? List.of()
                 : producto.getFotos().stream()
                         .filter(f -> Boolean.TRUE.equals(f.getActivo()))
+                        .filter(f -> f.getEstadoVerificacion() == EstadoVerificacion.APROBADA)
                         .map(FotoResponse::from)
                         .toList());
         return dto;

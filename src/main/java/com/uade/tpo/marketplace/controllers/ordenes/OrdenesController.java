@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.controllers.ordenes;
 
+import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.EstadoOrden;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
 import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,11 +50,14 @@ public class OrdenesController {
      *       si el rol no es COMPRADOR ni VENDEDOR.
      */
     @GetMapping
-    public ResponseEntity<List<OrdenDeCompraResponse>> getOrdenes(
+    public ResponseEntity<PaginaResponse<OrdenDeCompraResponse>> getOrdenes(
             @AuthenticationPrincipal Usuario usuario,
-            @RequestParam(required = false) RolEnOrden rol)
+            @RequestParam(required = false) RolEnOrden rol,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, SinResultadosException {
-        return ResponseEntity.ok(ordenService.getOrdenes(usuario.getId(), rol));
+        return ResponseEntity.ok(
+                PaginaResponse.de(ordenService.getOrdenes(usuario.getId(), rol), pagina, tamanio));
     }
 
     /**
