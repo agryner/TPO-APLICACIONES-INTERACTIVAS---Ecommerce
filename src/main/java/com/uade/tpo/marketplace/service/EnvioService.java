@@ -17,6 +17,10 @@ import java.util.List;
 public interface EnvioService {
     void crearParaOrden(OrdenDeCompra orden);
 
+    List<EnvioResponse> getTodos(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException;
+
     List<EnvioResponse> getMios(Long idSolicitante)
             throws UsuarioNoEncontradoException, SinResultadosException;
 

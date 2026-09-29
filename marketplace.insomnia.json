@@ -963,10 +963,10 @@
       "_id": "req_ordenes_1",
       "_type": "request",
       "parentId": "fld_ordenes",
-      "name": "Listar mis ordenes",
-      "description": "Solo las ordenes donde el usuario participa. Un ADMIN sin rol recibe todas.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
+      "name": "Mis compras",
+      "description": "Lo que COMPRASTE. No recibe ningun id: sale del token. 404 si todavia no compraste nada.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. ?pagina= arranca en 0, ?tamanio= vale 20 por defecto con tope 100.",
       "method": "GET",
-      "url": "http://localhost:4002/ordenes",
+      "url": "http://localhost:4002/ordenes/mis-compras",
       "headers": [],
       "parameters": [
         {
@@ -997,25 +997,12 @@
       "_id": "req_ordenes_2",
       "_type": "request",
       "parentId": "fld_ordenes",
-      "name": "Listar solo mis compras o solo mis ventas",
-      "description": "Mismo listado mirando una punta. Con rol, un ADMIN vuelve a ver solo lo suyo.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
+      "name": "Mis ventas",
+      "description": "Lo que VENDISTE. Va aparte de las compras porque son las dos puntas de una transaccion y uno mira una o la otra: en las compras importa cuando llega, en las ventas cuando se cobra. REEMPLAZA al viejo ?rol=COMPRADOR|VENDEDOR, que ya no existe.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. ?pagina= arranca en 0, ?tamanio= vale 20 por defecto con tope 100.",
       "method": "GET",
-      "url": "http://localhost:4002/ordenes",
+      "url": "http://localhost:4002/ordenes/mis-ventas",
       "headers": [],
       "parameters": [
-        {
-          "id": "pair_rol_37",
-          "name": "rol",
-          "value": "COMPRADOR",
-          "description": ""
-        },
-        {
-          "id": "pair_rol_38",
-          "name": "rol",
-          "value": "VENDEDOR",
-          "description": "",
-          "disabled": true
-        },
         {
           "id": "pg_nes_2",
           "name": "pagina",
@@ -1125,9 +1112,9 @@
       "parentId": "fld_admin",
       "modified": 0,
       "created": 0,
-      "name": "Listar todas las ordenes",
-      "description": "Auditoria: con un idSolicitante ADMIN salen las ordenes de todo el sistema.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
-      "url": "http://localhost:4002/ordenes",
+      "name": "Todas las ordenes (ADMIN)",
+      "description": "SOLO ADMIN: todas las del sistema. Antes esto era GET /ordenes a secas, que devolvia lo tuyo o el sistema entero segun quien preguntaba; un mismo endpoint que cambia de significado segun el rol obliga a leer la documentacion para saber que pediste. 403 si no sos ADMIN.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. ?pagina= arranca en 0, ?tamanio= vale 20 por defecto con tope 100.",
+      "url": "http://localhost:4002/ordenes/todas",
       "method": "GET",
       "body": {},
       "parameters": [
@@ -1720,8 +1707,8 @@
       "parentId": "fld_envios",
       "name": "Mis envios",
       "method": "GET",
-      "url": "http://localhost:4002/envios",
-      "description": "Depende del rol. Un CLIENTE ve donde compro o vendio. Un DESPACHANTE ve LO QUE TIENE EN LA MANO: los que el mismo cargo por numero y todavia no entrego; no hay una cola de pendientes para mirar, porque mirarla seria ver las direcciones de entrega de paquetes que no tiene. El ADMIN ve todos. 404 si no hay ninguno.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. Se pide con ?pagina= (arranca en 0) y ?tamanio= (20 por defecto, 100 como tope). Pedir una pagina que no existe devuelve la ultima en vez de una lista vacia, y si no hay NINGUN resultado sigue dando 404.",
+      "url": "http://localhost:4002/envios/mios",
+      "description": "LOS PROPIOS, sin ningun id: salen del token. Un CLIENTE ve donde compro o vendio; un DESPACHANTE ve lo que TIENE EN LA MANO, o sea lo que el mismo cargo por numero y todavia no entrego. El ADMIN tampoco ve el sistema entero por aca: para eso esta GET /envios/todos.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. ?pagina= arranca en 0, ?tamanio= vale 20 por defecto con tope 100.",
       "headers": [],
       "parameters": [
         {
@@ -2251,6 +2238,42 @@
       "metaSortKey": 130005,
       "isPrivate": false,
       "body": {},
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_envios_todos",
+      "_type": "request",
+      "parentId": "fld_envios",
+      "name": "Todos los envios (ADMIN)",
+      "method": "GET",
+      "url": "http://localhost:4002/envios/todos",
+      "description": "SOLO ADMIN: todos los envios del sistema, en cualquier estado. Es una ruta aparte de /envios/mios porque devuelve otra cosa. 403 si no sos ADMIN, 404 si no hay ninguno.\n\nPAGINADO: la respuesta no es un array sino {contenido, pagina, tamanio, total, totalPaginas}. Los items estan en .contenido. ?pagina= arranca en 0, ?tamanio= vale 20 por defecto con tope 100.",
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 130002,
+      "isPrivate": false,
+      "body": {},
+      "parameters": [
+        {
+          "id": "pg_envtod",
+          "name": "pagina",
+          "value": "0",
+          "description": "arranca en 0",
+          "disabled": true
+        },
+        {
+          "id": "tm_envtod",
+          "name": "tamanio",
+          "value": "20",
+          "description": "20 por defecto, 100 maximo",
+          "disabled": true
+        }
+      ],
       "settingStoreCookies": true,
       "settingSendCookies": true,
       "settingDisableRenderRequestBody": false,

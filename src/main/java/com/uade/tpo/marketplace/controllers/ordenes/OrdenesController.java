@@ -3,7 +3,6 @@ package com.uade.tpo.marketplace.controllers.ordenes;
 import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
 import com.uade.tpo.marketplace.entity.EstadoOrden;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
-import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -20,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
@@ -44,20 +44,49 @@ public class OrdenesController {
     private final OrdenDeCompraService ordenService;
 
     /**
-     * Pre : el token, y opcionalmente rol para mirar una sola punta.
-     * Post: las ordenes donde el usuario participa. Sin rol, las compras y las
-     *       ventas juntas; un ADMIN sin rol recibe todas las del sistema. 400
-     *       si el rol no es COMPRADOR ni VENDEDOR.
+     * Pre : solo el token.
+     * Post: lo que COMPRASTE. 404 si todavia no compraste nada.
      */
-    @GetMapping
-    public ResponseEntity<PaginaResponse<OrdenDeCompraResponse>> getOrdenes(
+    @GetMapping("/mis-compras")
+    public ResponseEntity<PaginaResponse<OrdenDeCompraResponse>> getMisCompras(
             @AuthenticationPrincipal Usuario usuario,
-            @RequestParam(required = false) RolEnOrden rol,
             @RequestParam(required = false) Integer pagina,
             @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, SinResultadosException {
-        return ResponseEntity.ok(
-                PaginaResponse.de(ordenService.getOrdenes(usuario.getId(), rol), pagina, tamanio));
+        return ResponseEntity.ok(PaginaResponse.de(
+                ordenService.getMisCompras(usuario.getId()), pagina, tamanio));
+    }
+
+    /**
+     * Pre : solo el token.
+     * Post: lo que VENDISTE. Va aparte de las compras porque son las dos puntas
+     *       de una transaccion y uno mira una o la otra: en las compras importa
+     *       cuando llega, en las ventas cuando se cobra. 404 si no vendiste
+     *       nada.
+     */
+    @GetMapping("/mis-ventas")
+    public ResponseEntity<PaginaResponse<OrdenDeCompraResponse>> getMisVentas(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
+            throws UsuarioNoEncontradoException, SinResultadosException {
+        return ResponseEntity.ok(PaginaResponse.de(
+                ordenService.getMisVentas(usuario.getId()), pagina, tamanio));
+    }
+
+    /**
+     * Pre : un token de ADMIN.
+     * Post: todas las ordenes del sistema. 403 si no sos ADMIN.
+     */
+    @GetMapping("/todas")
+    public ResponseEntity<PaginaResponse<OrdenDeCompraResponse>> getTodas(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException {
+        return ResponseEntity.ok(PaginaResponse.de(
+                ordenService.getTodas(usuario.getId()), pagina, tamanio));
     }
 
     /**

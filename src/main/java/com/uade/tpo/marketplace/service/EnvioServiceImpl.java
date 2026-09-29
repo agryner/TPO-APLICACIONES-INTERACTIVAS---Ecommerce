@@ -61,10 +61,36 @@ public class EnvioServiceImpl implements EnvioService {
 
     /**
      * Pre : el id de quien pregunta.
-     * Post: sus envios. Un DESPACHANTE ve los que tiene en la mano: los que el
+     * Pre : el id de quien pregunta, que tiene que ser ADMIN.
+     * Post: todos los envios del sistema. Esta separado de getMios a proposito:
+     *       un mismo endpoint que devuelve lo tuyo o el sistema entero segun
+     *       quien pregunta obliga a leer la documentacion para saber que
+     *       pediste.
+     */
+    public List<EnvioResponse> getTodos(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException {
+        Usuario usuario = usuarioRepository.findById(idSolicitante)
+                .orElseThrow(UsuarioNoEncontradoException::new);
+
+        if (usuario.getRol() != TipoUsuario.ADMIN)
+            throw new AccesoDenegadoException();
+
+        List<Envio> todos = envioRepository.findAll();
+
+        if (todos.isEmpty())
+            throw new SinResultadosException("No hay envios para mostrar");
+
+        return todos.stream().map(EnvioResponse::from).toList();
+    }
+
+    /**
+     * Pre : el id de quien pregunta.
+     * Post: SUS envios. Un DESPACHANTE ve los que tiene en la mano: los que el
      *       mismo cargo por numero y todavia no entrego. Los demas ven aquellos
-     *       donde compraron o vendieron. Tira SinResultadosException si no hay
-     *       ninguno.
+     *       donde compraron o vendieron, y el ADMIN cae en esa misma rama: para
+     *       el sistema entero esta getTodos. Tira SinResultadosException si no
+     *       hay ninguno.
      */
     public List<EnvioResponse> getMios(Long idSolicitante)
             throws UsuarioNoEncontradoException, SinResultadosException {
@@ -79,8 +105,6 @@ public class EnvioServiceImpl implements EnvioService {
         if (usuario.getRol() == TipoUsuario.DESPACHANTE)
             encontrados = envioRepository.findByDespachanteIdAndEstadoOrderByFechaDespachoAsc(
                     idSolicitante, EstadoEnvio.EN_TRANSITO);
-        else if (usuario.getRol() == TipoUsuario.ADMIN)
-            encontrados = envioRepository.findAll();
         else {
             encontrados = new ArrayList<>(
                     envioRepository.findByOrdenCompradorIdOrderByFechaCreacionDesc(idSolicitante));

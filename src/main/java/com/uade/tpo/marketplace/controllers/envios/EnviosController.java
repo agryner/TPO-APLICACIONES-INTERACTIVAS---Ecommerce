@@ -18,6 +18,7 @@ import com.uade.tpo.marketplace.entity.EstadoEnvio;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoDisponibleException;
 import com.uade.tpo.marketplace.exceptions.EnvioNoEncontradoException;
 import com.uade.tpo.marketplace.exceptions.OperacionAjenaException;
@@ -37,18 +38,37 @@ public class EnviosController {
     /**
      * Pre : solo el token. No recibe ningun id: lo que devuelve depende del
      *       rol de quien pregunta.
-     * Post: para un CLIENTE, los envios donde compro o vendio. Para un
-     *       DESPACHANTE, los que tiene en la mano: los que el mismo cargo por
-     *       numero y todavia no entrego. Para el ADMIN, todos. 404 si no hay
-     *       ninguno.
+     * Post: LOS PROPIOS. Para un CLIENTE, los envios donde compro o vendio;
+     *       para un DESPACHANTE, los que tiene en la mano, o sea los que el
+     *       mismo cargo por numero y todavia no entrego. El ADMIN no ve el
+     *       sistema entero por aca: para eso esta GET /envios/todos. 404 si no
+     *       hay ninguno.
      */
-    @GetMapping
+    @GetMapping("/mios")
     public ResponseEntity<PaginaResponse<EnvioResponse>> getMios(@AuthenticationPrincipal Usuario usuario,
             @RequestParam(required = false) Integer pagina,
             @RequestParam(required = false) Integer tamanio)
             throws UsuarioNoEncontradoException, SinResultadosException {
         return ResponseEntity.ok(
                 PaginaResponse.de(envioService.getMios(usuario.getId()), pagina, tamanio));
+    }
+
+    /**
+     * Pre : un token de ADMIN.
+     * Post: todos los envios del sistema. Es una ruta aparte de /mios porque
+     *       devuelve otra cosa: que un mismo endpoint cambie de significado
+     *       segun quien pregunta obliga a leer la documentacion para saber que
+     *       pediste. 403 si no sos ADMIN, 404 si no hay ninguno.
+     */
+    @GetMapping("/todos")
+    public ResponseEntity<PaginaResponse<EnvioResponse>> getTodos(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException {
+        return ResponseEntity.ok(
+                PaginaResponse.de(envioService.getTodos(usuario.getId()), pagina, tamanio));
     }
 
     /**

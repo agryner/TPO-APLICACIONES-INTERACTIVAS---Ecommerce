@@ -2,7 +2,6 @@ package com.uade.tpo.marketplace.service;
 
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenRequest;
-import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -29,6 +28,7 @@ import com.uade.tpo.marketplace.entity.TipoNotificacion;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
@@ -70,26 +70,54 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
      *       existe, para no confundirlo con uno real que todavia no tiene
      *       movimientos: los dos casos darian una lista vacia.
      */
-    public List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
+    public List<OrdenDeCompraResponse> getMisCompras(Long idSolicitante)
             throws UsuarioNoEncontradoException, SinResultadosException {
         validarQueExista(idSolicitante);
 
-        List<OrdenDeCompra> propias;
-        if (rol == RolEnOrden.COMPRADOR)
-            propias = ordenRepository.findByCompradorId(idSolicitante);
-        else if (rol == RolEnOrden.VENDEDOR)
-            propias = ordenRepository.findByVendedorId(idSolicitante);
-        else if (autorizacion.esAdmin(idSolicitante))
-            propias = ordenRepository.findAll();
-        else
-            propias = ordenRepository.findByCompradorIdOrVendedorId(idSolicitante, idSolicitante);
+        return armar(ordenRepository.findByCompradorId(idSolicitante),
+                "Todavia no compraste nada");
+    }
 
-        if (propias.isEmpty())
-            throw new SinResultadosException("Todavia no tenes ordenes");
+    /**
+     * Pre : el id de quien pregunta.
+     * Post: lo que VENDIO. Esta separado de las compras porque son las dos
+     *       puntas de una transaccion y uno mira una o la otra: en las compras
+     *       importa cuando llega, en las ventas cuando se cobra.
+     */
+    public List<OrdenDeCompraResponse> getMisVentas(Long idSolicitante)
+            throws UsuarioNoEncontradoException, SinResultadosException {
+        validarQueExista(idSolicitante);
 
-        return propias.stream()
-                .map(OrdenDeCompraResponse::from)
-                .toList();
+        return armar(ordenRepository.findByVendedorId(idSolicitante),
+                "Todavia no vendiste nada");
+    }
+
+    /**
+     * Pre : el id de quien pregunta, que tiene que ser ADMIN.
+     * Post: todas las ordenes del sistema. Es de el porque modera; cualquier
+     *       otro ve las suyas y nada mas.
+     */
+    public List<OrdenDeCompraResponse> getTodas(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException {
+        validarQueExista(idSolicitante);
+        autorizacion.validarAdmin(idSolicitante);
+
+        return armar(ordenRepository.findAll(), "No hay ordenes en el sistema");
+    }
+
+    /**
+     * Pre : las ordenes encontradas y que decir si no hay ninguna.
+     * Post: sus DTO. Ninguna lista vuelve vacia: sin resultados sale un 404 con
+     *       un mensaje que explica que paso, porque un [] en el front es una
+     *       pantalla en blanco sin explicacion.
+     */
+    private List<OrdenDeCompraResponse> armar(List<OrdenDeCompra> ordenes, String siNoHay)
+            throws SinResultadosException {
+        if (ordenes.isEmpty())
+            throw new SinResultadosException(siNoHay);
+
+        return ordenes.stream().map(OrdenDeCompraResponse::from).toList();
     }
 
     /**

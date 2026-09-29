@@ -154,7 +154,7 @@ despachante   PUT /envios/{id}/estado?estado=ENTREGADO
 
 **El número de seguimiento es la llave.** No hay una cola de envíos para mirar: en una sucursal uno carga el paquete que tiene en la mano, no uno de una lista. Por eso el número es aleatorio y no correlativo —si fuera `AGRO-000017` se adivinaría probando desde el uno— y sin letras que se confundan leyendo una etiqueta.
 
-Un despachante ve **lo que tiene**, no lo que existe: `GET /envios` son los que él cargó y todavía no entregó, y por id no puede abrir ninguno más. Sin esto, cualquier despachante se quedaba con la dirección de entrega de todas las compras del sistema.
+Un despachante ve **lo que tiene**, no lo que existe: `GET /envios/mios` son los que él cargó y todavía no entregó, y por id no puede abrir ninguno más. Sin esto, cualquier despachante se quedaba con la dirección de entrega de todas las compras del sistema.
 
 **El vendedor nunca declara la entrega**, y eso es a propósito: es lo que hace confiable la reseña que después lo califica. El hecho que habilita calificarlo lo escribe alguien que no gana nada con mentir.
 
@@ -270,7 +270,7 @@ Quedan sin paginar los que están acotados por diseño: el árbol de categorías
 
 ---
 
-## Los 68 endpoints
+## Los 71 endpoints
 
 Todo lo que no diga **público** necesita `Authorization: Bearer <token>`.
 
@@ -356,7 +356,9 @@ Los filtros del catálogo se combinan entre sí: `idCategoria` (incluye las subc
 
 | | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/ordenes` | Las propias. Con `?rol=COMPRADOR\|VENDEDOR` filtra · paginado |
+| `GET` | `/ordenes/mis-compras` | Lo que compré · paginado |
+| `GET` | `/ordenes/mis-ventas` | Lo que vendí · paginado |
+| `GET` | `/ordenes/todas` | Todas las del sistema · **ADMIN** · paginado |
 | `GET` | `/ordenes/{id}` | Una orden con sus renglones |
 | `POST` | `/ordenes` | Cerrar el carrito. Lleva la dirección de entrega |
 | `PUT` | `/ordenes/{id}/estado` | PAGADA sólo ADMIN · CANCELADA sólo desde PENDIENTE |
@@ -365,7 +367,8 @@ Los filtros del catálogo se combinan entre sí: `idCategoria` (incluye las subc
 
 | | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/envios` | Depende del rol · paginado |
+| `GET` | `/envios/mios` | Los propios. Un despachante ve lo que tiene en la mano · paginado |
+| `GET` | `/envios/todos` | Todos los del sistema · **ADMIN** · paginado |
 | `GET` | `/envios/{id}` | Uno, con su seguimiento y sus fechas |
 | `GET` | `/envios/historial` | Lo que entregué · **DESPACHANTE** · paginado |
 | `POST` | `/envios/recibir?numero=` | Cargar un paquete en la sucursal · **DESPACHANTE** |
@@ -438,7 +441,9 @@ Todas conservan además el chequeo perezoso que había antes —al mirar tu carr
 
 **Por qué las bajas son lógicas.** Una orden vieja tiene que poder mostrar qué se compró aunque el producto ya no se venda.
 
-**Por qué los ids no viajan en las rutas propias.** `/carrito`, `/wishlist`, `/usuarios/me`, `/dashboard`, `/envios`: si la ruta no admite un id, no hay forma de pedir el de otro. La regla se cumple sola en vez de validarse.
+**Por qué cada ruta dice una sola cosa.** `GET /ordenes` devolvía tus compras, tus ventas, las dos mezcladas o el sistema entero, según tu rol y un parámetro opcional. Ahora son `/mis-compras`, `/mis-ventas` y `/todas`: el nombre alcanza para saber qué pediste, sin leer la documentación. Lo mismo con `/envios/mios` y `/envios/todos`.
+
+**Por qué los ids no viajan en las rutas propias.** `/carrito`, `/wishlist`, `/usuarios/me`, `/dashboard`, `/envios/mios`: si la ruta no admite un id, no hay forma de pedir el de otro. La regla se cumple sola en vez de validarse.
 
 ---
 

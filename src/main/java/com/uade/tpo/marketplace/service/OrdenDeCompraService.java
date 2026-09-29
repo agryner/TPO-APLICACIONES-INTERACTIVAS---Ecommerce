@@ -8,11 +8,11 @@ import com.uade.tpo.marketplace.entity.Producto;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenDeCompraResponse;
 import com.uade.tpo.marketplace.controllers.ordenes.OrdenRequest;
-import com.uade.tpo.marketplace.controllers.ordenes.RolEnOrden;
 import java.util.List;
 
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
 import com.uade.tpo.marketplace.exceptions.CarritoVacioException;
+import com.uade.tpo.marketplace.exceptions.AccesoDenegadoException;
 import com.uade.tpo.marketplace.exceptions.CompraPropiaException;
 import com.uade.tpo.marketplace.exceptions.DireccionDeEntregaRequeridaException;
 import com.uade.tpo.marketplace.exceptions.OrdenNoEncontradaException;
@@ -26,8 +26,15 @@ import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 public interface OrdenDeCompraService {
-    List<OrdenDeCompraResponse> getOrdenes(Long idSolicitante, RolEnOrden rol)
+    List<OrdenDeCompraResponse> getMisCompras(Long idSolicitante)
             throws UsuarioNoEncontradoException, SinResultadosException;
+
+    List<OrdenDeCompraResponse> getMisVentas(Long idSolicitante)
+            throws UsuarioNoEncontradoException, SinResultadosException;
+
+    List<OrdenDeCompraResponse> getTodas(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException,
+            SinResultadosException;
 
     OrdenDeCompraResponse getOrdenById(Long idOrden, Long idSolicitante)
             throws OrdenNoEncontradaException, OperacionAjenaException;
