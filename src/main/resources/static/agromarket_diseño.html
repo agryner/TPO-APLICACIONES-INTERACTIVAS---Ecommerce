@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -56,7 +57,7 @@
 
                 <div class="flex items-center space-x-5 relative">
                     
-                    <div class="relative cursor-pointer text-gray-600 hover:text-orange-500 transition" onclick="goHome()">
+                    <div class="relative cursor-pointer text-gray-600 hover:text-orange-500 transition" onclick="showWishlist()" title="Mi Lista de Deseos">
                         <i class="fa-regular fa-heart text-xl"></i>
                         <span id="favCount" class="hidden absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center shadow">0</span>
                     </div>
@@ -107,6 +108,7 @@
                                 <a href="#" onclick="showDispatcherPanel()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-truck-fast w-5 text-center mr-2"></i> Panel de Envíos</a>
                             </div>
                             <div id="userOptions" class="hidden">
+                                <a href="#" onclick="showWishlist()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-regular fa-heart w-5 text-center mr-2"></i> Mi Lista de Deseos</a>
                                 <a href="#" onclick="showMyPurchases()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-bag-shopping w-5 text-center mr-2"></i> Mis Compras</a>
                                 <a href="#" onclick="showMySales()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-tag w-5 text-center mr-2"></i> Mis Publicaciones</a>
                             </div>
@@ -236,6 +238,29 @@
         </div>
     </main>
 
+    <!-- Vista de Lista de Deseos -->
+    <div id="wishlistPanel" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-gray-200 pb-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 flex items-center gap-3">
+                    <i class="fa-solid fa-heart text-orange-500"></i> Mi Lista de Deseos
+                </h1>
+                <p class="text-xs text-gray-500 mt-1 font-medium">Tus productos guardados para consultar o comprar cuando quieras.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="goHome()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-gray-200 transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Volver al Catálogo
+                </button>
+                <button id="btnClearWishlist" onclick="clearWishlist()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-red-100 transition hidden flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Vaciar Lista
+                </button>
+            </div>
+        </div>
+
+        <div id="wishlistContent"></div>
+    </div>
+
+    <!-- Vista de Detalle de Producto -->
     <div id="productDetail" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
         <button onclick="goHome()" class="text-green-600 mb-4 font-bold text-sm hover:underline flex items-center"><i class="fa-solid fa-arrow-left mr-2"></i> Volver al listado</button>
         <div class="bg-white p-8 rounded-xl shadow-sm flex flex-col gap-10 mb-8 border border-gray-100">
@@ -260,9 +285,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nombre de usuario</label><input type="text" id="profileUsername" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
                 <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Correo Electrónico</label><input type="email" id="profileEmailField" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
-                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nombre</label><input type="text" id="profileName" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
-                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Apellido</label><input type="text" id="profileSurname" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
-                <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Dirección de Envío / Facturación</label><input type="text" id="profileAddress" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nombre</label><input type="text" id="profileName" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Apellido</label><input type="text" id="profileSurname" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Dirección de Envío / Facturación</label><input type="text" id="profileAddress" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
             </div>
         </div>
     </div>
@@ -649,7 +674,7 @@
 
         function updateCounters() {
             const favEl = document.getElementById('favCount');
-            const userFavs = db.favorites.filter(f => f.user === db.currentUser).map(f => f.productId);
+            const userFavs = db.currentUser ? db.favorites.filter(f => f.user === db.currentUser).map(f => f.productId) : [];
             if (db.currentUser && userFavs.length > 0) { favEl.innerText = userFavs.length; favEl.style.display = 'flex'; favEl.classList.remove('hidden'); } 
             else { favEl.style.display = 'none'; }
 
@@ -661,12 +686,25 @@
         }
 
         function toggleFavorite(e, id) {
-            e.stopPropagation(); 
-            if (!db.currentUser) return showGiantError('Requiere Sesión', 'Inicia sesión para guardar en favoritos.');
+            if(e) e.stopPropagation(); 
+            if (!db.currentUser) return showGiantError('Requiere Sesión', 'Inicia sesión para guardar productos en tu lista de deseos.');
             const idx = db.favorites.findIndex(f => f.user === db.currentUser && f.productId === id);
-            if (idx === -1) db.favorites.push({ user: db.currentUser, productId: id });
-            else db.favorites.splice(idx, 1);
-            saveDB(); updateCounters(); renderCatalog(); 
+            if (idx === -1) {
+                db.favorites.push({ user: db.currentUser, productId: id });
+                showToast('Producto agregado a tu lista de deseos', 'success');
+            } else {
+                db.favorites.splice(idx, 1);
+                showToast('Producto eliminado de tu lista de deseos', 'neutral');
+            }
+            saveDB(); 
+            updateCounters(); 
+            renderCatalog(); 
+            if (!document.getElementById('productDetail').classList.contains('hidden') && viewingProductId === id) {
+                showProduct(id);
+            }
+            if (!document.getElementById('wishlistPanel').classList.contains('hidden')) {
+                renderWishlist();
+            }
         }
 
         // Categorías y Subcategorías
@@ -832,23 +870,41 @@
             }
             document.getElementById('detailContentImageContainer').innerHTML = imgHTML;
             
+            const isFav = db.currentUser && db.favorites.some(f => f.user === db.currentUser && f.productId === p.id);
+            const favIcon = isFav ? 'fa-solid fa-heart text-orange-500' : 'fa-regular fa-heart text-gray-400';
+            const favBtnText = isFav ? 'En Lista de Deseos' : 'Añadir a Deseos';
+            const favBtnBg = isFav ? 'bg-orange-50 border-orange-300 text-orange-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-orange-500 hover:bg-orange-50';
+
             let stockHtml = p.stock > 0 ? `<div class="text-green-600 font-bold text-sm mb-4">Stock disponible: ${p.stock}</div>` : `<div class="text-red-500 font-bold text-sm mb-4">Agotado</div>`;
             let actionsHtml = p.stock > 0 ? `
-                <div class="mt-auto flex gap-4 items-center">
+                <div class="mt-auto flex gap-3 items-center">
                     <div class="flex items-center border border-gray-300 rounded-xl overflow-hidden h-14 w-32 shrink-0 bg-white">
                         <button onclick="changeQty(-1, ${p.stock})" class="px-4 text-gray-500 hover:bg-gray-100 font-bold text-lg transition h-full">-</button>
                         <div id="detailQtyDisplay" class="flex-1 text-center font-black text-gray-900 text-lg">1</div>
                         <button onclick="changeQty(1, ${p.stock})" class="px-4 text-gray-500 hover:bg-gray-100 font-bold text-lg transition h-full">+</button>
                     </div>
                     <button onclick="addToCartFromDetail()" class="flex-1 bg-orange-500 text-white font-black py-4 rounded-xl hover:bg-orange-600 shadow-md uppercase tracking-wide transition">Agregar al Carrito</button>
-                </div>` : `<button disabled class="w-full bg-gray-300 text-gray-500 font-black py-4 rounded-xl uppercase tracking-wide cursor-not-allowed">Sin Stock</button>`;
+                    <button onclick="toggleFavorite(event, ${p.id})" class="h-14 w-14 rounded-xl border-2 ${isFav ? 'border-orange-500 bg-orange-50 text-orange-500' : 'border-gray-200 bg-white text-gray-400 hover:text-orange-500 hover:border-orange-300'} flex items-center justify-center text-xl transition shadow-sm shrink-0" title="${isFav ? 'Quitar de lista de deseos' : 'Agregar a lista de deseos'}">
+                        <i class="${favIcon}"></i>
+                    </button>
+                </div>` : `
+                <div class="mt-auto flex gap-3 items-center">
+                    <button disabled class="flex-1 bg-gray-300 text-gray-500 font-black py-4 rounded-xl uppercase tracking-wide cursor-not-allowed">Sin Stock</button>
+                    <button onclick="toggleFavorite(event, ${p.id})" class="h-14 w-14 rounded-xl border-2 ${isFav ? 'border-orange-500 bg-orange-50 text-orange-500' : 'border-gray-200 bg-white text-gray-400 hover:text-orange-500 hover:border-orange-300'} flex items-center justify-center text-xl transition shadow-sm shrink-0" title="${isFav ? 'Quitar de lista de deseos' : 'Agregar a lista de deseos'}">
+                        <i class="${favIcon}"></i>
+                    </button>
+                </div>`;
 
             document.getElementById('detailContentInfo').innerHTML = `
-                <div class="flex justify-between items-start mb-2">
+                <div class="flex justify-between items-center mb-2">
                     <div class="flex gap-2 items-center">
                         <span class="text-[10px] text-gray-400 uppercase font-black bg-gray-100 px-2 py-1 rounded">${p.condition}</span>
                         <span class="text-[10px] text-green-800 uppercase font-bold bg-green-50 px-2 py-1 rounded border border-green-200">${p.category} &gt; ${p.subcategory || 'General'}</span>
                     </div>
+                    <button onclick="toggleFavorite(event, ${p.id})" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition shadow-sm ${favBtnBg}" title="${isFav ? 'Quitar de lista de deseos' : 'Guardar en lista de deseos'}">
+                        <i class="${favIcon} text-sm"></i>
+                        <span>${favBtnText}</span>
+                    </button>
                 </div>
                 <h1 class="text-3xl font-black text-gray-900 leading-tight">${p.title}</h1>
                 <div class="flex items-center gap-3 my-3 text-sm">
@@ -882,6 +938,141 @@
                     </div>
                 </div>
             `;
+        }
+
+        // Vista Lista de Deseos (Wishlist)
+        function showWishlist() {
+            if(!db.currentUser) {
+                return showGiantError('Requiere Sesión', 'Inicia sesión con tu cuenta para ver tu lista de deseos.');
+            }
+            hideAllPanels();
+            document.getElementById('wishlistPanel').classList.remove('hidden');
+            renderWishlist();
+        }
+
+        function clearWishlist() {
+            if(!confirm('¿Estás seguro de que deseas vaciar tu lista de deseos?')) return;
+            db.favorites = db.favorites.filter(f => f.user !== db.currentUser);
+            saveDB();
+            updateCounters();
+            renderWishlist();
+            renderCatalog();
+            showToast('Lista de deseos vaciada', 'neutral');
+        }
+
+        function quickAddToCart(productId, event) {
+            if(event) event.stopPropagation();
+            if(!db.currentUser) return showGiantError("Inicia Sesión", "Debes iniciar sesión con tu cuenta para poder comprar productos.");
+            if(db.currentRole === 'Administrador' || db.currentRole === 'Despachante') return showGiantError("Acceso Denegado", "Tu rol no te permite realizar compras. Ingresa como Vendedor.");
+            const p = db.products.find(x => x.id === productId);
+            if(!p) return;
+            if(db.currentUser === p.seller) return showGiantError("Acción Inválida", "No puedes comprar tus propias publicaciones.");
+            if(p.stock <= 0) return showToast("Producto sin stock disponible", "error");
+
+            let ex = db.cart.find(x => x.id === p.id && x.user === db.currentUser);
+            if(ex) {
+                if(ex.qty < p.stock) ex.qty += 1;
+                else return showToast("Alcanzaste el límite de stock disponible de este producto", "neutral");
+            } else {
+                db.cart.push({ ...p, user: db.currentUser, cartPrice: p.price, qty: 1 });
+            }
+            saveDB();
+            showToast('Producto agregado al carrito', 'success');
+            updateCartUI();
+            updateCounters();
+        }
+
+        function renderWishlist() {
+            const container = document.getElementById('wishlistContent');
+            const clearBtn = document.getElementById('btnClearWishlist');
+            if(!container) return;
+
+            if(!db.currentUser) {
+                if(clearBtn) clearBtn.classList.add('hidden');
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center flex flex-col items-center justify-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                            <i class="fa-solid fa-lock text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Inicia sesión</h3>
+                        <p class="text-sm text-gray-500 max-w-md mb-6">Debes iniciar sesión para guardar y visualizar tus productos favoritos.</p>
+                        <button onclick="openLoginModal()" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow transition">
+                            Ingresar a mi cuenta
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const userFavs = db.favorites.filter(f => f.user === db.currentUser).map(f => f.productId);
+            const favProducts = db.products.filter(p => userFavs.includes(p.id) && p.status === "Aprobado");
+
+            if (favProducts.length === 0) {
+                if(clearBtn) clearBtn.classList.add('hidden');
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center text-orange-400 mb-4">
+                            <i class="fa-regular fa-heart text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Tu lista de deseos está vacía</h3>
+                        <p class="text-sm text-gray-500 max-w-md mb-6">Explora nuestro catálogo y guarda los productos que te interesen haciendo clic en el icono del corazón.</p>
+                        <button onclick="goHome()" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow transition">
+                            Explorar Catálogo
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            if(clearBtn) clearBtn.classList.remove('hidden');
+
+            let html = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">`;
+            favProducts.forEach(p => {
+                const img = p.images[0] || 'https://placehold.co/400';
+                const inStock = p.stock > 0;
+                html += `
+                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition cursor-pointer card-zoom flex flex-col relative" onclick="showProduct(${p.id})">
+                        <button class="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-2 shadow z-20 transition text-orange-500 hover:text-red-600" title="Eliminar de lista de deseos" onclick="toggleFavorite(event, ${p.id})">
+                            <i class="fa-solid fa-heart text-sm"></i>
+                        </button>
+                        <div class="h-48 overflow-hidden bg-white flex justify-center">
+                            <img src="${img}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4 flex flex-col flex-1 border-t border-gray-50">
+                            <div class="flex items-center justify-between text-[10px]">
+                                <span class="text-gray-400 font-bold uppercase tracking-widest">${p.condition}</span>
+                                <span class="text-green-800 bg-green-50 font-bold px-2 py-0.5 rounded border border-green-200">${p.subcategory || p.category}</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mt-1 line-clamp-2 text-sm">${p.title}</h3>
+                            <div class="flex items-center text-[11px] text-gray-500 my-1 gap-2 font-bold">
+                                <div class="text-orange-500 text-xs"><i class="fa-solid fa-star"></i> ${p.rating}</div>
+                                <span>| ${p.soldCount} vendidos</span>
+                            </div>
+                            <div class="text-2xl font-black text-gray-900 mt-2">${formatMoney(p.price)}</div>
+                            <div class="text-[10px] ${inStock ? 'text-green-600' : 'text-red-500'} font-bold mt-1 mb-3">
+                                ${inStock ? `Stock: ${p.stock}` : 'Agotado'}
+                            </div>
+
+                            <div class="mt-auto pt-2 flex gap-2">
+                                ${inStock ? `
+                                    <button onclick="quickAddToCart(${p.id}, event)" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 px-3 rounded-lg uppercase tracking-wide transition shadow-sm flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-cart-plus"></i> Al Carrito
+                                    </button>
+                                ` : `
+                                    <button disabled class="flex-1 bg-gray-200 text-gray-400 text-xs font-bold py-2.5 px-3 rounded-lg uppercase tracking-wide cursor-not-allowed">
+                                        Sin Stock
+                                    </button>
+                                `}
+                                <button onclick="showProduct(${p.id})" class="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition" title="Ver Detalle">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
         }
 
         // Carrito y Checkout
@@ -924,10 +1115,16 @@
         }
 
         function checkout() {
-            const userCart = db.cart.filter(x => x.user === db.currentUser);
-            if(userCart.length === 0 || !db.currentUser) return;
+            const userCart = db.currentUser ? db.cart.filter(x => x.user === db.currentUser) : [];
+            if(userCart.length === 0) {
+                return showGiantError("Carrito Vacío", "No puedes confirmar la compra porque el carrito está vacío. Agrega productos antes de continuar.");
+            }
+            if(!db.currentUser) {
+                return showGiantError("Inicia Sesión", "Debes iniciar sesión para confirmar tu compra.");
+            }
             
-            const needsShipping = document.querySelector('input[name="shippingMethod"]:checked').value === 'envio';
+            const shippingRadio = document.querySelector('input[name="shippingMethod"]:checked');
+            const needsShipping = shippingRadio ? shippingRadio.value === 'envio' : true;
             const orderId = db.orderIdCounter++;
             const total = userCart.reduce((s, x) => s + (x.cartPrice * x.qty), 0);
             
@@ -989,7 +1186,10 @@
         }
 
         function hideAllPanels() {
-            ['mainContainer', 'productDetail', 'adminPanel', 'dispatcherPanel', 'myPurchasesPanel', 'mySalesPanel', 'myDataPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['mainContainer', 'productDetail', 'wishlistPanel', 'adminPanel', 'dispatcherPanel', 'myPurchasesPanel', 'mySalesPanel', 'myDataPanel'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add('hidden');
+            });
         }
         function goHome() { hideAllPanels(); document.getElementById('mainContainer').classList.remove('hidden'); renderCatalog(); }
         function handleUserMenuClick() { if (!db.currentUser) openLoginModal(); else document.getElementById('userDropdown').classList.toggle('hidden'); }
