@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroMarket - E-commerce Agropecuario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card-zoom:hover img { transform: scale(1.05); }
+        .accordion-content { transition: max-height 0.3s ease-in-out, opacity 0.3s; max-height: 500px; opacity: 1; overflow: hidden; }
+        .accordion-content.collapsed { max-height: 0; opacity: 0; }
+        .chevron { transition: transform 0.3s ease; }
+        .chevron.rotated { transform: rotate(180deg); }
+        
+        #cartItems::-webkit-scrollbar, #notifList::-webkit-scrollbar { width: 4px; }
+        #cartItems::-webkit-scrollbar-thumb, #notifList::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        .toast-enter { transform: translateY(100%); opacity: 0; }
+        .toast-active { transform: translateY(0); opacity: 1; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal-backdrop { backdrop-filter: blur(4px); }
+        
+        .thumb-img { cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .thumb-img:hover, .thumb-img.active { border-color: #16a34a; opacity: 1; }
+    </style>
+</head>
+<body class="bg-yellow-100 font-sans text-gray-800 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <div id="giantErrorModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-[110] flex items-center justify-center modal-backdrop px-4">
+        <div class="bg-white p-6 max-w-sm w-full rounded-2xl text-center transform scale-105 shadow-2xl border-t-4 border-red-600">
+            <i class="fa-solid fa-circle-xmark text-red-600 text-5xl mb-4"></i>
+            <h2 class="text-xl font-black mb-2 text-gray-900" id="giantErrorTitle">Acceso Denegado</h2>
+            <p class="text-sm text-gray-600 mb-6 font-medium" id="giantErrorText">No tienes permisos para realizar esta acción.</p>
+            <button onclick="closeGiantError()" class="bg-red-600 text-white font-bold text-sm px-6 py-2 rounded-xl hover:bg-red-700 shadow-lg transition-all uppercase tracking-wide w-full">Entendido</button>
+        </div>
+    </div>
+
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16 border-b border-gray-100">
+                
+                <div class="flex items-center cursor-pointer" onclick="goHome()">
+                    <i class="fa-solid fa-leaf text-green-600 text-2xl mr-2"></i>
+                    <span class="font-bold text-xl text-gray-900 tracking-tight">AgroMarket</span>
+                </div>
+
+                <div class="flex-1 max-w-2xl px-8 hidden md:block">
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Buscar maquinaria, tractor, insumos..." oninput="renderCatalog()"
+                               class="w-full bg-gray-100 rounded-full py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm font-medium">
+                        <i class="fa-solid fa-search absolute right-4 top-2.5 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-5 relative">
+                    
+                    <div class="relative cursor-pointer text-gray-600 hover:text-orange-500 transition" onclick="goHome()">
+                        <i class="fa-regular fa-heart text-xl"></i>
+                        <span id="favCount" class="hidden absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center shadow">0</span>
+                    </div>
+
+                    <div class="relative">
+                        <button onclick="toggleBellDropdown()" class="text-gray-600 hover:text-green-600 transition relative pt-1">
+                            <i class="fa-regular fa-bell text-xl"></i>
+                            <span id="bellCount" class="hidden absolute -top-0.5 -right-1.5 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center shadow">0</span>
+                        </button>
+                        
+                        <div id="bellDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl z-50 border border-gray-100 flex flex-col">
+                            <div class="p-3 border-b border-gray-100 font-bold text-gray-800 text-sm flex justify-between items-center">
+                                Notificaciones
+                                <button onclick="clearNotifications()" class="text-[10px] text-gray-400 hover:text-red-500 font-normal">Limpiar</button>
+                            </div>
+                            <div id="notifList" class="max-h-64 overflow-y-auto p-2 flex flex-col gap-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="relative cursor-pointer" onclick="toggleCart()" id="navCartIcon">
+                        <i class="fa-solid fa-cart-shopping text-xl text-gray-600 hover:text-green-600 transition"></i>
+                        <span id="cartCount" class="hidden absolute -top-1.5 -right-1.5 bg-green-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center shadow">0</span>
+                    </div>
+
+                    <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
+                    
+                    <div id="headerGreeting" class="hidden items-center text-base">
+                        <span class="text-green-600 font-bold">Hola,</span>&nbsp;<span class="text-gray-900 font-bold" id="greetingName">Usuario</span>
+                    </div>
+
+                    <div class="relative">
+                        <button id="btnLogin" onclick="handleUserMenuClick()" class="text-gray-600 hover:text-green-600 font-medium flex items-center gap-2 transition">
+                            <i class="fa-regular fa-user text-xl"></i> <span id="loginText" class="text-sm">Ingresar</span>
+                        </button>
+                        
+                        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                            <div class="px-4 py-2 border-b border-gray-100 mb-1">
+                                <p class="text-sm font-bold text-gray-800 truncate" id="dropdownEmail">usuario</p>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5" id="dropdownRole">Invitado</p>
+                            </div>
+                            
+                            <a href="#" onclick="showMyData()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-regular fa-id-card w-5 text-center mr-2"></i> Mis Datos</a>
+                            
+                            <div id="adminOptions" class="hidden">
+                                <a href="#" onclick="showAdminPanel()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-gear w-5 text-center mr-2"></i> Gestión General</a>
+                            </div>
+                            <div id="dispatcherOptions" class="hidden">
+                                <a href="#" onclick="showDispatcherPanel()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-truck-fast w-5 text-center mr-2"></i> Panel de Envíos</a>
+                            </div>
+                            <div id="userOptions" class="hidden">
+                                <a href="#" onclick="showMyPurchases()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-bag-shopping w-5 text-center mr-2"></i> Mis Compras</a>
+                                <a href="#" onclick="showMySales()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"><i class="fa-solid fa-tag w-5 text-center mr-2"></i> Mis Publicaciones</a>
+                            </div>
+                            
+                            <div class="border-t border-gray-100 mt-1">
+                                <a href="#" onclick="doLogout()" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 font-medium"><i class="fa-solid fa-arrow-right-from-bracket w-5 text-center mr-2"></i> Cerrar Sesión</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Categorías Principales -->
+        <div class="bg-green-800 border-b border-gray-300 shadow-inner">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-12">
+                <div class="flex items-center gap-6 text-sm text-white font-medium">
+                    <span class="text-green-900 font-bold uppercase text-[11px] tracking-wider bg-white px-2 py-1 rounded shadow-sm">Categorías</span>
+                    <label class="flex items-center cursor-pointer hover:text-green-200 transition">
+                        <input type="checkbox" class="mr-2 filter-cb accent-white h-4 w-4" data-type="category" value="Maquinaria" onchange="onCategoryFilterChanged('Maquinaria', this.checked)"> Maquinaria
+                    </label>
+                    <label class="flex items-center cursor-pointer hover:text-green-200 transition">
+                        <input type="checkbox" class="mr-2 filter-cb accent-white h-4 w-4" data-type="category" value="Insumos" onchange="onCategoryFilterChanged('Insumos', this.checked)"> Insumos
+                    </label>
+                </div>
+                <div id="headerPostBtnContainer" class="hidden">
+                    <button onclick="openProductModal()" class="bg-white text-green-900 px-4 py-1.5 rounded-md font-bold hover:bg-gray-100 shadow-sm transition text-xs uppercase tracking-wide flex items-center">
+                        <i class="fa-solid fa-plus mr-2"></i> Publicar Nuevo Producto
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub-barra dinámica de Subcategorías -->
+        <div id="subcategoriesHeaderBar" class="hidden bg-green-700 text-white text-xs py-2 px-4 border-b border-green-600 transition-all shadow-inner">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+                <div class="flex items-center gap-3 flex-wrap" id="subcategoriesHeaderContent"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8 flex-1 w-full" id="mainContainer">
+        
+        <aside class="hidden lg:block w-64 flex-shrink-0" id="sidebar">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 sticky top-36">
+                <div class="flex items-center justify-between mb-5 pb-3 border-b border-gray-100">
+                    <h2 class="font-bold text-gray-900 text-lg"><i class="fa-solid fa-filter text-green-600 mr-2 text-sm"></i> Filtros</h2>
+                    <button onclick="clearAllFilters()" class="text-[11px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider transition">Limpiar</button>
+                </div>
+
+                <!-- Categorías y Subcategorías en Barra Lateral -->
+                <div class="mb-5">
+                    <div class="flex justify-between items-center cursor-pointer font-bold text-sm text-gray-800 mb-3" onclick="toggleFilter('catFilter')">
+                        <h3>Categorías</h3>
+                        <i id="catFilter-icon" class="fa-solid fa-chevron-up chevron text-xs text-gray-400"></i>
+                    </div>
+                    <div id="catFilter-content" class="accordion-content space-y-2 text-sm text-gray-600">
+                        <!-- Maquinaria -->
+                        <div>
+                            <div class="flex items-center justify-between py-1">
+                                <label class="flex items-center cursor-pointer hover:text-green-600 font-semibold">
+                                    <input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="category" value="Maquinaria" onchange="onCategoryFilterChanged('Maquinaria', this.checked)"> Maquinaria
+                                </label>
+                                <button type="button" onclick="toggleSubcatCollapse('Maquinaria')" class="text-gray-400 hover:text-green-600 p-1">
+                                    <i id="subcat-icon-Maquinaria" class="fa-solid fa-chevron-down text-xs transition-transform"></i>
+                                </button>
+                            </div>
+                            <div id="subcat-group-Maquinaria" class="hidden pl-5 space-y-1.5 py-1 text-xs border-l-2 border-green-200 ml-2">
+                                <label class="flex items-center cursor-pointer hover:text-green-600">
+                                    <input type="checkbox" class="mr-2 filter-cb accent-green-600 h-3.5 w-3.5" data-type="subcategory" data-parent="Maquinaria" value="Tractor" onchange="renderCatalog()"> Tractor
+                                </label>
+                                <label class="flex items-center cursor-pointer hover:text-green-600">
+                                    <input type="checkbox" class="mr-2 filter-cb accent-green-600 h-3.5 w-3.5" data-type="subcategory" data-parent="Maquinaria" value="Cosechadora" onchange="renderCatalog()"> Cosechadora
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Insumos -->
+                        <div>
+                            <div class="flex items-center justify-between py-1">
+                                <label class="flex items-center cursor-pointer hover:text-green-600 font-semibold">
+                                    <input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="category" value="Insumos" onchange="onCategoryFilterChanged('Insumos', this.checked)"> Insumos
+                                </label>
+                                <button type="button" onclick="toggleSubcatCollapse('Insumos')" class="text-gray-400 hover:text-green-600 p-1">
+                                    <i id="subcat-icon-Insumos" class="fa-solid fa-chevron-down text-xs transition-transform"></i>
+                                </button>
+                            </div>
+                            <div id="subcat-group-Insumos" class="hidden pl-5 space-y-1.5 py-1 text-xs border-l-2 border-green-200 ml-2">
+                                <label class="flex items-center cursor-pointer hover:text-green-600">
+                                    <input type="checkbox" class="mr-2 filter-cb accent-green-600 h-3.5 w-3.5" data-type="subcategory" data-parent="Insumos" value="Semillas" onchange="renderCatalog()"> Semillas
+                                </label>
+                                <label class="flex items-center cursor-pointer hover:text-green-600">
+                                    <input type="checkbox" class="mr-2 filter-cb accent-green-600 h-3.5 w-3.5" data-type="subcategory" data-parent="Insumos" value="Fertilizantes" onchange="renderCatalog()"> Fertilizantes
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-5">
+                    <div class="flex justify-between items-center cursor-pointer font-bold text-sm text-gray-800 mb-3" onclick="toggleFilter('provFilter')">
+                        <h3>Ubicación</h3>
+                        <i id="provFilter-icon" class="fa-solid fa-chevron-up chevron text-xs text-gray-400"></i>
+                    </div>
+                    <div id="provFilter-content" class="accordion-content space-y-2.5 text-sm text-gray-600">
+                        <label class="flex items-center cursor-pointer hover:text-green-600"><input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="location" value="Buenos Aires" onchange="renderCatalog()"> Buenos Aires</label>
+                        <label class="flex items-center cursor-pointer hover:text-green-600"><input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="location" value="Córdoba" onchange="renderCatalog()"> Córdoba</label>
+                        <label class="flex items-center cursor-pointer hover:text-green-600"><input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="location" value="Santa Fe" onchange="renderCatalog()"> Santa Fe</label>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center cursor-pointer font-bold text-sm text-gray-800 mb-3" onclick="toggleFilter('condFilter')">
+                        <h3>Condición</h3>
+                        <i id="condFilter-icon" class="fa-solid fa-chevron-up chevron text-xs text-gray-400"></i>
+                    </div>
+                    <div id="condFilter-content" class="accordion-content space-y-2.5 text-sm text-gray-600">
+                        <label class="flex items-center cursor-pointer hover:text-green-600"><input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="condition" value="Nuevo" onchange="renderCatalog()"> Nuevo</label>
+                        <label class="flex items-center cursor-pointer hover:text-green-600"><input type="checkbox" class="mr-2 filter-cb accent-green-600 h-4 w-4" data-type="condition" value="Usado" onchange="renderCatalog()"> Usado</label>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col">
+            <div id="catalogGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+        </div>
+    </main>
+
+    <div id="productDetail" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+        <button onclick="goHome()" class="text-green-600 mb-4 font-bold text-sm hover:underline flex items-center"><i class="fa-solid fa-arrow-left mr-2"></i> Volver al listado</button>
+        <div class="bg-white p-8 rounded-xl shadow-sm flex flex-col gap-10 mb-8 border border-gray-100">
+            
+            <div class="flex flex-col md:flex-row gap-10">
+                <div class="w-full md:w-1/2 flex flex-col" id="detailContentImageContainer"></div>
+                <div id="detailContentInfo" class="w-full md:w-1/2 flex flex-col"></div>
+            </div>
+
+            <div id="detailContentReviews" class="w-full border-t border-gray-200 pt-8 mt-4"></div>
+        </div>
+    </div>
+
+    <div id="myDataPanel" class="hidden max-w-3xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="flex justify-between items-end mb-6 border-b border-gray-200">
+            <div class="border-b-2 border-black pb-2 text-gray-900 font-bold text-lg">Mis Datos Personales</div>
+            <button id="btnEditProfile" onclick="toggleEditProfile()" class="mb-2 bg-gray-900 text-white px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition">
+                Editar Datos
+            </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-8 space-y-6 border border-gray-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nombre de usuario</label><input type="text" id="profileUsername" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Correo Electrónico</label><input type="email" id="profileEmailField" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nombre</label><input type="text" id="profileName" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Apellido</label><input type="text" id="profileSurname" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+                <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Dirección de Envío / Facturación</label><input type="text" id="profileAddress" class="profile-field w-full border border-gray-200 rounded-lg p-3 bg-gray-50 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-green-500 transition" disabled></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Administrador con Pestaña de Gestión de Usuarios -->
+    <div id="adminPanel" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="flex gap-6 mb-6 border-b border-gray-200">
+            <button onclick="switchAdminTab('ordenes')" id="tab-ordenes" class="border-b-2 border-black pb-2 text-gray-900 font-bold">Gestión de Órdenes</button>
+            <button onclick="switchAdminTab('pendientes')" id="tab-pendientes" class="text-gray-400 font-medium pb-2 cursor-pointer hover:text-gray-600">Productos Pendientes</button>
+            <button onclick="switchAdminTab('usuarios')" id="tab-usuarios" class="text-gray-400 font-medium pb-2 cursor-pointer hover:text-gray-600">Gestión de Usuarios</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100" id="adminContentContainer"></div>
+    </div>
+
+    <div id="dispatcherPanel" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="flex justify-between items-end border-b border-gray-200 mb-6">
+            <div class="flex gap-6">
+                <div class="border-b-2 border-black pb-2 text-gray-900 font-bold">Gestión de Envíos</div>
+            </div>
+            <button onclick="openDispatchModal()" class="bg-gray-900 text-white font-bold px-4 py-2 rounded-t-lg hover:bg-gray-800 transition text-xs uppercase tracking-wide">
+                <i class="fa-solid fa-box-open mr-2"></i> Ingresar Paquete
+            </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                    <tr><th class="p-4 border-b border-gray-200">CÓDIGO TRACKING</th><th class="p-4 border-b border-gray-200">DESTINATARIO</th><th class="p-4 text-center border-b border-gray-200">ESTADO</th><th class="p-4 text-right border-b border-gray-200">ACCIÓN</th></tr>
+                </thead>
+                <tbody id="dispatcherActiveBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="myPurchasesPanel" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="flex gap-6 mb-6 border-b border-gray-200">
+            <div class="border-b-2 border-black pb-2 text-gray-900 font-bold">Mis Compras</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                    <tr><th class="p-4 border-b border-gray-200">Nº ORDEN</th><th class="p-4 border-b border-gray-200">TOTAL</th><th class="p-4 text-center border-b border-gray-200">ESTADO</th><th class="p-4 text-right border-b border-gray-200">ACCIÓN</th></tr>
+                </thead>
+                <tbody id="myPurchasesBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="mySalesPanel" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="flex gap-6 mb-6 border-b border-gray-200">
+            <button onclick="switchVendorTab('publicaciones')" id="tab-v-publicaciones" class="border-b-2 border-black pb-2 text-gray-900 font-bold cursor-pointer">Mis Publicaciones</button>
+            <button onclick="switchVendorTab('ordenes')" id="tab-v-ordenes" class="text-gray-400 font-medium pb-2 cursor-pointer hover:text-gray-600">Órdenes Recibidas</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100" id="vendorContentContainer"></div>
+    </div>
+
+    <!-- Modal Crear Usuario -->
+    <div id="createUserModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-[70] flex justify-center items-center modal-backdrop py-4 px-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md my-auto relative">
+            <button onclick="closeCreateUserModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl transition">&times;</button>
+            <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <i class="fa-solid fa-user-plus mr-3 text-green-600"></i> Registrar Nuevo Usuario
+            </h2>
+            
+            <form onsubmit="handleSaveNewUser(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Correo Electrónico *</label>
+                    <input type="email" id="newEmail" required placeholder="ejemplo@test.com" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50">
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Usuario *</label>
+                        <input type="text" id="newUserUsername" required placeholder="usuario1" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Rol *</label>
+                        <select id="newUserRole" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                            <option value="Vendedor">Vendedor</option>
+                            <option value="Despachante">Despachante</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Contraseña</label>
+                    <input type="password" id="newUserPassword" placeholder="Contraseña" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50">
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
+                        <input type="text" id="newUserName" placeholder="Nombre" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido</label>
+                        <input type="text" id="newUserSurname" placeholder="Apellido" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección</label>
+                    <input type="text" id="newUserAddress" placeholder="Calle 123, Provincia" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50">
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-6 pt-2 border-t border-gray-100">
+                    <button type="button" onclick="closeCreateUserModal()" class="px-5 py-2 bg-gray-100 rounded-lg text-gray-700 font-bold hover:bg-gray-200 transition text-sm">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i> Guardar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-[60] flex justify-center items-center modal-backdrop py-4 px-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg my-auto relative">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl">&times;</button>
+            <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center"><i class="fa-solid fa-box-open mr-3 text-green-600"></i> Publicar Producto</h2>
+            
+            <div class="space-y-4">
+                <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label><input type="text" id="newTitle" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500"></div>
+                <div class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Categoría</label>
+                        <select id="newCategory" onchange="updateModalSubcategories()" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none">
+                            <option value="Maquinaria">Maquinaria</option>
+                            <option value="Insumos">Insumos</option>
+                        </select>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Subcategoría</label>
+                        <select id="newSubcategory" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none"></select>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-1/2"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Condición</label><select id="newCondition" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none"><option>Nuevo</option><option>Usado</option></select></div>
+                    <div class="w-1/2"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio (U$S)</label><input type="number" id="newPrice" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Stock</label><input type="number" id="newStock" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500"></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Subir Imágenes (Local)</label>
+                    <input type="file" id="newImagesFile" multiple accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 transition cursor-pointer">
+                </div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label><textarea id="newDesc" rows="3" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500"></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeProductModal()" class="px-5 py-2 bg-gray-100 rounded-lg text-gray-700 font-bold hover:bg-gray-200 transition">Cancelar</button>
+                <button onclick="saveProduct()" class="px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Drawer -->
+    <div id="cartDrawer" class="hidden fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-50 flex flex-col transform translate-x-full transition-transform duration-300 border-l border-gray-100">
+        <div class="p-5 border-b border-gray-100 flex justify-between bg-white items-center">
+            <h2 class="font-bold text-lg text-gray-900 flex items-center"><i class="fa-solid fa-basket-shopping mr-3 text-green-600"></i> Carrito</h2>
+            <button onclick="toggleCart()" class="text-gray-400 hover:text-red-500 text-2xl leading-none transition">&times;</button>
+        </div>
+        <div class="flex-1 p-5 overflow-y-auto bg-gray-50/50" id="cartItems"></div>
+        <div class="p-6 border-t border-gray-200 bg-white">
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Método de entrega</label>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center cursor-pointer p-2 border border-gray-200 rounded hover:bg-green-50 bg-white text-sm"><input type="radio" name="shippingMethod" value="envio" class="mr-2 accent-green-600" checked> Envío a domicilio</label>
+                    <label class="flex items-center cursor-pointer p-2 border border-gray-200 rounded hover:bg-green-50 bg-white text-sm"><input type="radio" name="shippingMethod" value="acordar" class="mr-2 accent-green-600"> Acordar con vendedor</label>
+                </div>
+            </div>
+            <div class="flex justify-between font-black text-xl mb-4 text-gray-900">
+                <span class="text-sm text-gray-500 uppercase font-bold">Total:</span><span id="cartTotal">U$S 0</span>
+            </div>
+            <button onclick="checkout()" class="w-full bg-orange-500 text-white py-3 rounded-lg font-bold hover:bg-orange-600 uppercase tracking-wide transition">Confirmar Compra</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-[65] flex justify-center items-center modal-backdrop p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl transition">&times;</button>
+            <div class="flex justify-center mb-4"><i class="fa-solid fa-leaf text-green-600 text-5xl"></i></div>
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 tracking-tight">Iniciar Sesión</h2>
+            
+            <form onsubmit="manualLogin(event)" class="space-y-4 mb-6 border-b border-gray-100 pb-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Correo Electrónico</label>
+                    <input type="email" id="loginEmail" required class="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 text-gray-800 font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Contraseña</label>
+                    <input type="password" id="loginPassword" required class="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 text-gray-800 font-medium">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 uppercase tracking-wide transition mt-2">Ingresar</button>
+            </form>
+            
+            <div class="text-center">
+                <p class="text-xs text-gray-400 font-bold uppercase mb-1">Credenciales de prueba (Clave: 1234)</p>
+                <p class="text-[11px] text-gray-500">admin@test.com<br>vendedor1@test.com<br>vendedor2@test.com<br>despacho@test.com</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispatch AGRO Modal -->
+    <div id="dispatchModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-[70] flex justify-center items-center modal-backdrop">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button onclick="closeDispatchModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl transition">&times;</button>
+            <h2 class="text-xl font-bold mb-2 text-gray-900">Registrar Paquete</h2>
+            <p class="text-sm text-gray-500 mb-6">Ingresa el código AGRO del paquete que tienes en mano.</p>
+            <input type="text" id="dispatchInputModalVal" placeholder="AGRO-12345678" class="w-full border-2 border-gray-200 rounded p-4 text-xl font-mono uppercase text-center mb-4 focus:border-gray-900 outline-none">
+            <button onclick="takePackageFromModal()" class="w-full bg-gray-900 text-white font-bold py-3 rounded hover:bg-gray-800 transition uppercase text-sm tracking-wide">Procesar Envío</button>
+        </div>
+    </div>
+
+    <script>
+        const formatMoney = (amount) => 'U$S ' + new Intl.NumberFormat('en-US').format(amount);
+
+        const categoriesData = {
+            "Maquinaria": ["Tractor", "Cosechadora"],
+            "Insumos": ["Semillas", "Fertilizantes"]
+        };
+
+        const initialProducts = [
+            { id: 1, title: "Tractor John Deere 7320", category: "Maquinaria", subcategory: "Tractor", condition: "Usado", location: "Buenos Aires", price: 85000, stock: 3, seller: "vendedor1@test.com", status: "Aprobado", rating: 4.8, soldCount: 4, images: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmQvKGGCrxEjqlYgoArtB9fyvxFqb5Lsc3gsOb8ioK2w&s=10"], desc: "Excelente estado. Motor impecable. Ideal para siembra gruesa." },
+            { id: 2, title: "Semillas de Maíz Híbrido (Bolsa 80k)", category: "Insumos", subcategory: "Semillas", condition: "Nuevo", location: "Córdoba", price: 65, stock: 50, seller: "vendedor2@test.com", status: "Aprobado", rating: 4.9, soldCount: 450, images: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVnw-xXWYsJT_CYFOeqkfhsojpsx6FvGOz2c84WnaVtA&s=10"], desc: "Alto rendimiento y resistencia a plagas. Excelente poder germinativo." },
+            { id: 3, title: "Cosechadora Agrícola Valtra", category: "Maquinaria", subcategory: "Cosechadora", condition: "Usado", location: "Santa Fe", price: 120000, stock: 1, seller: "vendedor1@test.com", status: "Aprobado", rating: 4.5, soldCount: 2, images: ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5d1WLjF9IfxQeXKbcQ4tJDMQiPQl6cvDDbgo90BD_BQ&s=10"], desc: "Mantenimiento al día. Cabina full equipada. Lista para la campaña." }
+        ];
+
+        const STORAGE_KEY = 'agro_state_clean_preview_final';
+        localStorage.removeItem(STORAGE_KEY);
+        let db = { products: [], orders: [], users: {}, currentUser: null, currentRole: null, cart: [], favorites: [], notifications: [], orderIdCounter: 1 };
+        
+        function loadDB() {
+            const stored = null;
+            if (stored) {
+                db = JSON.parse(stored);
+            } else {
+                db.products = [...initialProducts];
+                db.users['admin@test.com'] = { name: "Admin", surname: "Principal", address: "Oficina Central", username: "admin", role: "Administrador", password: "1234" };
+                db.users['vendedor1@test.com'] = { name: "Vendedor", surname: "Uno", address: "Campo 1", username: "vendedor1", role: "Vendedor", password: "1234" };
+                db.users['vendedor2@test.com'] = { name: "Vendedor", surname: "Dos", address: "Campo 2", username: "vendedor2", role: "Vendedor", password: "1234" };
+                db.users['despacho@test.com'] = { name: "Logística", surname: "Envios", address: "Sucursal", username: "despacho", role: "Despachante", password: "1234" };
+                saveDB();
+            }
+
+            // Unificar cualquier rol Cliente existente en Vendedor
+            Object.values(db.users).forEach(u => {
+                if (u.role === 'Cliente') u.role = 'Vendedor';
+            });
+        }
+        function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+
+        // Toasts
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let borderClass = 'border-green-500'; let iconColor = 'text-green-500'; let iconClass = 'fa-check-circle';
+            if (type === 'error') { borderClass = 'border-red-500'; iconColor = 'text-red-500'; iconClass = 'fa-circle-exclamation'; }
+            if (type === 'neutral') { borderClass = 'border-gray-400'; iconColor = 'text-gray-500'; iconClass = 'fa-info-circle'; }
+            
+            toast.className = `bg-white border-l-4 ${borderClass} shadow-md px-4 py-3 rounded text-gray-800 font-medium text-sm flex items-center gap-3 toast-enter pointer-events-auto min-w-[250px]`;
+            toast.innerHTML = `<i class="fa-solid ${iconClass} ${iconColor} text-lg"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('toast-enter'); toast.classList.add('toast-active'); }, 10);
+            setTimeout(() => { toast.classList.remove('toast-active'); toast.classList.add('toast-enter'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function showGiantError(title, message) {
+            document.getElementById('giantErrorTitle').innerText = title; document.getElementById('giantErrorText').innerText = message;
+            document.getElementById('giantErrorModal').classList.remove('hidden');
+        }
+        function closeGiantError() { document.getElementById('giantErrorModal').classList.add('hidden'); }
+
+        // Notifications
+        function addNotification(msg, userEmail) {
+            db.notifications.unshift({ msg: msg, read: false, user: userEmail || db.currentUser });
+            saveDB(); updateBellUI();
+        }
+
+        function updateBellUI() {
+            if(!db.currentUser) { document.getElementById('bellCount').style.display = 'none'; return; }
+            const myNotifs = db.notifications.filter(n => n.user === db.currentUser);
+            const unread = myNotifs.filter(n => !n.read).length;
+            const bell = document.getElementById('bellCount');
+            if (unread > 0) { bell.innerText = unread; bell.style.display = 'flex'; bell.classList.remove('hidden'); } 
+            else { bell.style.display = 'none'; }
+        }
+
+        function toggleBellDropdown() {
+            if(!db.currentUser) return showToast("Inicia sesión para ver notificaciones", "error");
+            const drop = document.getElementById('bellDropdown'); drop.classList.toggle('hidden');
+            if(!drop.classList.contains('hidden')) {
+                let myNotifs = db.notifications.filter(n => n.user === db.currentUser);
+                myNotifs.forEach(n => n.read = true); saveDB(); updateBellUI(); renderNotificationsList(myNotifs);
+            }
+        }
+        function renderNotificationsList(myNotifs) {
+            const list = document.getElementById('notifList');
+            if(myNotifs.length === 0) return list.innerHTML = '<div class="text-xs text-center text-gray-400 py-4">No tienes notificaciones</div>';
+            list.innerHTML = myNotifs.map(n => `<div class="p-3 hover:bg-gray-50 border-b border-gray-50 text-xs text-gray-700 flex items-start"><i class="fa-solid fa-bell text-green-500 mr-3 mt-0.5"></i> <span>${n.msg}</span></div>`).join('');
+        }
+        function clearNotifications() { db.notifications = db.notifications.filter(n => n.user !== db.currentUser); saveDB(); updateBellUI(); renderNotificationsList([]); }
+
+        // Global Clicks
+        window.onclick = e => {
+            if (!e.target.closest('#btnLogin') && !e.target.closest('#userDropdown')) document.getElementById('userDropdown')?.classList.add('hidden');
+            if (!e.target.closest('.fa-bell') && !e.target.closest('#bellDropdown')) document.getElementById('bellDropdown')?.classList.add('hidden');
+        }
+
+        // Auth Flow
+        function openLoginModal() { 
+            document.getElementById('loginEmail').value = ''; document.getElementById('loginPassword').value = '';
+            document.getElementById('loginModal').classList.remove('hidden'); 
+        }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        
+        function manualLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const pass = document.getElementById('loginPassword').value.trim();
+            
+            if (!db.users[email]) return showToast('Usuario no registrado', 'error');
+
+            const expectedPass = db.users[email].password || '1234';
+            if (pass !== expectedPass) return showToast('Contraseña incorrecta', 'error');
+
+            db.currentUser = email; 
+            db.currentRole = db.users[email].role === 'Cliente' ? 'Vendedor' : db.users[email].role; 
+            saveDB(); applyAuthState(); closeLoginModal();
+            showToast(`Hola, ${db.users[email].username}`, 'success');
+            addNotification(`Bienvenido a AgroMarket. Tu sesión ha iniciado.`, email);
+            goHome();
+        }
+
+        function applyAuthState() {
+            if (!db.currentUser) {
+                document.getElementById('loginText').classList.remove('hidden');
+                document.getElementById('headerGreeting').classList.add('hidden');
+                document.getElementById('headerGreeting').classList.remove('flex');
+                document.getElementById('userDropdown').classList.add('hidden'); 
+                document.getElementById('headerPostBtnContainer').classList.add('hidden'); 
+                document.getElementById('navCartIcon').style.display = 'block';
+            } else {
+                let user = db.users[db.currentUser];
+                document.getElementById('loginText').classList.add('hidden'); 
+                document.getElementById('headerGreeting').classList.remove('hidden');
+                document.getElementById('headerGreeting').classList.add('flex');
+                document.getElementById('greetingName').innerText = user.username;
+                
+                document.getElementById('dropdownEmail').innerText = db.currentUser;
+                document.getElementById('dropdownRole').innerText = db.currentRole;
+                
+                document.getElementById('adminOptions').classList.toggle('hidden', db.currentRole !== 'Administrador');
+                document.getElementById('dispatcherOptions').classList.toggle('hidden', db.currentRole !== 'Despachante');
+                document.getElementById('userOptions').classList.toggle('hidden', db.currentRole === 'Administrador' || db.currentRole === 'Despachante');
+                document.getElementById('headerPostBtnContainer').classList.toggle('hidden', db.currentRole !== 'Vendedor');
+                document.getElementById('navCartIcon').style.display = (db.currentRole === 'Administrador' || db.currentRole === 'Despachante') ? 'none' : 'block';
+            }
+            updateCounters(); updateBellUI(); updateCartUI();
+        }
+
+        function doLogout() { 
+            db.currentUser = null; db.currentRole = null; saveDB(); applyAuthState();
+            showToast('Sesión cerrada', 'neutral'); goHome(); 
+        }
+
+        let isEditingProfile = false;
+        function toggleEditProfile() {
+            const fields = document.querySelectorAll('.profile-field');
+            const btn = document.getElementById('btnEditProfile');
+            isEditingProfile = !isEditingProfile;
+            
+            if (isEditingProfile) {
+                fields.forEach(f => { f.disabled = false; f.classList.remove('bg-gray-50'); f.classList.add('bg-white', 'border-gray-300'); });
+                btn.innerText = "Guardar Datos"; btn.classList.replace('bg-gray-900', 'bg-green-600'); btn.classList.replace('hover:bg-gray-800', 'hover:bg-green-700');
+            } else {
+                let u = db.users[db.currentUser];
+                u.username = document.getElementById('profileUsername').value;
+                u.name = document.getElementById('profileName').value;
+                u.surname = document.getElementById('profileSurname').value;
+                u.address = document.getElementById('profileAddress').value;
+                saveDB(); applyAuthState(); 
+                fields.forEach(f => { f.disabled = true; f.classList.add('bg-gray-50'); f.classList.remove('bg-white', 'border-gray-300'); });
+                btn.innerText = "Editar Datos"; btn.classList.replace('bg-green-600', 'bg-gray-900'); btn.classList.replace('hover:bg-green-700', 'hover:bg-gray-800');
+                showToast('Datos actualizados', 'success');
+            }
+        }
+
+        function updateCounters() {
+            const favEl = document.getElementById('favCount');
+            const userFavs = db.favorites.filter(f => f.user === db.currentUser).map(f => f.productId);
+            if (db.currentUser && userFavs.length > 0) { favEl.innerText = userFavs.length; favEl.style.display = 'flex'; favEl.classList.remove('hidden'); } 
+            else { favEl.style.display = 'none'; }
+
+            const cartEl = document.getElementById('cartCount');
+            const userCart = db.cart.filter(c => c.user === db.currentUser);
+            const totalItems = userCart.reduce((s, x) => s + x.qty, 0);
+            if (totalItems > 0 && db.currentRole !== 'Administrador' && db.currentRole !== 'Despachante') { cartEl.innerText = totalItems; cartEl.style.display = 'flex'; cartEl.classList.remove('hidden'); } 
+            else { cartEl.style.display = 'none'; }
+        }
+
+        function toggleFavorite(e, id) {
+            e.stopPropagation(); 
+            if (!db.currentUser) return showGiantError('Requiere Sesión', 'Inicia sesión para guardar en favoritos.');
+            const idx = db.favorites.findIndex(f => f.user === db.currentUser && f.productId === id);
+            if (idx === -1) db.favorites.push({ user: db.currentUser, productId: id });
+            else db.favorites.splice(idx, 1);
+            saveDB(); updateCounters(); renderCatalog(); 
+        }
+
+        // Categorías y Subcategorías
+        function onCategoryFilterChanged(catName, isChecked) {
+            document.querySelectorAll(`.filter-cb[data-type="category"][value="${catName}"]`).forEach(cb => {
+                cb.checked = isChecked;
+            });
+            
+            if (!isChecked) {
+                document.querySelectorAll(`.filter-cb[data-type="subcategory"][data-parent="${catName}"]`).forEach(cb => {
+                    cb.checked = false;
+                });
+            }
+
+            updateSidebarSubcatVisibility();
+            updateSubcategoriesHeaderBar();
+            renderCatalog();
+        }
+
+        function toggleSubcatCollapse(cat) {
+            const group = document.getElementById(`subcat-group-${cat}`);
+            const icon = document.getElementById(`subcat-icon-${cat}`);
+            if (group) {
+                group.classList.toggle('hidden');
+                if (icon) icon.classList.toggle('rotate-180');
+            }
+        }
+
+        function updateSidebarSubcatVisibility() {
+            Object.keys(categoriesData).forEach(cat => {
+                const isCatChecked = Array.from(document.querySelectorAll(`.filter-cb[data-type="category"][value="${cat}"]`)).some(cb => cb.checked);
+                const group = document.getElementById(`subcat-group-${cat}`);
+                const icon = document.getElementById(`subcat-icon-${cat}`);
+                if (group) {
+                    if (isCatChecked) {
+                        group.classList.remove('hidden');
+                        if (icon) icon.classList.add('rotate-180');
+                    } else {
+                        group.classList.add('hidden');
+                        if (icon) icon.classList.remove('rotate-180');
+                    }
+                }
+            });
+        }
+
+        function updateSubcategoriesHeaderBar() {
+            const subBar = document.getElementById('subcategoriesHeaderBar');
+            const content = document.getElementById('subcategoriesHeaderContent');
+            const checkedCats = Array.from(new Set(Array.from(document.querySelectorAll('.filter-cb[data-type="category"]:checked')).map(cb => cb.value)));
+            
+            if (checkedCats.length === 0) {
+                subBar.classList.add('hidden');
+                content.innerHTML = '';
+                return;
+            }
+            
+            subBar.classList.remove('hidden');
+            let html = '';
+            checkedCats.forEach(cat => {
+                const subs = categoriesData[cat] || [];
+                if (subs.length > 0) {
+                    html += `<div class="flex items-center gap-2 flex-wrap mr-4 my-1">`;
+                    html += `<span class="text-green-200 font-bold uppercase text-[11px] tracking-wide flex items-center gap-1"><i class="fa-solid fa-angle-right text-[10px]"></i> ${cat}:</span>`;
+                    subs.forEach(sub => {
+                        const isSubChecked = Array.from(document.querySelectorAll(`.filter-cb[data-type="subcategory"][value="${sub}"]`)).some(cb => cb.checked);
+                        const activeClass = isSubChecked 
+                            ? "bg-white text-green-900 font-bold shadow-sm" 
+                            : "bg-green-800/80 hover:bg-green-800 text-white font-medium border border-green-600/60";
+                        
+                        html += `<button type="button" onclick="toggleSubcatHeader('${cat}', '${sub}')" class="px-3 py-1 rounded-full text-xs transition cursor-pointer flex items-center gap-1.5 ${activeClass}">
+                            ${isSubChecked ? '<i class="fa-solid fa-check text-[10px] text-green-700"></i>' : ''} ${sub}
+                        </button>`;
+                    });
+                    html += `</div>`;
+                }
+            });
+            content.innerHTML = html;
+        }
+
+        function toggleSubcatHeader(parentCat, subName) {
+            const cbs = document.querySelectorAll(`.filter-cb[data-type="subcategory"][value="${subName}"]`);
+            const currentState = cbs.length > 0 ? cbs[0].checked : false;
+            cbs.forEach(cb => cb.checked = !currentState);
+            updateSubcategoriesHeaderBar();
+            renderCatalog();
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('catalogGrid'); 
+            grid.innerHTML = '';
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const locs = Array.from(document.querySelectorAll('.filter-cb[data-type="location"]:checked')).map(cb => cb.value);
+            const cats = Array.from(document.querySelectorAll('.filter-cb[data-type="category"]:checked')).map(cb => cb.value);
+            const subcats = Array.from(document.querySelectorAll('.filter-cb[data-type="subcategory"]:checked')).map(cb => cb.value);
+            const conds = Array.from(document.querySelectorAll('.filter-cb[data-type="condition"]:checked')).map(cb => cb.value);
+
+            let vis = db.products.filter(p => p.status === "Aprobado");
+
+            if (query) {
+                vis = vis.filter(p => 
+                    p.title.toLowerCase().includes(query) || 
+                    (p.desc && p.desc.toLowerCase().includes(query)) ||
+                    (p.category && p.category.toLowerCase().includes(query)) ||
+                    (p.subcategory && p.subcategory.toLowerCase().includes(query))
+                );
+            }
+
+            if(locs.length > 0) vis = vis.filter(p => locs.includes(p.location));
+            if(cats.length > 0) vis = vis.filter(p => cats.includes(p.category));
+            if(subcats.length > 0) vis = vis.filter(p => p.subcategory && subcats.includes(p.subcategory));
+            if(conds.length > 0) vis = vis.filter(p => conds.includes(p.condition));
+
+            if(vis.length === 0) return grid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500 font-bold">No hay productos que coincidan con la búsqueda o filtros.</div>';
+            const userFavs = db.currentUser ? db.favorites.filter(f => f.user === db.currentUser).map(f => f.productId) : [];
+
+            vis.forEach(p => {
+                const isFav = userFavs.includes(p.id);
+                const heartClass = isFav ? "fa-solid fa-heart text-orange-500" : "fa-regular fa-heart text-gray-300 hover:text-red-500";
+                const img = p.images[0] || 'https://placehold.co/400';
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition cursor-pointer card-zoom flex flex-col relative" onclick="showProduct(${p.id})">
+                        <div class="absolute top-2 right-2 bg-white rounded-full p-2 shadow z-20" onclick="toggleFavorite(event, ${p.id})"><i class="${heartClass} text-sm"></i></div>
+                        <div class="h-48 overflow-hidden bg-white flex justify-center"><img src="${img}" class="w-full h-full object-cover"></div>
+                        <div class="p-4 flex flex-col flex-1 border-t border-gray-50">
+                            <div class="flex items-center justify-between text-[10px]">
+                                <span class="text-gray-400 font-bold uppercase tracking-widest">${p.condition}</span>
+                                <span class="text-green-800 bg-green-50 font-bold px-2 py-0.5 rounded border border-green-200">${p.subcategory || p.category}</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mt-1 line-clamp-2 text-sm">${p.title}</h3>
+                            <div class="flex items-center text-[11px] text-gray-500 my-1 gap-2 font-bold"><div class="text-orange-500 text-xs"><i class="fa-solid fa-star"></i> ${p.rating}</div><span>| ${p.soldCount} vendidos</span></div>
+                            <div class="text-2xl font-black text-gray-900 mt-auto pt-2">${formatMoney(p.price)}</div>
+                            <div class="text-[10px] text-gray-400 font-bold mt-1">Stock: ${p.stock}</div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        let viewingProductId = null;
+        let currentSelectedQty = 1;
+
+        function changeQty(delta, maxStock) {
+            currentSelectedQty += delta;
+            if (currentSelectedQty < 1) currentSelectedQty = 1;
+            if (currentSelectedQty > maxStock) currentSelectedQty = maxStock;
+            document.getElementById('detailQtyDisplay').innerText = currentSelectedQty;
+        }
+
+        function showProduct(id) {
+            const p = db.products.find(x => x.id === id); viewingProductId = id;
+            currentSelectedQty = 1;
+            hideAllPanels(); document.getElementById('productDetail').classList.remove('hidden');
+            
+            const imgs = p.images && p.images.length > 0 ? p.images : ['https://placehold.co/400'];
+            let imgHTML = `<div class="h-[350px] border border-gray-100 rounded-xl bg-white p-4 flex items-center justify-center overflow-hidden mb-4"><img id="mainDetailImage" src="${imgs[0]}" class="w-full h-full object-cover rounded"></div>`;
+            
+            if (imgs.length > 1) {
+                imgHTML += `<div class="flex gap-2 overflow-x-auto">`;
+                imgs.forEach((imgSrc) => {
+                    imgHTML += `<img src="${imgSrc}" onclick="document.getElementById('mainDetailImage').src='${imgSrc}'" class="w-20 h-20 object-cover rounded-lg thumb-img border border-gray-200">`;
+                });
+                imgHTML += `</div>`;
+            }
+            document.getElementById('detailContentImageContainer').innerHTML = imgHTML;
+            
+            let stockHtml = p.stock > 0 ? `<div class="text-green-600 font-bold text-sm mb-4">Stock disponible: ${p.stock}</div>` : `<div class="text-red-500 font-bold text-sm mb-4">Agotado</div>`;
+            let actionsHtml = p.stock > 0 ? `
+                <div class="mt-auto flex gap-4 items-center">
+                    <div class="flex items-center border border-gray-300 rounded-xl overflow-hidden h-14 w-32 shrink-0 bg-white">
+                        <button onclick="changeQty(-1, ${p.stock})" class="px-4 text-gray-500 hover:bg-gray-100 font-bold text-lg transition h-full">-</button>
+                        <div id="detailQtyDisplay" class="flex-1 text-center font-black text-gray-900 text-lg">1</div>
+                        <button onclick="changeQty(1, ${p.stock})" class="px-4 text-gray-500 hover:bg-gray-100 font-bold text-lg transition h-full">+</button>
+                    </div>
+                    <button onclick="addToCartFromDetail()" class="flex-1 bg-orange-500 text-white font-black py-4 rounded-xl hover:bg-orange-600 shadow-md uppercase tracking-wide transition">Agregar al Carrito</button>
+                </div>` : `<button disabled class="w-full bg-gray-300 text-gray-500 font-black py-4 rounded-xl uppercase tracking-wide cursor-not-allowed">Sin Stock</button>`;
+
+            document.getElementById('detailContentInfo').innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex gap-2 items-center">
+                        <span class="text-[10px] text-gray-400 uppercase font-black bg-gray-100 px-2 py-1 rounded">${p.condition}</span>
+                        <span class="text-[10px] text-green-800 uppercase font-bold bg-green-50 px-2 py-1 rounded border border-green-200">${p.category} &gt; ${p.subcategory || 'General'}</span>
+                    </div>
+                </div>
+                <h1 class="text-3xl font-black text-gray-900 leading-tight">${p.title}</h1>
+                <div class="flex items-center gap-3 my-3 text-sm">
+                    <span class="text-orange-500 font-bold"><i class="fa-solid fa-star"></i> ${p.rating}</span>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-gray-500 font-medium">${p.soldCount} vendidos</span>
+                </div>
+                <div class="text-4xl font-black text-gray-900 mb-2">${formatMoney(p.price)}</div>
+                ${stockHtml}
+                
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-inner">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">Medios de pago y financiación</h3>
+                    <ul class="text-sm font-medium text-gray-700 space-y-2">
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Tarjetas de crédito y débito.</li>
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> 6 cuotas sin interés bancarias.</li>
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Descuento por transferencia bancaria.</li>
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Financiación directa y Créditos prendarios.</li>
+                    </ul>
+                </div>
+                ${actionsHtml}
+                <p class="text-gray-600 text-sm mt-6 leading-relaxed">${p.desc}</p>
+            `;
+
+            document.getElementById('detailContentReviews').innerHTML = `
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Opiniones de los usuarios</h3>
+                <div class="space-y-4">
+                    <div class="pb-4 border-b border-gray-100">
+                        <div class="flex text-orange-500 text-xs mb-1"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                        <p class="text-sm text-gray-700 font-medium">Excelente producto, tal cual la descripción. El envío fue rapidísimo.</p>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase mt-1 block">Juan P. - Hace 2 semanas</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Carrito y Checkout
+        function toggleCart() { const d = document.getElementById('cartDrawer'); d.classList.toggle('hidden'); setTimeout(() => d.classList.toggle('translate-x-full'), 10); }
+        
+        function addToCartFromDetail() {
+            if(!db.currentUser) return showGiantError("Inicia Sesión", "Debes iniciar sesión con tu cuenta para poder comprar productos.");
+            if(db.currentRole === 'Administrador' || db.currentRole === 'Despachante') return showGiantError("Acceso Denegado", "Tu rol no te permite realizar compras. Ingresa como Vendedor.");
+            const p = db.products.find(x => x.id === viewingProductId);
+            if(db.currentUser === p.seller) return showGiantError("Acción Inválida", "No puedes comprar tus propias publicaciones.");
+            
+            let ex = db.cart.find(x => x.id === p.id && x.user === db.currentUser);
+            if(ex) {
+                let newQty = ex.qty + currentSelectedQty;
+                if (newQty > p.stock) ex.qty = p.stock;
+                else ex.qty = newQty;
+            } else {
+                db.cart.push({ ...p, user: db.currentUser, cartPrice: p.price, qty: currentSelectedQty });
+            }
+            saveDB(); showToast('Producto agregado al carrito', 'success'); 
+            updateCartUI(); updateCounters(); toggleCart();
+        }
+
+        function removeCartItem(idx) {
+            const userCartItems = db.cart.map((item, index) => ({item, index})).filter(x => x.item.user === db.currentUser);
+            const globalIndex = userCartItems[idx].index;
+            db.cart.splice(globalIndex, 1); saveDB(); updateCartUI(); updateCounters();
+        }
+
+        function updateCartUI() {
+            const c = document.getElementById('cartItems'); c.innerHTML = ''; let t = 0;
+            const userCart = db.cart.filter(x => x.user === db.currentUser);
+            
+            if(userCart.length === 0) c.innerHTML = '<div class="text-center mt-10 text-gray-400 font-bold">Carrito Vacío</div>';
+            userCart.forEach((x, i) => {
+                t += x.cartPrice * x.qty;
+                c.innerHTML += `<div class="flex items-center gap-3 mb-3 bg-white p-3 border border-gray-200 rounded-lg shadow-sm"><div class="flex-1"><h4 class="text-xs font-bold text-gray-800 line-clamp-1">${x.title}</h4><span class="text-sm font-black text-gray-900">${formatMoney(x.cartPrice)} x ${x.qty}</span></div><button onclick="removeCartItem(${i})" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash-can"></i></button></div>`;
+            });
+            document.getElementById('cartTotal').innerText = formatMoney(t);
+        }
+
+        function checkout() {
+            const userCart = db.cart.filter(x => x.user === db.currentUser);
+            if(userCart.length === 0 || !db.currentUser) return;
+            
+            const needsShipping = document.querySelector('input[name="shippingMethod"]:checked').value === 'envio';
+            const orderId = db.orderIdCounter++;
+            const total = userCart.reduce((s, x) => s + (x.cartPrice * x.qty), 0);
+            
+            userCart.forEach(cartItem => {
+                let realProd = db.products.find(p => p.id === cartItem.id);
+                if(realProd) realProd.stock -= cartItem.qty;
+            });
+
+            db.orders.push({ id: orderId, buyer: db.currentUser, items: [...userCart], total: total, status: "Pendiente", needsShipping: needsShipping, trackingCode: null, dispatcher: null });
+            db.cart = db.cart.filter(x => x.user !== db.currentUser);
+            saveDB();
+            
+            updateCartUI(); updateCounters(); toggleCart(); renderCatalog(); showMyPurchases(); 
+            showToast('Orden procesada con éxito', 'success');
+        }
+
+        function cancelOrder(id, isBuyer) {
+            let o = db.orders.find(x => x.id === id);
+            if(!o) return;
+
+            if(isBuyer && !["Pendiente", "Pagada"].includes(o.status)) return;
+            if(!isBuyer && o.status !== "Pendiente") return;
+            
+            o.status = "Cancelada";
+            o.items.forEach(cartItem => {
+                let realProd = db.products.find(p => p.id === cartItem.id);
+                if(realProd) realProd.stock += cartItem.qty;
+            });
+            saveDB();
+            
+            if(!document.getElementById('myPurchasesPanel').classList.contains('hidden')) showMyPurchases();
+            if(!document.getElementById('mySalesPanel').classList.contains('hidden')) switchVendorTab('ordenes');
+            renderCatalog();
+            showToast('Orden Cancelada. Stock devuelto.', 'neutral');
+        }
+
+        function adminRejectOrder(id) {
+            let o = db.orders.find(x => x.id === id);
+            if(!o || o.status !== "Pendiente") return;
+            
+            o.status = "Rechazada";
+            o.items.forEach(cartItem => {
+                let realProd = db.products.find(p => p.id === cartItem.id);
+                if(realProd) realProd.stock += cartItem.qty;
+            });
+            saveDB();
+            switchAdminTab('ordenes');
+            renderCatalog();
+            showToast('Orden Rechazada. Stock devuelto.', 'neutral');
+        }
+
+        function adminApproveOrder(id) { 
+            let o = db.orders.find(x => x.id === id); 
+            o.status = "Pagada"; 
+            if(o.needsShipping) o.trackingCode = "AGRO-" + Math.floor(10000000 + Math.random() * 90000000); 
+            saveDB();
+            switchAdminTab('ordenes'); 
+            showToast(`Orden Aprobada y Pagada`, 'success'); 
+        }
+
+        function hideAllPanels() {
+            ['mainContainer', 'productDetail', 'adminPanel', 'dispatcherPanel', 'myPurchasesPanel', 'mySalesPanel', 'myDataPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        }
+        function goHome() { hideAllPanels(); document.getElementById('mainContainer').classList.remove('hidden'); renderCatalog(); }
+        function handleUserMenuClick() { if (!db.currentUser) openLoginModal(); else document.getElementById('userDropdown').classList.toggle('hidden'); }
+        
+        function showMyData() { 
+            hideAllPanels(); document.getElementById('myDataPanel').classList.remove('hidden'); 
+            let u = db.users[db.currentUser];
+            document.getElementById('profileEmailField').value = db.currentUser; 
+            document.getElementById('profileUsername').value = u.username; 
+            document.getElementById('profileName').value = u.name; 
+            document.getElementById('profileSurname').value = u.surname; 
+            document.getElementById('profileAddress').value = u.address; 
+        }
+
+        function showAdminPanel() { hideAllPanels(); document.getElementById('adminPanel').classList.remove('hidden'); switchAdminTab('ordenes'); }
+        
+        // PANEL DE ADMIN Y TABS
+        function switchAdminTab(tab) {
+            document.getElementById('tab-pendientes').className = tab === 'pendientes' ? "border-b-2 border-black pb-2 text-gray-900 font-bold cursor-pointer" : "text-gray-400 font-medium pb-2 hover:text-gray-600 cursor-pointer";
+            document.getElementById('tab-ordenes').className = tab === 'ordenes' ? "border-b-2 border-black pb-2 text-gray-900 font-bold cursor-pointer" : "text-gray-400 font-medium pb-2 hover:text-gray-600 cursor-pointer";
+            document.getElementById('tab-usuarios').className = tab === 'usuarios' ? "border-b-2 border-black pb-2 text-gray-900 font-bold cursor-pointer" : "text-gray-400 font-medium pb-2 hover:text-gray-600 cursor-pointer";
+            
+            const container = document.getElementById('adminContentContainer');
+            
+            if(tab === 'ordenes') {
+                let html = `<table class="w-full text-left border-collapse"><thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider"><tr><th class="p-4 border-b border-gray-200">ID</th><th class="p-4 border-b border-gray-200">TOTAL</th><th class="p-4 text-center border-b border-gray-200">ESTADO</th><th class="p-4 text-right border-b border-gray-200">ACCIÓN</th></tr></thead><tbody>`;
+                if(db.orders.length === 0) html += `<tr><td colspan="4" class="p-8 text-center text-gray-500">No hay órdenes</td></tr>`;
+                
+                db.orders.forEach(o => {
+                    let act = '', stat = o.status;
+                    if(o.status === "Pendiente") {
+                        act = `<button onclick="adminApproveOrder(${o.id})" class="text-green-600 font-bold text-xs uppercase hover:underline mr-2">Aprobar</button>
+                               <button onclick="adminRejectOrder(${o.id})" class="text-red-600 font-bold text-xs uppercase hover:underline">Rechazar</button>`;
+                    }
+                    if(o.trackingCode) stat += `<br><span class="text-[10px] font-mono text-purple-600 bg-purple-50 px-1 rounded block mt-1 w-max mx-auto">${o.trackingCode}</span>`;
+                    html += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-bold text-sm">#ORD-${o.id}</td><td class="p-4 text-sm font-medium">${formatMoney(o.total)}</td><td class="p-4 text-center text-sm font-bold text-gray-700">${stat}</td><td class="p-4 text-right">${act}</td></tr>`;
+                });
+                container.innerHTML = html + `</tbody></table>`;
+            } else if(tab === 'pendientes') {
+                let html = `<table class="w-full text-left border-collapse"><thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider"><tr><th class="p-4 border-b border-gray-200">PRODUCTO</th><th class="p-4 text-center border-b border-gray-200">PRECIO</th><th class="p-4 text-right border-b border-gray-200">ACCIÓN</th></tr></thead><tbody>`;
+                const pends = db.products.filter(p => p.status === "Pendiente");
+                if(pends.length === 0) html += `<tr><td colspan="3" class="p-8 text-center text-gray-500">No hay productos pendientes</td></tr>`;
+                pends.forEach(p => {
+                    html += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 text-sm font-medium">${p.title}</td><td class="p-4 text-center text-sm">${formatMoney(p.price)}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="chgProd(${p.id}, 'Aprobado')" class="text-green-600 font-bold text-xs uppercase hover:underline mr-3">Aprobar</button>
+                        <button onclick="chgProd(${p.id}, 'Rechazado')" class="text-red-600 font-bold text-xs uppercase hover:underline">Rechazar</button>
+                    </td></tr>`;
+                });
+                container.innerHTML = html + `</tbody></table>`;
+            } else if(tab === 'usuarios') {
+                container.innerHTML = `
+                    <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="relative w-full sm:w-80">
+                            <input type="text" id="adminUserSearch" oninput="renderUsersTab()" placeholder="Buscar por email, usuario, nombre o rol..." class="w-full border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-xs outline-none focus:ring-2 focus:ring-green-500 bg-white font-medium">
+                            <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                        </div>
+                        <button onclick="openCreateUserModal()" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-lg text-xs uppercase tracking-wide flex items-center justify-center shadow-sm transition">
+                            <i class="fa-solid fa-user-plus mr-2"></i> Nuevo Usuario
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                <tr>
+                                    <th class="p-4 border-b border-gray-200">USUARIO / EMAIL</th>
+                                    <th class="p-4 border-b border-gray-200">NOMBRE COMPLETO</th>
+                                    <th class="p-4 text-center border-b border-gray-200">ROL</th>
+                                    <th class="p-4 border-b border-gray-200">DIRECCIÓN</th>
+                                    <th class="p-4 text-right border-b border-gray-200">ACCIÓN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUsersTableBody"></tbody>
+                        </table>
+                    </div>
+                `;
+                renderUsersTab();
+            }
+        }
+
+        // GESTIÓN DE USUARIOS
+        function renderUsersTab() {
+            const searchVal = (document.getElementById('adminUserSearch')?.value || '').toLowerCase().trim();
+            const tbody = document.getElementById('adminUsersTableBody');
+            if (!tbody) return;
+
+            let userEmails = Object.keys(db.users);
+            if (searchVal) {
+                userEmails = userEmails.filter(email => {
+                    const u = db.users[email];
+                    const roleVal = u.role === 'Cliente' ? 'Vendedor' : (u.role || '');
+                    return email.toLowerCase().includes(searchVal) ||
+                           (u.username && u.username.toLowerCase().includes(searchVal)) ||
+                           (u.name && u.name.toLowerCase().includes(searchVal)) ||
+                           (u.surname && u.surname.toLowerCase().includes(searchVal)) ||
+                           roleVal.toLowerCase().includes(searchVal) ||
+                           (u.address && u.address.toLowerCase().includes(searchVal));
+                });
+            }
+
+            if (userEmails.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500 font-medium text-sm">No se encontraron usuarios que coincidan con la búsqueda.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = userEmails.map(email => {
+                const u = db.users[email];
+                const isCurrent = email === db.currentUser;
+                const userRole = u.role === "Cliente" ? "Vendedor" : (u.role || 'Vendedor');
+                
+                let roleBadge = "bg-gray-100 text-gray-700";
+                if (userRole === "Administrador") roleBadge = "bg-purple-100 text-purple-800 border border-purple-200";
+                else if (userRole === "Vendedor") roleBadge = "bg-green-100 text-green-800 border border-green-200";
+                else if (userRole === "Despachante") roleBadge = "bg-blue-100 text-blue-800 border border-blue-200";
+
+                const deleteButton = isCurrent 
+                    ? `<span class="text-xs text-gray-400 italic font-medium">Sesión activa</span>` 
+                    : `<button onclick="deleteUser('${email}')" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase flex items-center gap-1.5 ml-auto hover:bg-red-50 px-2.5 py-1.5 rounded transition" title="Eliminar usuario">
+                         <i class="fa-solid fa-trash-can"></i> Eliminar
+                       </button>`;
+
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                    ${(u.username || email).charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-900">${u.username || 'Sin usuario'}</div>
+                                    <div class="text-xs text-gray-500 font-mono">${email}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-sm text-gray-700 font-medium">
+                            ${(u.name || '') + ' ' + (u.surname || '') || '<span class="text-gray-400 italic text-xs">Sin especificar</span>'}
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${roleBadge}">
+                                ${userRole}
+                            </span>
+                        </td>
+                        <td class="p-4 text-xs text-gray-600 max-w-[200px] truncate">
+                            ${u.address || '<span class="text-gray-400 italic text-xs">Sin dirección</span>'}
+                        </td>
+                        <td class="p-4 text-right">
+                            ${deleteButton}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openCreateUserModal() {
+            document.getElementById('newEmail').value = '';
+            document.getElementById('newUserUsername').value = '';
+            document.getElementById('newUserPassword').value = '';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserSurname').value = '';
+            document.getElementById('newUserAddress').value = '';
+            document.getElementById('newUserRole').value = 'Vendedor';
+            document.getElementById('createUserModal').classList.remove('hidden');
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').classList.add('hidden');
+        }
+
+        function handleSaveNewUser(e) {
+            e.preventDefault();
+            const email = document.getElementById('newEmail').value.trim().toLowerCase();
+            const username = document.getElementById('newUserUsername').value.trim();
+            const role = document.getElementById('newUserRole').value;
+            const password = document.getElementById('newUserPassword').value.trim() || '1234';
+            const name = document.getElementById('newUserName').value.trim();
+            const surname = document.getElementById('newUserSurname').value.trim();
+            const address = document.getElementById('newUserAddress').value.trim();
+
+            if (!email || !username) {
+                return showToast('El correo y el nombre de usuario son obligatorios', 'error');
+            }
+
+            if (db.users[email]) {
+                return showToast('Ya existe un usuario con este correo electrónico', 'error');
+            }
+
+            db.users[email] = {
+                name: name,
+                surname: surname,
+                address: address,
+                username: username,
+                role: role,
+                password: password
+            };
+
+            saveDB();
+            closeCreateUserModal();
+            showToast(`Usuario "${username}" creado exitosamente`, 'success');
+            renderUsersTab();
+        }
+
+        function deleteUser(email) {
+            if (email === db.currentUser) {
+                return showGiantError("Acción No Permitida", "No puedes eliminar tu propia cuenta mientras estés en sesión activa.");
+            }
+
+            if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente a "${email}"?`)) {
+                return;
+            }
+
+            delete db.users[email];
+            saveDB();
+            showToast(`Usuario eliminado correctamente`, 'neutral');
+            renderUsersTab();
+        }
+
+        function chgProd(id, status) { 
+            db.products.find(x => x.id === id).status = status; 
+            saveDB(); switchAdminTab('pendientes'); 
+            if (status === 'Aprobado') showToast(`Producto Aprobado`); else showToast('Producto Rechazado', 'neutral');
+            renderCatalog(); 
+        }
+
+        function showMyPurchases() { 
+            hideAllPanels(); document.getElementById('myPurchasesPanel').classList.remove('hidden');
+            const tb = document.getElementById('myPurchasesBody'); tb.innerHTML = '';
+            const m = db.orders.filter(o => o.buyer === db.currentUser);
+            if(m.length === 0) return tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-500">No has realizado compras.</td></tr>';
+            m.forEach(o => {
+                let stat = o.status; 
+                if(o.trackingCode) stat += `<br><span class="text-[10px] font-mono text-purple-600 bg-purple-50 px-1 rounded block mt-1 w-max mx-auto">${o.trackingCode}</span>`;
+                let act = "N/A";
+                if(o.status === "Pendiente" || o.status === "Pagada") act = `<button onclick="cancelOrder(${o.id}, true)" class="text-red-600 font-bold text-xs uppercase hover:underline">Cancelar</button>`;
+                tb.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-bold text-sm">#ORD-${o.id}</td><td class="p-4 text-sm font-medium">${formatMoney(o.total)}</td><td class="p-4 text-center text-sm font-bold text-gray-700">${stat}</td><td class="p-4 text-right text-gray-400 text-xs">${act}</td></tr>`;
+            });
+        }
+
+        function showMySales() { hideAllPanels(); document.getElementById('mySalesPanel').classList.remove('hidden'); switchVendorTab('publicaciones'); }
+
+        function switchVendorTab(tab) {
+            document.getElementById('tab-v-publicaciones').className = tab === 'publicaciones' ? "border-b-2 border-black pb-2 text-gray-900 font-bold cursor-pointer" : "text-gray-400 font-medium pb-2 hover:text-gray-600 cursor-pointer";
+            document.getElementById('tab-v-ordenes').className = tab === 'ordenes' ? "border-b-2 border-black pb-2 text-gray-900 font-bold cursor-pointer" : "text-gray-400 font-medium pb-2 hover:text-gray-600 cursor-pointer";
+            const container = document.getElementById('vendorContentContainer');
+            
+            if(tab === 'publicaciones') {
+                let html = `<table class="w-full text-left border-collapse"><thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider"><tr><th class="p-4 border-b border-gray-200">PRODUCTO</th><th class="p-4 border-b border-gray-200 text-center">PRECIO</th><th class="p-4 border-b border-gray-200 text-center">STOCK</th><th class="p-4 text-center border-b border-gray-200">ESTADO</th><th class="p-4 text-right border-b border-gray-200">ACCIÓN</th></tr></thead><tbody>`;
+                const m = db.products.filter(p => p.seller === db.currentUser);
+                if(m.length === 0) html += `<tr><td colspan="5" class="p-8 text-center text-gray-500">No tienes publicaciones.</td></tr>`;
+                m.forEach(p => {
+                    let color = p.status === 'Aprobado' ? 'text-green-600' : (p.status === 'Pendiente' ? 'text-orange-500' : 'text-red-600');
+                    html += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 text-sm font-medium">${p.title}</td><td class="p-4 text-center text-sm">${formatMoney(p.price)}</td><td class="p-4 text-center text-sm font-bold text-gray-700">${p.stock}</td><td class="p-4 text-center text-sm font-bold ${color}">${p.status}</td><td class="p-4 text-right text-gray-400 font-bold text-xs">N/A</td></tr>`;
+                });
+                container.innerHTML = html + `</tbody></table>`;
+            } else {
+                let html = `<table class="w-full text-left border-collapse"><thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider"><tr><th class="p-4 border-b border-gray-200">Nº ORDEN</th><th class="p-4 border-b border-gray-200 text-center">PRODUCTOS VENDIDOS</th><th class="p-4 text-center border-b border-gray-200">ESTADO</th><th class="p-4 text-right border-b border-gray-200">ACCIÓN</th></tr></thead><tbody>`;
+                const sellerOrders = db.orders.filter(o => o.items.some(i => i.seller === db.currentUser));
+                if(sellerOrders.length === 0) html += `<tr><td colspan="4" class="p-8 text-center text-gray-500">No has recibido órdenes.</td></tr>`;
+                
+                sellerOrders.forEach(o => {
+                    let myItems = o.items.filter(i => i.seller === db.currentUser).map(i => i.title).join(', ');
+                    let stat = o.status; 
+                    if(o.trackingCode) stat += `<br><span class="text-[10px] font-mono text-purple-600 bg-purple-50 px-1 rounded block mt-1 w-max mx-auto">${o.trackingCode}</span>`;
+                    
+                    let act = "N/A";
+                    if(o.status === "Pendiente") act = `<button onclick="cancelOrder(${o.id}, false)" class="text-red-600 font-bold text-xs uppercase hover:underline">Cancelar</button>`;
+                    html += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-bold text-sm">#ORD-${o.id}</td><td class="p-4 text-center text-xs truncate max-w-[200px]">${myItems}</td><td class="p-4 text-center text-sm font-bold text-gray-700">${stat}</td><td class="p-4 text-right text-gray-400 text-xs">${act}</td></tr>`;
+                });
+                container.innerHTML = html + `</tbody></table>`;
+            }
+        }
+
+        // Despachador
+        function showDispatcherPanel() { 
+            hideAllPanels(); document.getElementById('dispatcherPanel').classList.remove('hidden');
+            const tb = document.getElementById('dispatcherActiveBody'); tb.innerHTML = '';
+            const dis = db.orders.filter(o => o.dispatcher === db.currentUser && (o.status === 'Enviada' || o.status === 'Entregada'));
+            if(dis.length === 0) return tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-500">Sin envíos asignados en curso.</td></tr>';
+            dis.forEach(o => {
+                let btn = o.status === 'Enviada' ? `<button onclick="markDelivered(${o.id})" class="text-teal-600 font-bold text-xs uppercase hover:underline">Marcar Entrega</button>` : `<span class="text-gray-400 text-xs uppercase font-bold">Finalizado</span>`;
+                tb.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-mono font-bold text-purple-600 text-sm">${o.trackingCode}</td><td class="p-4 text-gray-700 text-sm truncate max-w-[150px]">${db.users[o.buyer]?.username || o.buyer}</td><td class="p-4 text-center text-sm font-bold">${o.status}</td><td class="p-4 text-right">${btn}</td></tr>`;
+            });
+        }
+        function openDispatchModal() { document.getElementById('dispatchInputModalVal').value = ''; document.getElementById('dispatchModal').classList.remove('hidden'); }
+        function closeDispatchModal() { document.getElementById('dispatchModal').classList.add('hidden'); }
+        
+        function takePackageFromModal() {
+            const trk = document.getElementById('dispatchInputModalVal').value.trim().toUpperCase();
+            let o = db.orders.find(x => x.trackingCode === trk && x.status === "Pagada");
+            if(o) { 
+                o.status = "Enviada"; o.dispatcher = db.currentUser; 
+                saveDB(); closeDispatchModal(); showDispatcherPanel(); 
+                showToast('Paquete escaneado correctamente', 'success'); 
+            } else { 
+                showToast("Código AGRO inválido o paquete no pagado", "error"); 
+            }
+        }
+
+        function markDelivered(id) {
+            let o = db.orders.find(x => x.id === id); o.status = 'Entregada'; saveDB(); showDispatcherPanel(); showToast('Paquete marcado como entregado');
+        }
+
+        function updateModalSubcategories() {
+            const cat = document.getElementById('newCategory').value;
+            const subcatSelect = document.getElementById('newSubcategory');
+            const subs = categoriesData[cat] || [];
+            subcatSelect.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function openProductModal() { 
+            updateModalSubcategories();
+            document.getElementById('productModal').classList.remove('hidden'); 
+        }
+        function closeProductModal() { document.getElementById('productModal').classList.add('hidden'); }
+        
+        async function saveProduct() {
+            const fileInput = document.getElementById('newImagesFile');
+            let imgsArray = ["https://placehold.co/400"]; 
+            
+            if (fileInput.files.length > 0) {
+                try {
+                    const promises = Array.from(fileInput.files).map(file => {
+                        return new Promise(resolve => { const r = new FileReader(); r.onload = e => resolve(e.target.result); r.readAsDataURL(file); });
+                    });
+                    imgsArray = await Promise.all(promises);
+                } catch(e) { showToast('Error procesando imágenes', 'error'); }
+            }
+            
+            db.products.push({ 
+                id: Math.floor(Math.random() * 10000), 
+                title: document.getElementById('newTitle').value || 'Producto sin título', 
+                category: document.getElementById('newCategory').value, 
+                subcategory: document.getElementById('newSubcategory').value, 
+                condition: document.getElementById('newCondition').value, 
+                price: Number(document.getElementById('newPrice').value) || 0, 
+                stock: Number(document.getElementById('newStock').value) || 1, 
+                seller: db.currentUser, status: "Pendiente", rating: 0, soldCount: 0, 
+                images: imgsArray, desc: document.getElementById('newDesc').value 
+            });
+            saveDB(); showToast('Producto enviado a revisión', 'success'); closeProductModal(); showMySales();
+        }
+
+        function toggleFilter(id) { document.getElementById(`${id}-content`).classList.toggle('collapsed'); document.getElementById(`${id}-icon`).classList.toggle('rotated'); }
+        
+        function clearAllFilters() { 
+            document.querySelectorAll('.filter-cb').forEach(cb => cb.checked = false); 
+            document.getElementById('searchInput').value = ''; 
+            updateSidebarSubcatVisibility();
+            updateSubcategoriesHeaderBar();
+            renderCatalog(); 
+        }
+
+        window.onload = function() { 
+            loadDB(); 
+            applyAuthState(); 
+            renderCatalog(); 
+        };
+    </script>
+</body>
+</html>
