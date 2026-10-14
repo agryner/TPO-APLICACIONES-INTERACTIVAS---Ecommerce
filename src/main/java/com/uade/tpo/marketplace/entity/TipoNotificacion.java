@@ -17,7 +17,5 @@ public enum TipoNotificacion {
     // Al vendedor, cuando la IA termina de revisar una foto.
     FOTO_VERIFICADA,
     // A los admins, cuando una foto queda esperando revision manual.
-    FOTO_PENDIENTE,
-    // A la otra parte de la orden, cuando le escriben por el chat.
-    MENSAJE
+    FOTO_PENDIENTE
 }
