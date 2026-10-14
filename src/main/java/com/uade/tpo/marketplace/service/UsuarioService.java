@@ -16,6 +16,9 @@ import com.uade.tpo.marketplace.exceptions.CuentaInactivaException;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 
 public interface UsuarioService {
+    List<UsuarioResponse> getUsuariosInactivos(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException;
+
     List<UsuarioResponse> getUsuarios(Long idSolicitante)
             throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException;
 

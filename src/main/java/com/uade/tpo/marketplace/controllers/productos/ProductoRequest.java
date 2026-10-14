@@ -28,7 +28,7 @@ public class ProductoRequest {
     @Min(value = 0, message = "El stock no puede ser negativo")
     private Integer stock;
 
-    @Size(max = 500, message = "La descripcion no puede superar los 500 caracteres")
+    @Size(max = 255, message = "La descripcion no puede superar los 255 caracteres")
     private String descripcion;
 
     @NotNull(message = "Hay que indicar la provincia")

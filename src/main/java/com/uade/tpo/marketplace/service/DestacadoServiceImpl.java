@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,22 +33,28 @@ public class DestacadoServiceImpl implements DestacadoService {
     private final AutorizacionService autorizacion;
 
     /**
-     * Pre : el producto, el nivel, cuantos meses y el id de quien lo otorga,
-     *       que tiene que ser ADMIN.
-     * Post: el producto con su visibilidad al dia, y una fila de historial. Lo
-     *       asigna el ADMIN porque no hay pasarela: la plata se cobra por
-     *       afuera y aca se registra que se vendio. Con NINGUNO se saca, y esa
-     *       baja no deja historial porque no se vendio nada.
+     * Pre : el producto, el nivel, cuantos meses y el id de quien lo pide: el
+     *       ADMIN o el vendedor del producto.
+     * Post: el producto con su visibilidad al dia, y una fila de historial con
+     *       lo cobrado (precio mensual del nivel por los meses). El vendedor lo
+     *       compra el mismo, con un pago simulado porque no hay pasarela; el
+     *       ADMIN lo registra cuando se cobro por afuera. Sacarlo (NINGUNO) es
+     *       solo del ADMIN, y esa baja no deja historial porque no se vendio
+     *       nada.
      */
     @Transactional
     public ProductoResponse destacar(Long idProducto, NivelDestacado nivel, Integer meses,
             Long idSolicitante)
             throws ProductoNoEncontradoException, UsuarioNoEncontradoException,
             AccesoDenegadoException {
-        autorizacion.validarAdmin(idSolicitante);
-
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
+
+        boolean esAdmin = autorizacion.esAdmin(idSolicitante);
+        boolean esDuenio = producto.getVendedor() != null
+                && producto.getVendedor().getId().equals(idSolicitante);
+        if (!esAdmin && !(esDuenio && nivel != NivelDestacado.NINGUNO))
+            throw new AccesoDenegadoException();
 
         if (nivel == NivelDestacado.NINGUNO) {
             producto.setNivelDestacado(NivelDestacado.NINGUNO);
@@ -63,7 +70,7 @@ public class DestacadoServiceImpl implements DestacadoService {
         producto.setDestacadoHasta(hasta);
         productoRepository.save(producto);
 
-        Usuario admin = usuarioRepository.findById(idSolicitante)
+        Usuario quien = usuarioRepository.findById(idSolicitante)
                 .orElseThrow(UsuarioNoEncontradoException::new);
 
         Destacado registro = new Destacado();
@@ -72,7 +79,8 @@ public class DestacadoServiceImpl implements DestacadoService {
         registro.setMeses(cuantos);
         registro.setDesde(desde);
         registro.setHasta(hasta);
-        registro.setOtorgadoPor(admin);
+        registro.setOtorgadoPor(quien);
+        registro.setMonto(nivel.getPrecioMensual().multiply(BigDecimal.valueOf(cuantos)));
         destacadoRepository.save(registro);
 
         return ProductoResponse.from(producto);

@@ -56,6 +56,26 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     /**
+     * Pre : el id de quien pide, que tiene que ser ADMIN.
+     * Post: los usuarios dados de baja, para poder reactivarlos. 403 si no es
+     *       ADMIN, 404 si no hay ninguno.
+     */
+    public List<UsuarioResponse> getUsuariosInactivos(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
+        autorizacion.validarAdmin(idSolicitante);
+
+        List<UsuarioResponse> inactivos = usuarioRepository.findAll().stream()
+                .filter(u -> !Boolean.TRUE.equals(u.getActivo()))
+                .map(UsuarioResponse::from)
+                .toList();
+
+        if (inactivos.isEmpty())
+            throw new SinResultadosException("No hay usuarios dados de baja");
+
+        return inactivos;
+    }
+
+    /**
      * Pre : el id buscado y el de quien pide, que tiene que ser ADMIN.
      * Post: el usuario, este activo o no. 403 si no es ADMIN, 404 si no existe.
      */

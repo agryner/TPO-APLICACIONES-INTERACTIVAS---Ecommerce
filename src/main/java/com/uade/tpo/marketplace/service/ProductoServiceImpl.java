@@ -9,12 +9,15 @@ import com.uade.tpo.marketplace.controllers.productos.VendedorResponse;
 import java.math.BigDecimal;
 import java.time.Year;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +56,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final CarritoService carritoService;
     private final NivelVendedorService nivelVendedorService;
     private final ResenaService resenaService;
+    private final VerificacionFotoService verificacionFotos;
 
     /** Cuantas resenas se ven en el detalle sin pedir la lista completa. */
     private static final int ULTIMAS_RESENAS = 3;
@@ -196,9 +200,11 @@ public class ProductoServiceImpl implements ProductoService {
 
     /**
      * Pre : el id del vendedor y, opcionalmente, el estado.
-     * Post: sus publicaciones, incluidos borradores y pausados. 403 si quien
-     *       pide es ADMIN. Tira UsuarioNoEncontradoException si el id no
-     *       existe, para no confundirlo con un vendedor sin productos.
+     * Post: sus publicaciones, incluidos borradores, pausados y dados de baja
+     *       (activo en false): el vendedor los ve para poder reactivarlos con
+     *       PUT /productos/{id}/reactivar. 403 si quien pide es ADMIN. Tira
+     *       UsuarioNoEncontradoException si el id no existe, para no
+     *       confundirlo con un vendedor sin productos.
      */
     public List<ProductoResponse> getMisPublicaciones(Long idSolicitante,
             EstadoPublicacion estado)
@@ -209,7 +215,6 @@ public class ProductoServiceImpl implements ProductoService {
         autorizacion.validarQuePuedaComerciar(idSolicitante);
 
         List<ProductoResponse> propias = productoRepository.findAll().stream()
-                .filter(Producto::getActivo)
                 .filter(p -> p.getVendedor() != null
                         && p.getVendedor().getId().equals(idSolicitante))
                 .filter(p -> estado == null || p.getEstadoPublicacion() == estado)
@@ -279,36 +284,53 @@ public class ProductoServiceImpl implements ProductoService {
 
     /**
      * Pre : el id de un producto.
-     * Post: hasta 8 publicaciones parecidas y disponibles, sin incluirse a si
-     *       misma. Busca primero entre sus hermanas de categoria y, si no
-     *       llena, sube al padre: una categoria hoja con un solo producto
-     *       siempre devolveria vacio.
+     * Post: hasta 5 publicaciones parecidas y disponibles elegidas al azar,
+     *       sin incluirse a si misma. Busca primero en su misma categoria y,
+     *       si no llena, completa con la categoria padre: una categoria hoja
+     *       con un solo producto siempre devolveria vacio.
      */
     public List<ProductoResumenResponse> getSimilares(Long idProducto)
             throws ProductoNoEncontradoException, SinResultadosException {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(ProductoNoEncontradoException::new);
 
+        // Primero 5 al azar de su misma categoria. Si no alcanzan, se completa
+        // con los de la categoria padre (y sus otras hijas).
         Categoria categoria = producto.getCategoria();
-        Long raiz = categoria == null ? null
-                : (categoria.getCategoriaPadre() == null ? categoria.getId()
-                        : categoria.getCategoriaPadre().getId());
-
-        Set<Long> rama = raiz == null ? Set.of() : ramaDe(raiz);
-
-        List<Producto> similares = productoRepository.findAll().stream()
+        List<Producto> candidatos = productoRepository.findAll().stream()
                 .filter(p -> !p.getId().equals(idProducto))
                 .filter(ProductoResumenResponse::estaDisponible)
-                .filter(p -> p.getCategoria() != null && rama.contains(p.getCategoria().getId()))
-                .sorted(Comparator.comparing(
-                        (Producto p) -> p.getVendidos() == null ? 0 : p.getVendidos()).reversed())
-                .limit(8)
+                .filter(p -> p.getCategoria() != null)
                 .toList();
+
+        List<Producto> similares = new ArrayList<>();
+        if (categoria != null) {
+            agregarAlAzar(similares, candidatos, Set.of(categoria.getId()));
+            if (similares.size() < CANTIDAD_SIMILARES && categoria.getCategoriaPadre() != null)
+                agregarAlAzar(similares, candidatos, ramaDe(categoria.getCategoriaPadre().getId()));
+        }
 
         if (similares.isEmpty())
             throw new SinResultadosException("No hay productos similares a este");
 
         return conNivelDelVendedor(similares);
+    }
+
+    private static final int CANTIDAD_SIMILARES = 5;
+
+    /**
+     * Pre : la lista que se va llenando, los candidatos y las categorias que
+     *       valen.
+     * Post: la lista con hasta CANTIDAD_SIMILARES productos, sumando al azar
+     *       los de esas categorias que todavia no estaban.
+     */
+    private void agregarAlAzar(List<Producto> similares, List<Producto> candidatos, Set<Long> categorias) {
+        List<Producto> deEstas = new ArrayList<>(candidatos.stream()
+                .filter(p -> categorias.contains(p.getCategoria().getId()))
+                .filter(p -> !similares.contains(p))
+                .toList());
+        Collections.shuffle(deEstas);
+        deEstas.stream().limit(CANTIDAD_SIMILARES - similares.size()).forEach(similares::add);
     }
 
     /**
@@ -354,9 +376,15 @@ public class ProductoServiceImpl implements ProductoService {
         autorizacion.validarDuenio(idSolicitante, producto.getVendedor().getId());
 
         BigDecimal precioViejo = ProductoResumenResponse.conDescuento(producto);
+        Long categoriaVieja = producto.getCategoria() == null ? null : producto.getCategoria().getId();
 
         copiarDatos(producto, request);
         Producto guardado = productoRepository.save(producto);
+
+        // Si cambio la categoria, las fotos que la IA rechazo o dejo en duda
+        // "por no ser de esta categoria" se vuelven a revisar con la nueva.
+        if (!Objects.equals(categoriaVieja, guardado.getCategoria().getId()))
+            verificacionFotos.reverificarProducto(guardado.getId());
 
         avisarSiBajoElPrecio(guardado, precioViejo);
         return ProductoResponse.from(guardado);

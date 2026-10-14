@@ -10,6 +10,7 @@ import com.uade.tpo.marketplace.entity.Categoria;
 @Repository
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     List<Categoria> findByActivoTrue();
+    List<Categoria> findByActivoFalse();
 
     List<Categoria> findByCategoriaPadreIdAndActivoTrue(Long idCategoriaPadre);
 

@@ -1,5 +1,9 @@
 package com.uade.tpo.marketplace.controllers.destacados;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -10,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.uade.tpo.marketplace.controllers.common.PaginaResponse;
+import com.uade.tpo.marketplace.entity.NivelDestacado;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
@@ -38,5 +43,19 @@ public class DestacadosController {
             throws UsuarioNoEncontradoException, SinResultadosException {
         return ResponseEntity.ok(
                 PaginaResponse.de(destacadoService.getHistorial(usuario.getId()), pagina, tamanio));
+    }
+
+    /**
+     * Pre : nada, es publico.
+     * Post: los planes de visibilidad que se pueden comprar, con su precio por
+     *       mes y su peso (cuanto sube en el catalogo). No incluye NINGUNO.
+     */
+    @GetMapping("/planes")
+    public ResponseEntity<List<Map<String, Object>>> getPlanes() {
+        return ResponseEntity.ok(Arrays.stream(NivelDestacado.values())
+                .filter(n -> n != NivelDestacado.NINGUNO)
+                .map(n -> Map.<String, Object>of("nivel", n.name(), "precioMensual", n.getPrecioMensual(),
+                        "peso", n.getPeso()))
+                .toList());
     }
 }

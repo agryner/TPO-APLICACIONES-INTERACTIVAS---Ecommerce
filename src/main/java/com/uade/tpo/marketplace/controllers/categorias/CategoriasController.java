@@ -53,6 +53,20 @@ public class CategoriasController {
     }
 
     /**
+     * Pre : el token de un ADMIN.
+     * Post: las categorias dadas de baja, para reactivarlas con
+     *       PUT /categorias/{id}/reactivar. 403 si no sos ADMIN, 404 si no hay
+     *       ninguna. Va antes que /{idCategoria} para que "inactivas" no se lea
+     *       como un id.
+     */
+    @GetMapping("/inactivas")
+    public ResponseEntity<List<CategoriaResponse>> getCategoriasInactivas(
+            @AuthenticationPrincipal Usuario usuario)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
+        return ResponseEntity.ok(categoriaService.getCategoriasInactivas(usuario.getId()));
+    }
+
+    /**
      * Pre : el id en la ruta. Es publico.
      * Post: la categoria con su padre. 404 si no existe.
      */

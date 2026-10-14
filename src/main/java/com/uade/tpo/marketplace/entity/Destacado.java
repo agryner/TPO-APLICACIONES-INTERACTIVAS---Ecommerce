@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -46,6 +47,11 @@ public class Destacado {
 
     @Column(nullable = false)
     private LocalDateTime hasta;
+
+    // Lo que se cobro: precio mensual del nivel por los meses. Puede ser null
+    // en los registros anteriores a que existieran los precios.
+    @Column(precision = 12, scale = 2)
+    private BigDecimal monto;
 
     @JsonIgnore
     @ToString.Exclude

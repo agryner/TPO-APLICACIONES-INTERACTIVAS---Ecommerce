@@ -70,8 +70,9 @@ public class ProductosController {
 
     /**
      * Pre : el token y, opcionalmente, el estado a filtrar.
-     * Post: las publicaciones propias, incluidos borradores y pausados, que el
-     *       catalogo esconde. 403 si quien pide es ADMIN.
+     * Post: las publicaciones propias, incluidos borradores, pausados y dados
+     *       de baja (activo en false), que el catalogo esconde: los dados de
+     *       baja aparecen para poder reactivarlos. 403 si quien pide es ADMIN.
      */
     @GetMapping("/mis-publicaciones")
     public ResponseEntity<PaginaResponse<ProductoResponse>> getMisPublicaciones(
@@ -114,11 +115,14 @@ public class ProductosController {
     }
 
     /**
-     * Pre : el id en la ruta, el nivel, cuantos meses y un token de ADMIN.
-     * Post: el producto con su visibilidad al dia. Lo asigna el ADMIN porque no
-     *       hay pasarela: la plata se cobra por afuera y aca se registra. Con
-     *       NINGUNO se saca. Sin meses, uno. Ordena primero en GET /productos,
-     *       pero solo cuando no se pidio un ?orden= explicito.
+     * Pre : el id en la ruta, el nivel, cuantos meses y el token del vendedor
+     *       del producto o de un ADMIN.
+     * Post: el producto con su visibilidad al dia y el cobro registrado
+     *       (precio mensual del nivel por los meses, ver GET /destacados/planes).
+     *       El vendedor lo compra con un pago simulado, porque no hay pasarela.
+     *       Con NINGUNO se saca, y eso es solo del ADMIN. Sin meses, uno.
+     *       Ordena primero en GET /productos, pero solo cuando no se pidio un
+     *       ?orden= explicito. 403 si no es tuyo ni sos ADMIN.
      */
     @PutMapping("/{idProducto}/destacar")
     public ResponseEntity<ProductoResponse> destacar(@PathVariable Long idProducto,
@@ -133,7 +137,8 @@ public class ProductosController {
 
     /**
      * Pre : el id en la ruta. Es publico.
-     * Post: hasta 8 publicaciones parecidas y disponibles, en vista reducida.
+     * Post: hasta 5 publicaciones parecidas y disponibles, al azar, en vista
+     *       reducida: primero de su categoria y despues de la categoria padre.
      *       404 si el producto no existe o si no hay ninguna parecida.
      */
     @GetMapping("/{idProducto}/similares")

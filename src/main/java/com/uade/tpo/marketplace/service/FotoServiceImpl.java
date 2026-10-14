@@ -5,9 +5,6 @@ import com.uade.tpo.marketplace.controllers.fotos.FotoUploadRequest;
 import java.io.IOException;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,19 +31,11 @@ import com.uade.tpo.marketplace.exceptions.SinResultadosException;
 @Service
 @RequiredArgsConstructor
 public class FotoServiceImpl implements FotoService {
-    private static final Logger log = LoggerFactory.getLogger(FotoServiceImpl.class);
-
-    @Value("${marketplace.ia.umbral-aprobacion:0.7}")
-    private double umbralAprobacion;
-
-    @Value("${marketplace.ia.umbral-rechazo:0.4}")
-    private double umbralRechazo;
-
     private final FotoRepository fotoRepository;
     private final ProductoRepository productoRepository;
-    private final VerificadorImagenService verificador;
     private final AutorizacionService autorizacion;
     private final CarritoService carritoService;
+    private final VerificacionFotoService verificacion;
 
     /**
      * Pre : el id del producto.
@@ -95,9 +84,10 @@ public class FotoServiceImpl implements FotoService {
     /**
      * Pre : el request con el archivo y el idProducto, mas el id de quien
      *       sube.
-     * Post: la foto guardada. Si el producto estaba en BORRADOR queda
-     *       PUBLICADO. Tira ArchivoInvalidoException si el contenido no es una
-     *       imagen, FotoRechazadaException si la IA la descarta, y
+     * Post: la foto guardada EN_REVISION, sin esperar a la IA: la
+     *       verificacion corre en segundo plano (VerificacionFotoService) y al
+     *       terminar publica el producto si corresponde y le avisa al vendedor.
+     *       Tira ArchivoInvalidoException si el contenido no es una imagen y
      *       RolNoComerciaException si quien sube es ADMIN.
      */
     @Transactional
@@ -139,12 +129,10 @@ public class FotoServiceImpl implements FotoService {
                     "El archivo no es una imagen: su contenido no corresponde a ningun formato conocido");
 
         foto.setContenido(contenido);
-
-        verificar(foto, contenido, producto);
+        foto.setEstadoVerificacion(EstadoVerificacion.EN_REVISION);
         foto = fotoRepository.save(foto);
 
-        producto.setEstadoPublicacion(EstadoPublicacion.PUBLICADO);
-        productoRepository.save(producto);
+        verificacion.programar(foto.getId());
 
         return FotoResponse.from(foto);
     }
@@ -185,39 +173,6 @@ public class FotoServiceImpl implements FotoService {
                 return true;
         }
         return false;
-    }
-
-    /**
-     * Pre : el producto y los bytes de la imagen.
-     * Post: el veredicto de la IA. Si el servicio no responde devuelve
-     *       EN_REVISION en vez de fallar: la verificacion no puede ser un
-     *       punto unico de falla para publicar.
-     */
-    private void verificar(Foto foto, byte[] contenido, Producto producto)
-            throws FotoRechazadaException {
-        VerificadorImagenService.Resultado resultado;
-        try {
-            resultado = verificador.verificar(contenido, foto.getTipoContenido(),
-                    producto.getCategoria());
-        } catch (Exception e) {
-            log.warn("No se pudo verificar la foto del producto {}: {}",
-                    producto.getId(), e.getMessage());
-            foto.setEstadoVerificacion(EstadoVerificacion.EN_REVISION);
-            return;
-        }
-
-        double puntaje = resultado.puntaje();
-        foto.setConfianzaIa(puntaje);
-        foto.setQueVeIa(resultado.queVeo());
-
-        if (puntaje < umbralRechazo)
-            throw new FotoRechazadaException(resultado.mensajeAlVendedor() != null
-                    ? resultado.mensajeAlVendedor()
-                    : "La foto no se corresponde con la categoria del producto");
-
-        foto.setEstadoVerificacion(puntaje > umbralAprobacion
-                ? EstadoVerificacion.APROBADA
-                : EstadoVerificacion.EN_REVISION);
     }
 
     public byte[] getContenidoById(Long idFoto, Long idSolicitante)
@@ -274,8 +229,12 @@ public class FotoServiceImpl implements FotoService {
 
         EstadoVerificacion buscado = estado == null ? EstadoVerificacion.EN_REVISION : estado;
 
+        // Las de productos dados de baja no se muestran: no hay nada que
+        // decidir sobre una publicacion que ya no existe.
         List<FotoResponse> pendientes = fotoRepository
                 .findByEstadoVerificacionAndActivoTrue(buscado).stream()
+                .filter(f -> f.getProducto() != null
+                        && Boolean.TRUE.equals(f.getProducto().getActivo()))
                 .map(FotoResponse::from)
                 .toList();
 
@@ -287,8 +246,8 @@ public class FotoServiceImpl implements FotoService {
 
     /**
      * Pre : el id de la foto, si se aprueba, y el id de quien pide.
-     * Post: la foto resuelta a mano. Aprobar la deja visible; rechazar la
-     *       elimina.
+     * Post: la foto resuelta a mano. Aprobar la deja visible y, si el
+     *       producto esperaba en BORRADOR, lo publica; rechazar la elimina.
      */
     @Transactional
     public FotoResponse revisarFoto(Long idFoto, boolean aprobada, Long idSolicitante)
@@ -305,13 +264,15 @@ public class FotoServiceImpl implements FotoService {
         }
 
         foto.setEstadoVerificacion(EstadoVerificacion.APROBADA);
-        return FotoResponse.from(fotoRepository.save(foto));
+        foto = fotoRepository.save(foto);
+        verificacion.publicarSiCorresponde(foto);
+        return FotoResponse.from(foto);
     }
 
     /**
      * Pre : el id de la foto y el id de quien pide.
-     * Post: nada. Si era la ultima del producto, este vuelve a BORRADOR y sale
-     *       del catalogo y de los carritos.
+     * Post: nada. Si era la ultima foto APROBADA del producto, este vuelve a
+     *       BORRADOR y sale del catalogo y de los carritos.
      */
     @Transactional
     public void deleteFoto(Long idFoto, Long idSolicitante)
@@ -335,8 +296,14 @@ public class FotoServiceImpl implements FotoService {
         foto.setActivo(false);
         fotoRepository.save(foto);
 
-        if (producto != null
-                && fotoRepository.findByProductoIdAndActivoTrue(producto.getId()).isEmpty()) {
+        // Cuentan solo las aprobadas: las EN_REVISION no las ve el comprador, y
+        // un producto publicado tiene que mostrar al menos una foto.
+        boolean quedaAlgunaVisible = producto != null && fotoRepository
+                .findByProductoIdAndActivoTrue(producto.getId()).stream()
+                .anyMatch(f -> f.getEstadoVerificacion() == EstadoVerificacion.APROBADA);
+
+        if (producto != null && !quedaAlgunaVisible
+                && producto.getEstadoPublicacion() != EstadoPublicacion.BORRADOR) {
             producto.setEstadoPublicacion(EstadoPublicacion.BORRADOR);
             productoRepository.save(producto);
             carritoService.quitarDeTodosLosCarritos(producto.getId());

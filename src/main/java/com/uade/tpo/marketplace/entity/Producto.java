@@ -84,7 +84,8 @@ public class Producto {
         return nivelDestacado;
     }
 
-    @Column
+    // 255, el mismo largo que valida ProductoRequest.
+    @Column(length = 255)
     private String descripcion;
 
     @Column

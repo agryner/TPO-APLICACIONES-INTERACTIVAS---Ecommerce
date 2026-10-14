@@ -39,6 +39,25 @@ public class CategoriaServiceImpl implements CategoriaService {
         return todas;
     }
 
+    /**
+     * Pre : el id de quien pide, que tiene que ser ADMIN.
+     * Post: las categorias dadas de baja, para poder reactivarlas. 403 si no
+     *       es ADMIN, 404 si no hay ninguna.
+     */
+    public List<CategoriaResponse> getCategoriasInactivas(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
+        autorizacion.validarAdmin(idSolicitante);
+
+        List<CategoriaResponse> inactivas = categoriaRepository.findByActivoFalse().stream()
+                .map(CategoriaResponse::from)
+                .toList();
+
+        if (inactivas.isEmpty())
+            throw new SinResultadosException("No hay categorias dadas de baja");
+
+        return inactivas;
+    }
+
     public List<CategoriaResponse> getCategoriasRaiz() throws SinResultadosException {
         List<CategoriaResponse> raices = categoriaRepository.findByCategoriaPadreIsNullAndActivoTrue()
                 .stream()

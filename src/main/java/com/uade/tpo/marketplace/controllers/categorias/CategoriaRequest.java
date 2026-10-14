@@ -11,7 +11,7 @@ public class CategoriaRequest {
     @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
     private String nombre;
 
-    @Size(max = 500, message = "La descripcion no puede superar los 500 caracteres")
+    @Size(max = 255, message = "La descripcion no puede superar los 255 caracteres")
     private String descripcion;
 
     private Long idCategoriaPadre;

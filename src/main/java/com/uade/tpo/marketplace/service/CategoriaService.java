@@ -19,6 +19,9 @@ public interface CategoriaService {
 
     List<CategoriaResponse> getCategoriasRaiz() throws SinResultadosException;
 
+    List<CategoriaResponse> getCategoriasInactivas(Long idSolicitante)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException;
+
     List<CategoriaResponse> getSubcategorias(Long idCategoria)
             throws CategoriaNoEncontradaException, SinResultadosException;
 

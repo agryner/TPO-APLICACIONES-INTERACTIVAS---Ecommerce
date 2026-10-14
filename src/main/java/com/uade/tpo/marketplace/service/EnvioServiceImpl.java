@@ -14,6 +14,8 @@ import com.uade.tpo.marketplace.entity.Envio;
 import com.uade.tpo.marketplace.entity.EstadoEnvio;
 import com.uade.tpo.marketplace.entity.MetodoEntrega;
 import com.uade.tpo.marketplace.entity.OrdenDeCompra;
+import com.uade.tpo.marketplace.entity.OrderDetail;
+import com.uade.tpo.marketplace.entity.TipoNotificacion;
 import com.uade.tpo.marketplace.entity.TipoUsuario;
 import com.uade.tpo.marketplace.entity.Usuario;
 import com.uade.tpo.marketplace.exceptions.CambioDeEstadoNoPermitidoException;
@@ -37,6 +39,7 @@ public class EnvioServiceImpl implements EnvioService {
 
     private final EnvioRepository envioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final NotificacionService notificacionService;
 
     /**
      * Pre : una orden recien pagada.
@@ -175,7 +178,9 @@ public class EnvioServiceImpl implements EnvioService {
 
         envio.setDespachante(usuario);
         envio.setEstado(EstadoEnvio.EN_TRANSITO);
-        return EnvioResponse.from(envioRepository.save(envio));
+        Envio guardado = envioRepository.save(envio);
+        avisarCambio(guardado);
+        return EnvioResponse.from(guardado);
     }
 
     /**
@@ -242,7 +247,9 @@ public class EnvioServiceImpl implements EnvioService {
             envio.setFechaEntrega(LocalDateTime.now());
 
         envio.setEstado(estado);
-        return EnvioResponse.from(envioRepository.save(envio));
+        Envio guardado = envioRepository.save(envio);
+        avisarCambio(guardado);
+        return EnvioResponse.from(guardado);
     }
 
     /**
@@ -347,5 +354,48 @@ public class EnvioServiceImpl implements EnvioService {
     private Envio buscar(Long idEnvio) throws EnvioNoEncontradoException {
         return envioRepository.findById(idEnvio)
                 .orElseThrow(EnvioNoEncontradoException::new);
+    }
+
+    /**
+     * Pre : un envio que acaba de cambiar de estado.
+     * Post: comprador y vendedor avisados del paso nuevo. Al entregarse, el
+     *       comprador recibe ademas una invitacion a opinar de cada producto.
+     */
+    private void avisarCambio(Envio envio) {
+        OrdenDeCompra orden = envio.getOrden();
+        if (orden == null)
+            return;
+
+        String link = "/ordenes/" + orden.getId();
+        String cualOrden = "la orden #" + orden.getId();
+        String paraComprador;
+        String paraVendedor;
+        switch (envio.getEstado()) {
+            case DESPACHADO -> {
+                paraComprador = "Despacharon " + cualOrden + ". Numero de seguimiento: " + envio.getNumeroSeguimiento() + ".";
+                paraVendedor = "Despachaste " + cualOrden + ". Pegale al bulto la etiqueta " + envio.getNumeroSeguimiento() + ".";
+            }
+            case EN_TRANSITO -> {
+                paraComprador = "Tu compra de " + cualOrden + " ya esta en camino.";
+                paraVendedor = "El correo recibio " + cualOrden + " y esta en camino.";
+            }
+            case ENTREGADO -> {
+                paraComprador = "Se entrego " + cualOrden + ".";
+                paraVendedor = "Se entrego " + cualOrden + " a " + orden.getComprador().getNombreUsuario() + ".";
+            }
+            default -> {
+                return;
+            }
+        }
+        notificacionService.crear(orden.getComprador(), TipoNotificacion.ENVIO_ACTUALIZADO, paraComprador, link);
+        notificacionService.crear(orden.getVendedor(), TipoNotificacion.ENVIO_ACTUALIZADO, paraVendedor, "/ventas");
+
+        if (envio.getEstado() == EstadoEnvio.ENTREGADO) {
+            for (OrderDetail item : orden.getItems()) {
+                notificacionService.crear(orden.getComprador(), TipoNotificacion.OPINA_TU_COMPRA,
+                        "Que te parecio " + item.getProducto().getNombre() + "? Deja tu opinion y ayuda a otros compradores.",
+                        "/opinar");
+            }
+        }
     }
 }

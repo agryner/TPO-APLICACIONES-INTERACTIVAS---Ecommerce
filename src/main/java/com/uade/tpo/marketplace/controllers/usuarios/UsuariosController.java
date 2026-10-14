@@ -50,6 +50,22 @@ public class UsuariosController {
                 PaginaResponse.de(usuarioService.getUsuarios(usuario.getId()), pagina, tamanio));
     }
 
+    /**
+     * Pre : el token de un ADMIN.
+     * Post: los usuarios dados de baja, para reactivarlos con
+     *       PUT /usuarios/{id}/reactivar. 403 si quien pide no es ADMIN, 404 si
+     *       no hay ninguno.
+     */
+    @GetMapping("/inactivos")
+    public ResponseEntity<PaginaResponse<UsuarioResponse>> getUsuariosInactivos(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamanio)
+            throws UsuarioNoEncontradoException, AccesoDenegadoException, SinResultadosException {
+        return ResponseEntity.ok(
+                PaginaResponse.de(usuarioService.getUsuariosInactivos(usuario.getId()), pagina, tamanio));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponse> yo(@AuthenticationPrincipal Usuario usuario) {
         return ResponseEntity.ok(UsuarioResponse.from(usuario));

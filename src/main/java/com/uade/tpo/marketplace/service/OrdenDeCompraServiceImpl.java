@@ -5,6 +5,7 @@ import com.uade.tpo.marketplace.controllers.ordenes.OrdenRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,16 +109,23 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
 
     /**
      * Pre : las ordenes encontradas y que decir si no hay ninguna.
-     * Post: sus DTO. Ninguna lista vuelve vacia: sin resultados sale un 404 con
-     *       un mensaje que explica que paso, porque un [] en el front es una
-     *       pantalla en blanco sin explicacion.
+     * Post: sus DTO, de la mas reciente a la mas vieja: lo ultimo que paso es
+     *       lo que uno viene a mirar. Ninguna lista vuelve vacia: sin
+     *       resultados sale un 404 con un mensaje que explica que paso, porque
+     *       un [] en el front es una pantalla en blanco sin explicacion.
      */
     private List<OrdenDeCompraResponse> armar(List<OrdenDeCompra> ordenes, String siNoHay)
             throws SinResultadosException {
         if (ordenes.isEmpty())
             throw new SinResultadosException(siNoHay);
 
-        return ordenes.stream().map(OrdenDeCompraResponse::from).toList();
+        // Las de un mismo checkout comparten fecha: el id las desempata.
+        return ordenes.stream()
+                .sorted(Comparator.comparing(OrdenDeCompra::getFechaCreacion)
+                        .thenComparing(OrdenDeCompra::getId)
+                        .reversed())
+                .map(OrdenDeCompraResponse::from)
+                .toList();
     }
 
     /**
@@ -188,10 +196,9 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         // entrega. Un tractor y unas semillas del mismo vendedor salen en dos
         // ordenes: la primera se coordina y la segunda se despacha.
         Map<Grupo, List<ItemCarrito>> porGrupo = new LinkedHashMap<>();
-        boolean coordinarConVendedor = Boolean.TRUE.equals(request.getCoordinarConVendedor());
         for (ItemCarrito item : carrito.getItems()) {
             Producto producto = item.getProducto();
-            MetodoEntrega metodo = metodoPara(producto, coordinarConVendedor);
+            MetodoEntrega metodo = metodoPara(producto);
             porGrupo.computeIfAbsent(new Grupo(producto.getVendedor().getId(), metodo),
                     g -> new ArrayList<>()).add(item);
         }
@@ -217,8 +224,10 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
                                     ? 0
                                     : i.getProducto().getDescuento()))
                     .toList();
-            ordenes.add(OrdenDeCompraResponse.from(armarOrden(carrito.getUsuario(), vendedor,
-                    renglones, entrada.getKey().metodo(), entrega)));
+            OrdenDeCompra orden = armarOrden(carrito.getUsuario(), vendedor,
+                    renglones, entrada.getKey().metodo(), entrega);
+            avisarVenta(orden);
+            ordenes.add(OrdenDeCompraResponse.from(orden));
         }
 
         carritoService.vaciarEntidad(idSolicitante);
@@ -226,16 +235,37 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     }
 
     /**
-     * Pre : el producto y si el comprador prefirio coordinar.
-     * Post: el metodo que le toca. Un producto que no admite envio se coordina
-     *       si o si: la preferencia del comprador no puede volver despachable
-     *       una camioneta.
+     * Pre : el producto.
+     * Post: el metodo que le toca, que lo decide el vendedor al publicar y no
+     *       el comprador: con envio se despacha si o si, sin envio se coordina
+     *       si o si. El campo coordinarConVendedor del request se ignora.
      */
-    private MetodoEntrega metodoPara(Producto producto, boolean coordinarConVendedor) {
-        if (coordinarConVendedor || !Boolean.TRUE.equals(producto.getAdmiteEnvio()))
-            return MetodoEntrega.COORDINAR;
+    private MetodoEntrega metodoPara(Producto producto) {
+        return Boolean.TRUE.equals(producto.getAdmiteEnvio())
+                ? MetodoEntrega.DESPACHO
+                : MetodoEntrega.COORDINAR;
+    }
 
-        return MetodoEntrega.DESPACHO;
+    /**
+     * Pre : una orden recien creada.
+     * Post: el vendedor avisado de que le compraron, con lo que se llevaron.
+     */
+    private void avisarVenta(OrdenDeCompra orden) {
+        String productos = orden.getItems().stream()
+                .map(i -> i.getProducto().getNombre() + " x" + i.getCantidad())
+                .reduce((a, b) -> a + ", " + b).orElse("");
+        notificacionService.crear(orden.getVendedor(), TipoNotificacion.VENTA,
+                recortar("Vendiste " + productos + " a " + orden.getComprador().getNombreUsuario()
+                        + ". La orden #" + orden.getId() + " espera la confirmacion del pago."),
+                "/ventas");
+    }
+
+    /**
+     * Pre : un texto.
+     * Post: el texto, cortado al largo que admite una notificacion.
+     */
+    private static String recortar(String texto) {
+        return texto.length() <= 300 ? texto : texto.substring(0, 297) + "...";
     }
 
     private record Grupo(Long idVendedor, MetodoEntrega metodo) {
@@ -267,7 +297,7 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         if (producto.getStock() == null || producto.getStock() < cantidad)
             throw new StockInsuficienteException(producto, cantidad);
 
-        MetodoEntrega metodo = metodoPara(producto, false);
+        MetodoEntrega metodo = metodoPara(producto);
         Renglon renglon = new Renglon(producto, cantidad, precioAcordado, 0);
 
         return OrdenDeCompraResponse.from(armarOrden(comprador, producto.getVendedor(),
@@ -362,6 +392,8 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         if (estado == EstadoOrden.PAGADA)
             envioService.crearParaOrden(guardada);
 
+        avisarCambioDeEstado(guardada);
+
         return OrdenDeCompraResponse.from(guardada);
     }
 
@@ -430,5 +462,26 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
         notificacionService.avisarAQuienesLoTienenGuardado(producto, TipoNotificacion.POCO_STOCK,
                 "Quedan %d unidades de \"%s\"".formatted(
                         producto.getStock(), producto.getNombre()));
+    }
+
+    /**
+     * Pre : una orden que acaba de cambiar de estado.
+     * Post: comprador y vendedor avisados, cada uno con lo que le toca hacer.
+     */
+    private void avisarCambioDeEstado(OrdenDeCompra orden) {
+        String link = "/ordenes/" + orden.getId();
+        if (orden.getEstado() == EstadoOrden.PAGADA) {
+            notificacionService.crear(orden.getComprador(), TipoNotificacion.ORDEN_ACTUALIZADA,
+                    "Se confirmo el pago de tu orden #" + orden.getId() + ". Ya se prepara la entrega.", link);
+            String paraVendedor = orden.getMetodoEntrega() == MetodoEntrega.DESPACHO
+                    ? "Se acredito el pago de la orden #" + orden.getId() + ". Ya podes despacharla."
+                    : "Se acredito el pago de la orden #" + orden.getId() + ". Coordina la entrega con "
+                            + orden.getComprador().getNombreUsuario() + ".";
+            notificacionService.crear(orden.getVendedor(), TipoNotificacion.ORDEN_ACTUALIZADA, paraVendedor, link);
+        } else if (orden.getEstado() == EstadoOrden.CANCELADA) {
+            String texto = "Se cancelo la orden #" + orden.getId() + ".";
+            notificacionService.crear(orden.getComprador(), TipoNotificacion.ORDEN_ACTUALIZADA, texto, link);
+            notificacionService.crear(orden.getVendedor(), TipoNotificacion.ORDEN_ACTUALIZADA, texto, link);
+        }
     }
 }

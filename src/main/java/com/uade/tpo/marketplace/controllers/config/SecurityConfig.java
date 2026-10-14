@@ -14,8 +14,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Instant;
+import java.util.List;
 
 import jakarta.servlet.DispatcherType;
 
@@ -42,6 +46,8 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 .authorizeHttpRequests(req -> req
 
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
@@ -55,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(GET, "/productos", "/productos/*",
                                 "/productos/vendedor/*", "/productos/*/similares")
                         .permitAll()
+                        .requestMatchers(GET, "/categorias/inactivas").authenticated()
                         .requestMatchers(GET, "/categorias", "/categorias/*",
                                 "/categorias/*/subcategorias")
                         .permitAll()
@@ -63,6 +70,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(GET, "/resenas/producto/*", "/resenas/vendedor/*")
                         .permitAll()
+                        .requestMatchers(GET, "/destacados/planes").permitAll()
 
                         .anyRequest().authenticated())
 
@@ -80,5 +88,24 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * Pre : nada.
+     * Post: los origenes del frontend en desarrollo (Vite, puerto 5173)
+     *       habilitados para llamar a cualquier ruta, con el header
+     *       Authorization incluido. Sin esto el navegador corta los pedidos
+     *       antes de que lleguen al filtro de JWT.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

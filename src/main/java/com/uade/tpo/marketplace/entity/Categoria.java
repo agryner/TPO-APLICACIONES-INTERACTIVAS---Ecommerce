@@ -35,7 +35,8 @@ public class Categoria {
     @Column(nullable = false)
     private String nombre;
 
-    @Column
+    // 255, el mismo largo que valida CategoriaRequest.
+    @Column(length = 255)
     private String descripcion;
 
     @Column(nullable = false)

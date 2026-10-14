@@ -1,5 +1,6 @@
 package com.uade.tpo.marketplace.controllers.destacados;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.uade.tpo.marketplace.controllers.usuarios.UsuarioPublicoResponse;
@@ -19,6 +20,7 @@ public class DestacadoResponse {
     private LocalDateTime desde;
     private LocalDateTime hasta;
     private Boolean vigente;
+    private BigDecimal monto;
 
     /**
      * Pre : la entidad Destacado, o null.
@@ -37,6 +39,7 @@ public class DestacadoResponse {
         dto.setHasta(destacado.getHasta());
         dto.setVigente(destacado.getHasta() != null
                 && destacado.getHasta().isAfter(LocalDateTime.now()));
+        dto.setMonto(destacado.getMonto());
 
         if (destacado.getProducto() != null) {
             dto.setIdProducto(destacado.getProducto().getId());
