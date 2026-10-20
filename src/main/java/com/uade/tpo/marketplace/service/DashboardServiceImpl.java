@@ -10,8 +10,6 @@ import org.springframework.stereotype.Service;
 
 import com.uade.tpo.marketplace.controllers.dashboard.DashboardResponse;
 import com.uade.tpo.marketplace.controllers.dashboard.DashboardResponse.Plata;
-import com.uade.tpo.marketplace.controllers.dashboard.DashboardResponse.ProductoDestacado;
-import com.uade.tpo.marketplace.controllers.dashboard.DashboardResponse.Rendimiento;
 import com.uade.tpo.marketplace.controllers.dashboard.DashboardResponse.RequiereAccion;
 import com.uade.tpo.marketplace.controllers.dashboard.DashboardResponse.Reputacion;
 import com.uade.tpo.marketplace.controllers.resenas.ResenaResponse;
@@ -29,7 +27,6 @@ import com.uade.tpo.marketplace.exceptions.RolNoComerciaException;
 import com.uade.tpo.marketplace.exceptions.UsuarioNoEncontradoException;
 import com.uade.tpo.marketplace.repository.EnvioRepository;
 import com.uade.tpo.marketplace.repository.FotoRepository;
-import com.uade.tpo.marketplace.repository.ItemWishlistRepository;
 import com.uade.tpo.marketplace.repository.OrdenDeCompraRepository;
 import com.uade.tpo.marketplace.repository.ProductoRepository;
 import com.uade.tpo.marketplace.repository.ResenaRepository;
@@ -44,12 +41,11 @@ public class DashboardServiceImpl implements DashboardService {
     private final EnvioRepository envioRepository;
     private final FotoRepository fotoRepository;
     private final ResenaRepository resenaRepository;
-    private final ItemWishlistRepository itemWishlistRepository;
     private final AutorizacionService autorizacion;
 
     /**
      * Pre : el id del vendedor.
-     * Post: las cuatro secciones del tablero. Las cuentas se hacen del lado del
+     * Post: las tres secciones del tablero. Las cuentas se hacen del lado del
      *       servidor a proposito: si las hiciera el front, dos pantallas
      *       podrian mostrar numeros distintos del mismo hecho. Tira
      *       RolNoComerciaException para el ADMIN y el DESPACHANTE, que no
@@ -67,7 +63,6 @@ public class DashboardServiceImpl implements DashboardService {
         return new DashboardResponse(
                 requiereAccion(productos, envios),
                 plata(ordenes),
-                rendimiento(productos),
                 reputacion(resenas, envios));
     }
 
@@ -136,32 +131,6 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /**
-     * Pre : los productos del vendedor.
-     * Post: que tan bien andan sus publicaciones. La conversion cruza visitas
-     *       con ventas: un producto muy visto que no vende suele ser un
-     *       problema de precio, y uno que nadie mira, de titulo o de foto. Los
-     *       guardados en wishlist son demanda contenida: gente que lo quiere y
-     *       todavia no lo compro.
-     */
-    private Rendimiento rendimiento(List<Producto> productos) {
-        long visitas = productos.stream()
-                .mapToLong(p -> p.getVistos() == null ? 0 : p.getVistos()).sum();
-
-        long vendidos = productos.stream()
-                .mapToLong(p -> p.getVendidos() == null ? 0 : p.getVendidos()).sum();
-
-        long guardados = productos.stream()
-                .mapToLong(p -> itemWishlistRepository.findByProductoId(p.getId()).size()).sum();
-
-        Double conversion = visitas == 0 ? null
-                : Math.round(vendidos * 10000.0 / visitas) / 100.0;
-
-        return new Rendimiento(visitas, conversion, guardados,
-                destacado(productos, p -> p.getVendidos() == null ? 0 : p.getVendidos()),
-                destacado(productos, p -> p.getVistos() == null ? 0 : p.getVistos()));
-    }
-
-    /**
      * Pre : las resenas de sus productos y sus envios.
      * Post: como lo ven los compradores y cuanto tarda en despachar. El tiempo
      *       sale de las dos fechas del envio, y es el dato que despues puede
@@ -189,21 +158,6 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
 
         return new Reputacion(promedio, resenas.size(), dias, ultimas);
-    }
-
-    /**
-     * Pre : los productos y como medirlos.
-     * Post: el que va primero segun esa medida, o null si no hay ninguno o si
-     *       todos estan en cero: destacar un producto con cero ventas seria
-     *       decir algo que no significa nada.
-     */
-    private ProductoDestacado destacado(List<Producto> productos,
-            java.util.function.ToLongFunction<Producto> medida) {
-        return productos.stream()
-                .max(Comparator.comparingLong(medida))
-                .filter(p -> medida.applyAsLong(p) > 0)
-                .map(p -> new ProductoDestacado(p.getId(), p.getNombre(), medida.applyAsLong(p)))
-                .orElse(null);
     }
 
     private MetodoEntrega metodoDe(Envio envio) {

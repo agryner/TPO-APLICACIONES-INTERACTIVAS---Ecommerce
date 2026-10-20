@@ -13,7 +13,6 @@ import lombok.Data;
 public class DashboardResponse {
     private RequiereAccion requiereAccion;
     private Plata plata;
-    private Rendimiento rendimiento;
     private Reputacion reputacion;
 
     @Data
@@ -37,28 +36,10 @@ public class DashboardResponse {
 
     @Data
     @AllArgsConstructor
-    public static class Rendimiento {
-        private long visitas;
-        private Double conversion;
-        private long guardadosEnWishlist;
-        private ProductoDestacado masVendido;
-        private ProductoDestacado masVisto;
-    }
-
-    @Data
-    @AllArgsConstructor
     public static class Reputacion {
         private Double promedio;
         private long cantidadResenas;
         private Double diasPromedioDespacho;
         private List<ResenaResponse> ultimasResenas;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class ProductoDestacado {
-        private Long id;
-        private String nombre;
-        private long cantidad;
     }
 }

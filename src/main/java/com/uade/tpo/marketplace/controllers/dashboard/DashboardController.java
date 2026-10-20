@@ -22,9 +22,9 @@ public class DashboardController {
     /**
      * Pre : solo el token. No recibe ningun id: el tablero es siempre el
      *       propio.
-     * Post: las cuatro secciones, en el orden en que el vendedor las mira: lo
-     *       que requiere accion, la plata, el rendimiento de las publicaciones
-     *       y la reputacion. 403 para el ADMIN y el DESPACHANTE, que no venden.
+     * Post: las tres secciones, en el orden en que el vendedor las mira: lo
+     *       que requiere accion, la plata y la reputacion. 403 para el ADMIN y
+     *       el DESPACHANTE, que no venden.
      */
     @GetMapping
     public ResponseEntity<DashboardResponse> getDelVendedor(
