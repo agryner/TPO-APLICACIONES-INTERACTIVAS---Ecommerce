@@ -18,4 +18,6 @@ public enum TipoNotificacion {
     FOTO_VERIFICADA,
     // A los admins, cuando una foto queda esperando revision manual.
     FOTO_PENDIENTE,
+    // A la otra parte de la orden, cuando le escriben por el chat.
+    MENSAJE
 }
